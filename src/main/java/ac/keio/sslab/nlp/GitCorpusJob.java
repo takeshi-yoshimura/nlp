@@ -1,6 +1,8 @@
 package ac.keio.sslab.nlp;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
@@ -9,9 +11,11 @@ import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
@@ -63,6 +67,7 @@ public class GitCorpusJob implements NLPJob {
 		options.addOption("u", "until", true, "End object ref to be uploaded. Default is HEAD.");
 		options.addOption("f", "file", true, "target file or directory path in git repository. Default is the top of the input directory.");
 		options.addOption("sl", "stableLinux", false, "Get all the commits for stable Linux (if specified, ignore -s and -u)");
+		options.addOption("c", "commitFile", false, "File for commits to be extracted");
 		return options;
 	}
 
@@ -110,7 +115,7 @@ public class GitCorpusJob implements NLPJob {
 		return logs;
 	}
 
-	protected void iterateAndWrite(Iterator<RevCommit> logs, SequenceFile.Writer writer) throws Exception {
+	protected void iterateAndWrite(Iterator<RevCommit> logs, SequenceFile.Writer writer, Set<String> commits) throws Exception {
 		MyAnalyzer analyzer = new MyAnalyzer();
 		Text key = new Text(); Text value = new Text();
 		while (logs.hasNext()) {
@@ -119,6 +124,8 @@ public class GitCorpusJob implements NLPJob {
 				continue;
 			}
 			System.err.println("Writing commit " + rev.getId().getName());
+			if (commits != null && !commits.contains(rev.getId().getName()))
+				continue;
 			key.set(rev.getId().getName());
 			
 			StringBuilder preprocessed = new StringBuilder();
@@ -177,6 +184,23 @@ public class GitCorpusJob implements NLPJob {
 		String fileStr = null;
 		if (args.containsKey("f")) {
 			fileStr = args.get("f");
+		}
+		Set<String> commits = null;
+		if (args.containsKey("c")) {
+			try {
+				commits = new HashSet<String>();
+				File file = new File(args.get("c"));
+				BufferedReader br = new BufferedReader(new FileReader(file));
+				String str = br.readLine();
+				while(str != null) {
+					commits.add(str);
+					str = br.readLine();
+				}
+				br.close();
+			} catch (Exception e) {
+				System.err.println("Failed to load " + args.get("c"));
+				return;
+			}
 		}
 
 		Repository repo = null;
@@ -243,7 +267,7 @@ public class GitCorpusJob implements NLPJob {
 						lts.put(e2.getKey() + " - " + e2.getValue(), 
 								sdf.format(new Date(since * 1000)) + " - " + sdf.format(new Date(until * 1000)));
 						Iterator<RevCommit> logs = getIterator(repo, git, e2.getKey(), e2.getValue(), null);
-						iterateAndWrite(logs, writer);
+						iterateAndWrite(logs, writer, commits);
 					}
 				}
 				System.out.println("Detected long-term stable versions:");
@@ -255,7 +279,7 @@ public class GitCorpusJob implements NLPJob {
 				pw.close();
 			} else {
 				Iterator<RevCommit> logs = getIterator(repo, git, sinceStr, untilStr, fileStr);
-				iterateAndWrite(logs, writer);
+				iterateAndWrite(logs, writer, commits);
 			}
 			fs.mkdirs(outputPath.getParent());
 			fs.rename(tmpOutputPath, outputPath);
