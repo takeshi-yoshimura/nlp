@@ -47,7 +47,7 @@ public class CVB0 extends RestartableLDAJob {
 		}
 		reader.close();
 		if (fs.exists(hdfs.splitMatrixPath)) {
-			fs.delete(hdfs.matrixPath, true);
+			fs.delete(hdfs.splitMatrixPath, true);
 		}
 		fs.mkdirs(hdfs.splitMatrixPath);
 		int chunks = 1;

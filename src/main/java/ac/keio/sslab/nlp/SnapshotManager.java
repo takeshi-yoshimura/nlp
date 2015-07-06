@@ -8,7 +8,7 @@ import org.apache.commons.cli.Options;
 public class SnapshotManager implements NLPJob {
 
 	protected List<NLPJob> jobs;
-	protected final NLPConf conf = new NLPConf();
+	NLPConf conf = NLPConf.getInstance();
 
 	public SnapshotManager(List<NLPJob> jobs) {
 		this.jobs = jobs;

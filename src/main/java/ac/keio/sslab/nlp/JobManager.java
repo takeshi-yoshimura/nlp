@@ -12,7 +12,7 @@ import org.json.JSONObject;
 
 public class JobManager {
 
-	protected final NLPConf conf = new NLPConf();
+	protected NLPConf conf = NLPConf.getInstance();
 	protected File argFile;
 	protected File lockFile;
 

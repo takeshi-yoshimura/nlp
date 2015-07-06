@@ -171,7 +171,7 @@ public class JobUtils {
 	}
 
 	public static void listJobs(String jobName) {
-		NLPConf conf = new NLPConf();
+		NLPConf conf = NLPConf.getInstance();
 		File argFile = new File(conf.localArgFile, jobName);
 		argFile.getParentFile().mkdirs();
 		try {

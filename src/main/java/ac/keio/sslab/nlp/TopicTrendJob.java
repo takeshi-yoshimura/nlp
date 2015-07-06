@@ -36,7 +36,7 @@ import ac.keio.sslab.nlp.lda.TopicReader;
 
 public class TopicTrendJob implements NLPJob {
 
-	NLPConf conf = new NLPConf();
+	NLPConf conf = NLPConf.getInstance();
 
 	@Override
 	public String getJobName() {

@@ -22,15 +22,18 @@ public class CliMain {
 	protected Map<String, NLPJob> jobs;
 	protected NLPConf conf;
 
-	public CliMain() {
+	public CliMain(String confFile) {
 		jobs = new HashMap<String, NLPJob>();
-		conf = new NLPConf();
+		this.conf = NLPConf.getInstance();
+		this.conf.loadConfFile(confFile);
 		this.jobs.put("help", null);
 		this.jobs.put("bg", null);
 	}
 
-	public CliMain(List<NLPJob> jobs) {
+	public CliMain(List<NLPJob> jobs, String confFile) {
 		this.jobs = new HashMap<String, NLPJob>();
+		this.conf = NLPConf.getInstance();
+		this.conf.loadConfFile(confFile);
 		for (NLPJob job: jobs) {
 			addJob(job);
 		}
@@ -114,7 +117,6 @@ public class CliMain {
 			System.out.print(c + " ");
 		}
 		pb.command(cmd);
-		NLPConf conf = new NLPConf();
 		File outputDir = new File(conf.localLogFile, job.getJobName() + "/" + jobID);
 		outputDir.mkdirs();
 		File stdoutFile = new File(outputDir, "stdout");
@@ -205,6 +207,13 @@ public class CliMain {
 	}
 
 	public static void main(String [] args) {
+		String confFile = "";
+		for (int i = 0; i < args.length; i++) {
+			if (args[i].startsWith("NLPCONF=")) {
+				confFile = args[i].substring("NLPCONF=".length(), args[i].length());
+				System.out.println("Use configuration: " + new File(confFile).getAbsolutePath());
+			}
+		}
 		List<NLPJob> jobs = new ArrayList<NLPJob>();
 		jobs.add(new GitSetupJob());
 		jobs.add(new GitCorpusJob());
@@ -214,11 +223,10 @@ public class CliMain {
 		jobs.add(new ExtractGroupJob());
 		jobs.add(new TopDownJob());
 		jobs.add(new TopicTrendJob());
-		jobs.add(new LinuxPatchJob());
 		jobs.add(new LoadBugResultJob());
 
 		jobs.add(new SnapshotManager(jobs));
 
-		(new CliMain(jobs)).run(args);
+		(new CliMain(jobs, confFile)).run(args);
 	}
 }

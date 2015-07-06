@@ -47,7 +47,7 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 public class GitCorpusJob implements NLPJob {
 
 	public static final String delimiter = " ";
-	protected final NLPConf conf = new NLPConf();
+	NLPConf conf = NLPConf.getInstance();
 
 	@Override
 	public String getJobName() {

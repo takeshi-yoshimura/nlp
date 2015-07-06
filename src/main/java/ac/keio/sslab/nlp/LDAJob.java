@@ -21,7 +21,7 @@ import ac.keio.sslab.nlp.lda.Seq2sparseSnapshot;
 
 public class LDAJob implements NLPJob {
 	
-	protected final NLPConf conf = new NLPConf();
+	protected NLPConf conf = NLPConf.getInstance();
 
 	@Override
 	public String getJobName() {

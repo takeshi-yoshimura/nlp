@@ -18,7 +18,7 @@ import org.eclipse.jgit.util.FileUtils;
 
 public class GitSetupJob implements NLPJob {
 
-	NLPConf conf = new NLPConf();
+	NLPConf conf = NLPConf.getInstance();
 
 	@Override
 	public String getJobName() {

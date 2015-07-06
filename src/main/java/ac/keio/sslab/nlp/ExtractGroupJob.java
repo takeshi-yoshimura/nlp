@@ -19,7 +19,7 @@ import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
 
 public class ExtractGroupJob implements NLPJob {
 
-	NLPConf conf = new NLPConf();
+	NLPConf conf = NLPConf.getInstance();
 	@Override
 	public String getJobName() {
 		return "extractGroup";

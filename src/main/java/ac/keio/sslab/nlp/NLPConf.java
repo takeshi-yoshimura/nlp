@@ -1,40 +1,42 @@
 package ac.keio.sslab.nlp;
 
 import java.io.File;
+import java.io.FileInputStream;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.Path;
+import org.json.JSONObject;
 
 //TODO: use Java property
 public class NLPConf {
 
-	public final Path rootPath;
-	public final File localRootFile;
-	public final Path ldaPath;
-	public final Path corpusPath;
-	public final Path topdownPath;
-	public final Path tmpPath;
+	public Path rootPath;
+	public File localRootFile;
+	public Path ldaPath;
+	public Path corpusPath;
+	public Path topdownPath;
+	public Path tmpPath;
 
-	public final File localLogFile;
-	public final File localLdaFile;
-	public final File localGitFile;
-	public final File localCorpusFile;
-	public final File localArgFile;
-	public final File localLockFile;
-	public final File localTmpFile;
+	public File localLogFile;
+	public File localLdaFile;
+	public File localGitFile;
+	public File localCorpusFile;
+	public File localArgFile;
+	public File localLockFile;
+	public File localTmpFile;
 
-	public final File finalOutputFile;
-	public final File finalStableCommitStatsFile;
+	public File finalOutputFile;
+	public File finalStableCommitStatsFile;
 
-	public static final String nlpDirName = "/user/yos/nlp/";
-	public static final String nlpLocalDirName = "/var/lib/nlp";
-	public static final String linuxPatchFile = "linux_patch";
-	public static final String tmpDirName = "/tmp/nlp/";
+	public static String nlpDirName = "/nlp/";
+	public static String nlpLocalDirName = "/var/lib/nlp";
+	public static String tmpDirName = "/tmp/nlp/";
 	public static final String logDirName = "log";
 	public static final String LDADirName = "lda";
 	public static final String gitDirName = "git";
 	public static final String tpdownDirName = "topdown";
 	public static final String corpusDirName = "corpus";
-	
+
 	public static final String finalOutputDirName = "final";
 	public static final String finalStableCommitStatsFileName = "stable-commits";
 
@@ -46,10 +48,13 @@ public class NLPConf {
 	public static final String argDirName = "ARGUMENT";
 	public static final String lockDirName = "LOCK";
 
-	public static final String numCAnalyzerThreads = "16";
 	public static final int maxTopicTerms = 10;
 
-	public NLPConf() {
+	protected static NLPConf instance = new NLPConf();
+	public static NLPConf getInstance() {
+		return instance;
+	}
+	protected void resetConf() {
 		rootPath = new Path(nlpDirName);
 		localRootFile = new File(nlpLocalDirName);
 		ldaPath = new Path(rootPath, LDADirName);
@@ -64,8 +69,37 @@ public class NLPConf {
 		localArgFile = new File(localRootFile, argDirName);
 		localLockFile = new File(localRootFile, lockDirName);
 		localTmpFile = new File(tmpDirName);
-		
+
 		finalOutputFile = new File(localRootFile, finalOutputDirName);
 		finalStableCommitStatsFile = new File(finalOutputFile, finalStableCommitStatsFileName);
+	}
+
+	public void loadConfFile(String confFileName) {
+		try {
+			FileInputStream inputStream = new FileInputStream(confFileName);
+			JSONObject jobJson = new JSONObject(IOUtils.toString(inputStream));
+			String tmpNlpDirName = nlpDirName, tmpNlpLocalDirName = nlpLocalDirName, tmpTmpDirName = tmpDirName;
+			if (jobJson.has("nlpDirName")) {
+				tmpNlpDirName = jobJson.getString("nlpDirName");
+			}
+			if (jobJson.has("nlpLocalDirName")) {
+				tmpNlpLocalDirName = jobJson.getString("nlpLocalDirName");
+			}
+			if (jobJson.has("tmpDirName")) {
+				tmpTmpDirName = jobJson.getString("tmpDirName");
+			}
+			inputStream.close();
+			nlpDirName = tmpNlpDirName;
+			nlpLocalDirName = tmpNlpLocalDirName;
+			tmpDirName = tmpTmpDirName;
+		} catch (Exception e) {
+			System.err.println("Reading json " + confFileName + " failed: " + e.toString());
+			System.err.println("use default values.");
+		}
+		resetConf();
+	}
+
+	private NLPConf() {
+		resetConf();
 	}
 }

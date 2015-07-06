@@ -1,51 +1,47 @@
 #!/bin/bash
 
-NLP_BIN=`dirname ${0}`/target/nlp-*-jar-with-dependencies.jar
-if [ `echo ${PATH} | grep -c WINDOWS` -eq 0 ]; then
-	export HADOOP_MAPRED_HOME=/usr/lib/hadoop-mapreduce
-	export HADOOP_HOMES=("/usr/lib/hadoop" "/usr/lib/hadoop-hdfs" "/usr/lib/hadoop-mapreduce" "/usr/lib/hadoop-yarn")
-	export MAHOUT_HOME=/var/lib/nlp/mahout-0.9-cdh5.2.1
-	export HADOOP_CONF_DIR=/etc/hadoop/conf
+NLPDIR=`dirname ${0}`
+NLP_BIN=${NLPDIR}/target/nlp-*-jar-with-dependencies.jar
 
-	for f in `find ${HADOOP_CONF_DIR}/ -name "*.sh"`; do
-	  . ${f};
-	done
+export HADOOP_MAPRED_HOME=/home/yoshimura/nlp/hadoop/hadoop-mapreduce
+export HADOOP_HOMES=("/home/yoshimura/nlp/hadoop/hadoop" "/home/yoshimura/nlp/hadoop/hadoop-hdfs" "/home/yoshimura/nlp/hadoop/hadoop-mapreduce" "/home/yoshimura/nlp/hadoop/hadoop-yarn")
+export MAHOUT_HOME=/var/lib/nlp/mahout-0.9-cdh5.2.1
+export HADOOP_CONF_DIR=/home/yoshimura/nlp/hadoop/conf
 
-	export CLASSPATH=${CLASSPATH}:${MAHOUT_HOME}/src/conf:${HADOOP_CONF_DIR}:$JAVA_HOME/lib/tools.jar
+for f in `find ${HADOOP_CONF_DIR}/ -name "*.sh"`; do
+  . ${f};
+done
 
-	for d in ${HADOOP_HOMES[@]}; do
-		for f in `find ${d} -name "*.jar"`; do
-			CLASSPATH=${CLASSPATH}:$f;
-		done
-	done
+export CLASSPATH=${CLASSPATH}:${MAHOUT_HOME}/src/conf:${HADOOP_CONF_DIR}:$JAVA_HOME/lib/tools.jar
 
-	# add release dependencies to CLASSPATH
-	for f in $MAHOUT_HOME/mahout-*.jar; do
+for d in ${HADOOP_HOMES[@]}; do
+	for f in `find ${d} -name "*.jar"`; do
 		CLASSPATH=${CLASSPATH}:$f;
 	done
+done
 
-	# add dev targets if they exist
-	for f in $MAHOUT_HOME/examples/target/mahout-examples-*-job.jar $MAHOUT_HOME/mahout-examples-*-job.jar ; do
-		CLASSPATH=${CLASSPATH}:$f;
-	done
+# add release dependencies to CLASSPATH
+for f in $MAHOUT_HOME/mahout-*.jar; do
+	CLASSPATH=${CLASSPATH}:$f;
+done
 
-	# add release dependencies to CLASSPATH
-	for f in $MAHOUT_HOME/lib/*.jar; do
-		CLASSPATH=${CLASSPATH}:$f;
-	done
+# add dev targets if they exist
+for f in $MAHOUT_HOME/examples/target/mahout-examples-*-job.jar $MAHOUT_HOME/mahout-examples-*-job.jar ; do
+	CLASSPATH=${CLASSPATH}:$f;
+done
 
-	# add development dependencies to CLASSPATH
-	for f in $MAHOUT_HOME/examples/target/dependency/*.jar; do
-	  CLASSPATH=${CLASSPATH}:$f;
-	done
+# add release dependencies to CLASSPATH
+for f in $MAHOUT_HOME/lib/*.jar; do
+	CLASSPATH=${CLASSPATH}:$f;
+done
 
-	for f in ${NLP_BIN}; do
-		CLASSPATH=${CLASSPATH}:${f}
-	done
-else
-	for f in ${NLP_BIN}; do
-		CLASSPATH="${CLASSPATH};${f}"
-	done
-fi
-export CLASSPATH=${CLASSPATH}
-java ac.keio.sslab.nlp.CliMain ${@}
+# add development dependencies to CLASSPATH
+for f in $MAHOUT_HOME/examples/target/dependency/*.jar; do
+  CLASSPATH=${CLASSPATH}:$f;
+done
+
+for f in ${NLP_BIN}; do
+	CLASSPATH=${CLASSPATH}:${f};
+done
+
+java ac.keio.sslab.nlp.CliMain ${@} NLPCONF=${NLPDIR}/conf.json

@@ -17,7 +17,7 @@ import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
 
 public class DeduplicateCorpusJob implements NLPJob {
 
-	NLPConf conf = new NLPConf();
+	NLPConf conf = NLPConf.getInstance();
 	@Override
 	public String getJobName() {
 		return "dedupCorpus";

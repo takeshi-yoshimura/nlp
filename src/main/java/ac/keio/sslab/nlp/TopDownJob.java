@@ -10,7 +10,7 @@ import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
 
 public class TopDownJob implements NLPJob {
 
-	NLPConf conf = new NLPConf();
+	NLPConf conf = NLPConf.getInstance();
 
 	@Override
 	public String getJobName() {
