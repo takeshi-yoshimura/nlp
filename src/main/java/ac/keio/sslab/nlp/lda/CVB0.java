@@ -1,7 +1,5 @@
 package ac.keio.sslab.nlp.lda;
 
-import java.io.IOException;
-
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.GlobFilter;
@@ -19,8 +17,12 @@ import ac.keio.sslab.nlp.JobUtils;
 
 public class CVB0 extends RestartableLDAJob {
 
-	public CVB0(FileSystem fs, LDAHDFSFiles hdfs) {
+	int numMappers, numReducers;
+
+	public CVB0(FileSystem fs, LDAHDFSFiles hdfs, int numMappers, int numReducers) {
 		super(fs, hdfs);
+		this.numMappers = numMappers;
+		this.numReducers = numReducers;
 	}
 
 	@Override
@@ -34,42 +36,44 @@ public class CVB0 extends RestartableLDAJob {
 	}
 
 	@Override
-	protected String[] arguments(Path corpusPath, int numLDATopics, int numLDAIterations) {
-		try {
-			SequenceDirectoryReader reader = new SequenceDirectoryReader(hdfs.matrixPath, fs.getConf());
+	public void postRun(Path corpusPath, int numLDATopics, int numLDAIterations) throws Exception {
+		SequenceDirectoryReader reader = new SequenceDirectoryReader(hdfs.matrixPath, fs.getConf());
 
-			IntWritable key = new IntWritable();
-			VectorWritable val = new VectorWritable();
-			long size = 0;
-			while (reader.next(key, val)) {
-				size++;
-			}
-			reader.close();
-			fs.mkdirs(hdfs.splitMatrixPath);
-			int chunks = 1;
-			reader = new SequenceDirectoryReader(hdfs.matrixPath, fs.getConf());
-			Writer.Option fileOpt = Writer.file(new Path(hdfs.splitMatrixPath, "chunk-" + chunks));
-			Writer.Option keyOpt = Writer.keyClass(IntWritable.class);
-			Writer.Option valueOpt = Writer.valueClass(VectorWritable.class);
-			Writer.Option compOpt = Writer.compression(CompressionType.NONE);
-			Writer writer = SequenceFile.createWriter(fs.getConf(), fileOpt, keyOpt, valueOpt, compOpt);
-			long count = 0;
-			while (reader.next(key, val)) {
-				if (count++ > size / 20) {
-					writer.close();
-					chunks++;
-					count = 0;
-					fileOpt = Writer.file(new Path(hdfs.splitMatrixPath, "chunk-" + chunks));
-					writer = SequenceFile.createWriter(fs.getConf(), fileOpt, keyOpt, valueOpt, compOpt);
-				}
-				writer.append(key, val);
-			}
-			writer.close();
-			reader.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
+		IntWritable key = new IntWritable();
+		VectorWritable val = new VectorWritable();
+		long size = 0;
+		while (reader.next(key, val)) {
+			size++;
 		}
+		reader.close();
+		if (fs.exists(hdfs.splitMatrixPath)) {
+			fs.delete(hdfs.matrixPath, true);
+		}
+		fs.mkdirs(hdfs.splitMatrixPath);
+		int chunks = 1;
+		reader = new SequenceDirectoryReader(hdfs.matrixPath, fs.getConf());
+		Writer.Option fileOpt = Writer.file(new Path(hdfs.splitMatrixPath, "chunk-" + chunks));
+		Writer.Option keyOpt = Writer.keyClass(IntWritable.class);
+		Writer.Option valueOpt = Writer.valueClass(VectorWritable.class);
+		Writer.Option compOpt = Writer.compression(CompressionType.NONE);
+		Writer writer = SequenceFile.createWriter(fs.getConf(), fileOpt, keyOpt, valueOpt, compOpt);
+		long count = 0;
+		while (reader.next(key, val)) {
+			if (count++ > size / numMappers) {
+				writer.close();
+				chunks++;
+				count = 0;
+				fileOpt = Writer.file(new Path(hdfs.splitMatrixPath, "chunk-" + chunks));
+				writer = SequenceFile.createWriter(fs.getConf(), fileOpt, keyOpt, valueOpt, compOpt);
+			}
+			writer.append(key, val);
+		}
+		writer.close();
+		reader.close();
+	}
+
+	@Override
+	protected String[] arguments(Path corpusPath, int numLDATopics, int numLDAIterations) {
 		return new String [] {
 				"--input", hdfs.splitMatrixPath.toString(),
 				"--dictionary", hdfs.dictionaryPath.toString(),
@@ -85,7 +89,7 @@ public class CVB0 extends RestartableLDAJob {
 				"--iteration_block_size", Integer.toString(10),
 				"--test_set_fraction", Double.toString(0.1),
 				"--random_seed", Long.toString(System.nanoTime() % 10000),
-				"--num_reduce_tasks", Integer.toString(15),
+				"--num_reduce_tasks", Integer.toString(numReducers),
 		};
 	}
 

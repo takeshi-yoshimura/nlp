@@ -183,7 +183,7 @@ public class TopicTrendJob implements NLPJob {
 			versionFile.mkdirs();
 			System.out.println("Write topic trends by kernel versions: " + versionFile.getAbsolutePath());
 			for (Entry<Integer, Map<Integer, Double>> e: pTopicVer.entrySet()) {
-				PrintWriter pw = JobUtils.getPrintWriter(new File(versionFile, topicNames.get(e.getKey()) + ".csv"));
+				PrintWriter pw = JobUtils.getPrintWriter(new File(versionFile, e.getKey() + "-" + topicNames.get(e.getKey()) + ".csv"));
 				for (Entry<Integer, Double> ver: e.getValue().entrySet()) {
 					pw.println(vers.get(ver.getKey()) + "," + ver.getValue().toString());
 				}
@@ -197,7 +197,7 @@ public class TopicTrendJob implements NLPJob {
 			dirFile.mkdirs();
 			System.out.println("Write topic trends by kernel directories: " + dirFile.getAbsolutePath());
 			for (Entry<Integer, Map<String, Double>> e: pTopicDir.entrySet()) {
-				PrintWriter pw = JobUtils.getPrintWriter(new File(dirFile, topicNames.get(e.getKey()) + ".csv"));
+				PrintWriter pw = JobUtils.getPrintWriter(new File(dirFile, e.getKey() + "-" + topicNames.get(e.getKey()) + ".csv"));
 				for (Entry<String, Double> ver: e.getValue().entrySet()) {
 					pw.println(ver.getKey() + "," + ver.getValue().toString());
 				}

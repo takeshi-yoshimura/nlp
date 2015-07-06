@@ -39,6 +39,8 @@ public class LDAJob implements NLPJob {
 		options.addOption("c", "corpusID", true, "ID of a corpus.");
 		options.addOption("t", "numTopics", true, "Number of topics. Default is 300.");
 		options.addOption("x", "numIterations", true, "Number of iterations. Default is 1000.");
+		options.addOption("nM", "numMappers", true, "Numer of Mappers in CVB0. Default is 20.");
+		options.addOption("nR", "numReducers", true, "Number of Reducers in CVB0. Default is 15.");
 		/* Do not allow to change other smoothing parameters of LDA.
 		 * Because they confuse users and it is hard for users to recognize the effect.
 		 * Note that LDA itself cannot discover the perfect parameters (discovers only local-minimized, likelyhood results).
@@ -62,6 +64,15 @@ public class LDAJob implements NLPJob {
 			return;
 		}
 		Path corpusPath = new Path(conf.corpusPath, args.get("c"));
+		
+		int numMappers = 20;
+		if (args.containsKey("nM")) {
+			numMappers = Integer.parseInt(args.get("nM"));
+		}
+		int numReducers = 15;
+		if (args.containsKey("nR")) {
+			numReducers = Integer.parseInt(args.get("nR"));
+		}
 
 		FileSystem fs = null;
 		try {
@@ -95,7 +106,7 @@ public class LDAJob implements NLPJob {
 			return;
 		}
 
-		CVB0 cvb = new CVB0(fs, hdfs);
+		CVB0 cvb = new CVB0(fs, hdfs, numMappers, numReducers);
 		try {
 			cvb.start(corpusPath, numTopics, numIterations);
 		} catch (Exception e) {

@@ -29,6 +29,10 @@ public abstract class RestartableLDAJob {
 		}
 		argPath = new Path(outputPath, LDAFiles.argumentFileName);
 	}
+	
+	public void postRun(Path corpusPath, int numLDATopics, int numLDAIterations) throws Exception {
+		/* do nothing by default */
+	}
 
 	public void start(Path corpusPath, int numLDATopics, int numLDAIterations) throws Exception {
 		String [] args = null;
@@ -49,6 +53,7 @@ public abstract class RestartableLDAJob {
 		}
 
 		try {
+			postRun(corpusPath, numLDATopics, numLDAIterations);
 			getMahoutJobInstance().run(args);
 		} catch (Exception e) {
 			recover();

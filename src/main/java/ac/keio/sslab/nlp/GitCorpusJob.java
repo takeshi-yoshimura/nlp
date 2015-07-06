@@ -67,7 +67,7 @@ public class GitCorpusJob implements NLPJob {
 		options.addOption("u", "until", true, "End object ref to be uploaded. Default is HEAD.");
 		options.addOption("f", "file", true, "target file or directory path in git repository. Default is the top of the input directory.");
 		options.addOption("sl", "stableLinux", false, "Get all the commits for stable Linux (if specified, ignore -s and -u)");
-		options.addOption("c", "commitFile", false, "File for commits to be extracted");
+		options.addOption("c", "commitFile", true, "File for commits to be extracted");
 		return options;
 	}
 
@@ -123,9 +123,9 @@ public class GitCorpusJob implements NLPJob {
 			if (rev.getParentCount() > 1) {//--no-merges
 				continue;
 			}
-			System.err.println("Writing commit " + rev.getId().getName());
 			if (commits != null && !commits.contains(rev.getId().getName()))
 				continue;
+			System.err.println("Writing commit " + rev.getId().getName());
 			key.set(rev.getId().getName());
 			
 			StringBuilder preprocessed = new StringBuilder();
