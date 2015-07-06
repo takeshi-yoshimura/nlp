@@ -1,47 +1,5 @@
 #!/bin/bash
 
-NLPDIR=`dirname ${0}`
-NLP_BIN=${NLPDIR}/target/nlp-*-jar-with-dependencies.jar
-
-export HADOOP_MAPRED_HOME=/home/yoshimura/nlp/hadoop/hadoop-mapreduce
-export HADOOP_HOMES=("/home/yoshimura/nlp/hadoop/hadoop" "/home/yoshimura/nlp/hadoop/hadoop-hdfs" "/home/yoshimura/nlp/hadoop/hadoop-mapreduce" "/home/yoshimura/nlp/hadoop/hadoop-yarn")
-export MAHOUT_HOME=/var/lib/nlp/mahout-0.9-cdh5.2.1
-export HADOOP_CONF_DIR=/home/yoshimura/nlp/hadoop/conf
-
-for f in `find ${HADOOP_CONF_DIR}/ -name "*.sh"`; do
-  . ${f};
-done
-
-export CLASSPATH=${CLASSPATH}:${MAHOUT_HOME}/src/conf:${HADOOP_CONF_DIR}:$JAVA_HOME/lib/tools.jar
-
-for d in ${HADOOP_HOMES[@]}; do
-	for f in `find ${d} -name "*.jar"`; do
-		CLASSPATH=${CLASSPATH}:$f;
-	done
-done
-
-# add release dependencies to CLASSPATH
-for f in $MAHOUT_HOME/mahout-*.jar; do
-	CLASSPATH=${CLASSPATH}:$f;
-done
-
-# add dev targets if they exist
-for f in $MAHOUT_HOME/examples/target/mahout-examples-*-job.jar $MAHOUT_HOME/mahout-examples-*-job.jar ; do
-	CLASSPATH=${CLASSPATH}:$f;
-done
-
-# add release dependencies to CLASSPATH
-for f in $MAHOUT_HOME/lib/*.jar; do
-	CLASSPATH=${CLASSPATH}:$f;
-done
-
-# add development dependencies to CLASSPATH
-for f in $MAHOUT_HOME/examples/target/dependency/*.jar; do
-  CLASSPATH=${CLASSPATH}:$f;
-done
-
-for f in ${NLP_BIN}; do
-	CLASSPATH=${CLASSPATH}:${f};
-done
-
+NLPDIR=/home/yos/nlp/src
+export CLASSPATH=`hadoop classpath`:${NLPDIR}/target/nlp-*-jar-with-dependencies.jar
 java ac.keio.sslab.nlp.CliMain ${@} NLPCONF=${NLPDIR}/conf.json
