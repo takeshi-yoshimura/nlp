@@ -16,6 +16,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 
+import ac.keio.sslab.statistics.CompareWithManualJob;
 import ac.keio.sslab.statistics.LoadBugResultJob;
 
 public class CliMain {
@@ -224,6 +225,7 @@ public class CliMain {
 		jobs.add(new TopDownJob());
 		jobs.add(new TopicTrendJob());
 		jobs.add(new LoadBugResultJob());
+		jobs.add(new CompareWithManualJob());
 
 		jobs.add(new SnapshotManager(jobs));
 
