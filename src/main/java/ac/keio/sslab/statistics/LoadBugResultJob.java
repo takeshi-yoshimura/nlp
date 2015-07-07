@@ -165,6 +165,10 @@ public class LoadBugResultJob implements NLPJob {
 				writeResults(bugs.getErrorSubClassByCluster(className), suberrorVar, suberrorCSV, suberrorArff, suberrorCount, fileName);
 				writeResults(bugs.getErrorSubClassByTrigger(className), suberrorVar, suberrorCSV, suberrorArff,suberrorCount,  fileName + "-by-trigger");
 				writeResults(bugs.getErrorSubClassByFailureSite(className), suberrorVar, suberrorCSV, suberrorArff,suberrorCount,  fileName + "-by-failuresite");
+				if (className.equals("hard state") || className.equals("soft state")) {
+					writeResults(bugs.getComponentByClusterWithErrorClassName(className), suberrorVar, suberrorCSV, suberrorArff, suberrorCount,
+							fileName + "-with-loc");
+				}
 			}
 
 			writeResults(bugs.getCrashByCluster(), varDir, csvDir, arffDir, countDir, "crash");

@@ -269,6 +269,29 @@ public class BugResult {
 		return getNewSubjectiveVarAndObjectiveVarStartsWith("errorsubclass-" + className + ":", "failuresite:");
 	}
 
+	public BugResult getComponentByClusterWithErrorClassName(String str) {
+		BugResult ret = new BugResult();
+		for (Entry<String, RawRecord> e: raw.entrySet()) {
+			Set<String> newSubjective = new HashSet<String>();
+			boolean hasStrError = false;
+			for (String subjectiveVarName: e.getValue().getSubjectiveVariables()) {
+				String errorClass = "errorclass:" + str;
+				String locClass = "fixedsubloc-";
+				if (subjectiveVarName.equals(errorClass)) {
+					hasStrError = true;
+				} else if (subjectiveVarName.startsWith(locClass)) {
+					newSubjective.add(subjectiveVarName.substring(locClass.length()).replace(':', '/'));
+				}
+			}
+			if (hasStrError) {
+				ret.raw.put(e.getKey(), new RawRecord(newSubjective, e.getValue().getObjectiveVariable()));
+			}
+		}
+		ret.errorToClass.putAll(errorToClass);
+		ret.errorToSubClass.putAll(errorToSubClass);
+		return ret;
+	}
+
 	public Map<String, String> getErrorToClassMap() {
 		Map<String, String> ret = new HashMap<String, String>();
 		ret.putAll(errorToClass);
