@@ -6,25 +6,20 @@ import java.io.FileReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.mahout.math.VectorWritable;
-import org.apache.mahout.math.Vector.Element;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.util.FileUtils;
 
-import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
 import ac.keio.sslab.nlp.JobUtils;
 import ac.keio.sslab.nlp.NLPConf;
 import ac.keio.sslab.nlp.NLPJob;
@@ -86,6 +81,7 @@ public class CompareWithManualJob implements NLPJob {
 		} catch (Exception e) {
 			System.err.println("Failed to load HDFS files " + hdfs.dictionaryPath + " or " + hdfs.topicPath);
 		}
+		System.out.println("Loaded " + topics.size() + " topics");
 		
 		System.out.println("Load manual results from " + manualFile.getAbsolutePath());
 		Set<String> tagNames = new HashSet<String>();
@@ -127,6 +123,7 @@ public class CompareWithManualJob implements NLPJob {
 			System.err.println("Failed to loead HDFS file " + hdfs.docIndexPath + " or " + hdfs.documentPath);
 			return;
 		}
+		System.out.println("Loaded " + ldaClass.size() + " shas and " + topicNames.size() + " topics");
 		
 		
 		Map<String, Map<String, IntTriple>> crossTables = new HashMap<String, Map<String, IntTriple>>();
@@ -155,47 +152,71 @@ public class CompareWithManualJob implements NLPJob {
 
 		File outDir = new File(conf.finalOutputFile, "compareWithManul");
 		if (outDir.exists()) {
-			FileUtils.delete(outDir, FileUtils.RECURSIVE);
+			try {
+				FileUtils.delete(outDir, FileUtils.RECURSIVE);
+			} catch (Exception e) {
+				System.err.println("failed to delete " + outDir.getAbsolutePath());
+				return;
+			}
 		}
 		File outputFile = new File(outDir, args.get("l"));
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		System.out.println("Write topic trends by kernel versions: " + versionFile.getAbsolutePath());
 
-		for (Entry<Integer, Map<Integer, Double>> e: pTopicVer.entrySet()) {
-			PrintWriter pw = JobUtils.getPrintWriter(new File(versionFile, e.getKey() + "-" + topicNames.get(e.getKey()) + ".csv"));
-			for (Entry<Integer, Double> ver: e.getValue().entrySet()) {
-				pw.println(vers.get(ver.getKey()) + "," + ver.getValue().toString());
+		Comparator<Entry<String, Double>> reverser = new Comparator<Entry<String, Double>>() {
+			public int compare(Entry<String, Double> e1, Entry<String, Double> e2) {
+				return e2.getValue().compareTo(e1.getValue());
+			}
+		};
+		try {
+			PrintWriter pw = JobUtils.getPrintWriter(new File(outputFile, "FMeasure.csv"));
+			pw.println("#tag,topic,F-measure,Precision(TP/(TP+FN)),Recall(TP/(TP+FP)),TP,FP,FN");
+			StringBuilder sb = new StringBuilder();
+			for (Entry<String, Map<String, IntTriple>> crossTable: crossTables.entrySet()) {
+				String tag = crossTable.getKey();
+				Map<String, Double> fmeasures = new HashMap<String, Double>();
+				Map<String, Double> precisions = new HashMap<String, Double>();
+				Map<String, Double> recalls = new HashMap<String, Double>();
+	
+				for (Entry<String, IntTriple> forTagEntry: crossTable.getValue().entrySet()) {
+					String topic = forTagEntry.getKey();
+					IntTriple tr = forTagEntry.getValue();
+					if (tr.TP + tr.FP == 0 || tr.TP + tr.FN == 0 || tr.TP == 0) {
+						continue;
+					}
+					double precision = (double)tr.TP / (tr.TP + tr.FN);
+					double recall = (double)tr.TP / (tr.TP + tr.FP);
+					precisions.put(topic, precision);
+					recalls.put(topic, recall);
+					fmeasures.put(topic, 2 * recall * precision / (recall + precision));
+				}
+				List<Entry<String, Double>> sorted = new ArrayList<Entry<String, Double>>(fmeasures.entrySet());
+				Collections.sort(sorted, reverser);
+				for (Entry<String, Double> e: sorted) {
+					String topic = e.getKey();
+					sb.append(tag).append(',').append(topic).append(e.getValue())
+					  .append(',').append(precisions.get(topic))
+					  .append(',').append(recalls.get(topic))
+					  .append(',').append(crossTables.get(tag).get(topic).TP);
+					pw.println(sb.toString());
+					sb.setLength(0);
+				}
 			}
 			pw.close();
+		} catch (Exception e) {
+			System.err.println("Failed to write " + new File(outputFile, "FMeasure.csv").getAbsolutePath());
 		}
+
 	}
 
 	@Override
 	public void takeSnapshot() {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public void restoreSnapshot() {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public boolean runInBackground() {
-		// TODO Auto-generated method stub
 		return false;
 	}
 

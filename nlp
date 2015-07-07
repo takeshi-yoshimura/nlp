@@ -1,5 +1,0 @@
-#!/bin/bash
-
-NLPDIR=/home/yos/nlp/src
-export CLASSPATH=`hadoop classpath`:${NLPDIR}/target/nlp-*-jar-with-dependencies.jar
-java ac.keio.sslab.nlp.CliMain ${@} NLPCONF=${NLPDIR}/conf.json

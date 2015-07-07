@@ -105,10 +105,9 @@ public class CliMain {
 		}
 		String jobID = argMap.get("j");
 		ProcessBuilder pb = new ProcessBuilder();
-		String dirPath = System.getProperty("user.dir");
 		List<String> cmd = new ArrayList<String>();
 		cmd.add("nohup");
-		cmd.add(dirPath + File.separator + "nlp");
+		cmd.add(conf.runPath);
 		cmd.add("fg"); //a hidden job name
 		cmd.add(job.getJobName());
 		for (String arg: args) {

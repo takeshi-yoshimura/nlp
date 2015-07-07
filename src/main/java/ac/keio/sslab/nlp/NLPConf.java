@@ -7,7 +7,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.Path;
 import org.json.JSONObject;
 
-//TODO: use Java property
 public class NLPConf {
 
 	public Path rootPath;
@@ -28,6 +27,7 @@ public class NLPConf {
 	public File finalOutputFile;
 	public File finalStableCommitStatsFile;
 
+	public String runPath = "/var/lib/nlp/run";
 	public static String nlpDirName = "/nlp/";
 	public static String nlpLocalDirName = "/var/lib/nlp";
 	public static String tmpDirName = "/tmp/nlp/";
@@ -78,7 +78,7 @@ public class NLPConf {
 		try {
 			FileInputStream inputStream = new FileInputStream(confFileName);
 			JSONObject jobJson = new JSONObject(IOUtils.toString(inputStream));
-			String tmpNlpDirName = nlpDirName, tmpNlpLocalDirName = nlpLocalDirName, tmpTmpDirName = tmpDirName;
+			String tmpNlpDirName = nlpDirName, tmpNlpLocalDirName = nlpLocalDirName, tmpTmpDirName = tmpDirName, tmpRunPath = runPath;
 			if (jobJson.has("nlpDirName")) {
 				tmpNlpDirName = jobJson.getString("nlpDirName");
 			}
@@ -88,10 +88,14 @@ public class NLPConf {
 			if (jobJson.has("tmpDirName")) {
 				tmpTmpDirName = jobJson.getString("tmpDirName");
 			}
+			if (jobJson.has("runPath")) {
+				tmpRunPath = jobJson.getString("runPath");
+			}
 			inputStream.close();
 			nlpDirName = tmpNlpDirName;
 			nlpLocalDirName = tmpNlpLocalDirName;
 			tmpDirName = tmpTmpDirName;
+			runPath = tmpRunPath;
 		} catch (Exception e) {
 			System.err.println("Reading json " + confFileName + " failed: " + e.toString());
 			System.err.println("use default values.");

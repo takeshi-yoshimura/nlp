@@ -1,0 +1,7 @@
+#!/bin/bash
+
+NLPBIN=`ls ~/src/nlp/target/nlp-*-jar-with-dependencies.jar`
+CONF=${NLPDIR}/conf.json
+
+java -cp `hadoop classpath`:${NLPBIN} \
+	 ac.keio.sslab.nlp.CliMain ${@} NLPCONF=${CONF}
