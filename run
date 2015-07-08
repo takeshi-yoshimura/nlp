@@ -1,6 +1,7 @@
 #!/bin/bash
 
-NLPBIN=`ls ~/src/nlp/target/nlp-*-jar-with-dependencies.jar`
+NLPDIR=/home/yoshimura/src/nlp
+NLPBIN=`ls ${NLPDIR}/target/nlp-*-jar-with-dependencies.jar`
 CONF=${NLPDIR}/conf.json
 
 java -cp `hadoop classpath`:${NLPBIN} \

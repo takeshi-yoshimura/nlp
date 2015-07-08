@@ -90,6 +90,8 @@ public class CompareWithManualJob implements NLPJob {
 			BufferedReader br = new BufferedReader(new FileReader(manualFile));
 			String line;
 			while ((line = br.readLine()) != null) {
+				if (line.isEmpty())
+					continue;
 				String[] splitLine = line.split(",");
 				Set<String> tags = new HashSet<String>(Arrays.asList(splitLine));
 				tags.remove(splitLine[0]);

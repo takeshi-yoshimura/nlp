@@ -114,57 +114,123 @@ public class GitCorpusJob implements NLPJob {
 		}
 		return logs;
 	}
+	
+	protected void writeSingle(SequenceFile.Writer writer, MyAnalyzer analyzer, Text key, Text value, RevCommit rev) throws Exception {
+		if (rev.getParentCount() > 1) {//--no-merges
+			return;
+		}
+		System.err.println("Writing commit " + rev.getId().getName());
+		key.set(rev.getId().getName());
+		
+		StringBuilder preprocessed = new StringBuilder();
+		for (String para: rev.getFullMessage().split("\n\n")) {
+			if (para.toLowerCase().indexOf("signed-off-by:") != -1 || para.toLowerCase().indexOf("cc:") != -1) {
+				continue;
+			}
+			preprocessed.append(para);
+			preprocessed.append(' ');
+		}
 
-	protected void iterateAndWrite(Iterator<RevCommit> logs, SequenceFile.Writer writer, Set<String> commits) throws Exception {
+		StringBuilder filtered = new StringBuilder();
+		Reader reader = new StringReader(preprocessed.toString());
+        TokenStream stream = analyzer.tokenStream("", reader);
+        CharTermAttribute term = stream.getAttribute(CharTermAttribute.class);
+        stream.reset();
+
+        while (stream.incrementToken()) {
+        	String word = term.toString();
+			if (word.matches("[0-9]+")) {
+				continue;
+			} else if ((word.matches("[a-f0-9]+") && !word.matches("[a-f]+")) || (word.matches("0x[a-f0-9]+"))) {
+				continue;
+			}
+			filtered.append(word.toLowerCase());
+			filtered.append(delimiter);
+        }
+        stream.end();
+        stream.close();
+		if (filtered.length() >= delimiter.length()) {
+			//strip the last delimiter
+			filtered.setLength(filtered.length() - delimiter.length());
+			//do not touch key
+			value.set(filtered.toString());
+			writer.append(key, value);
+		}
+	}
+
+	protected void writeCommits(Repository repo, Set<String> shas, SequenceFile.Writer writer) throws Exception {
+		MyAnalyzer analyzer = new MyAnalyzer();
+		Text key = new Text(); Text value = new Text();
+		RevWalk walk = new RevWalk(repo);
+		for (String sha: shas) {
+			RevCommit rev = walk.parseCommit(repo.resolve(sha));
+			writeSingle(writer, analyzer, key, value, rev);
+		}
+		analyzer.close();
+	}
+
+	protected void iterateAndWrite(Iterator<RevCommit> logs, SequenceFile.Writer writer) throws Exception {
 		MyAnalyzer analyzer = new MyAnalyzer();
 		Text key = new Text(); Text value = new Text();
 		while (logs.hasNext()) {
 			RevCommit rev = logs.next();
-			if (rev.getParentCount() > 1) {//--no-merges
-				continue;
-			}
-			if (commits != null && !commits.contains(rev.getId().getName()))
-				continue;
-			System.err.println("Writing commit " + rev.getId().getName());
-			key.set(rev.getId().getName());
-			
-			StringBuilder preprocessed = new StringBuilder();
-			for (String para: rev.getFullMessage().split("\n\n")) {
-				if (para.toLowerCase().indexOf("signed-off-by:") != -1 || para.toLowerCase().indexOf("cc:") != -1) {
-					continue;
-				}
-				preprocessed.append(para);
-				preprocessed.append(' ');
-			}
-
-			StringBuilder filtered = new StringBuilder();
-			Reader reader = new StringReader(preprocessed.toString());
-	        TokenStream stream = analyzer.tokenStream("", reader);
-            CharTermAttribute term = stream.getAttribute(CharTermAttribute.class);
-            stream.reset();
-
-	        while (stream.incrementToken()) {
-	        	String word = term.toString();
-				if (word.matches("[0-9]+")) {
-					continue;
-				} else if ((word.matches("[a-f0-9]+") && !word.matches("[a-f]+")) || (word.matches("0x[a-f0-9]+"))) {
-					continue;
-				}
-				filtered.append(word.toLowerCase());
-				filtered.append(delimiter);
-	        }
-	        stream.end();
-	        stream.close();
-			if (filtered.length() >= delimiter.length()) {
-				//strip the last delimiter
-				filtered.setLength(filtered.length() - delimiter.length());
-				//do not touch key
-				value.set(filtered.toString());
-				writer.append(key, value);
-			}
+			writeSingle(writer, analyzer, key, value, rev);
 		}
 		analyzer.close();
 	}
+	
+	protected void iterateAndWriteStable(Git git, Repository repo, SequenceFile.Writer writer) throws Exception {
+		RevWalk walk = new RevWalk(repo);
+		Map<String, String> rangeMap = new HashMap<String, String>();
+		for (Entry<String, Ref> e: repo.getTags().entrySet()) {
+			String tag = e.getKey();
+			if (tag.lastIndexOf("rc") != -1 || tag.lastIndexOf('-') != -1) { //ignore rc versions
+				continue;
+			} else if (!tag.startsWith("v")) {
+				continue;
+			}
+			String majorStr = tag.substring(0, tag.lastIndexOf('.'));
+			RevObject c = walk.peel(walk.parseAny(repo.resolve(tag)));
+			if (!(c instanceof RevCommit)) {
+				continue;
+			}
+			int time =  walk.parseCommit(repo.resolve(tag)).getCommitTime();
+			if (!rangeMap.containsKey(majorStr) && !tag.equals("v3") && !tag.equals("v2.6")) {
+				rangeMap.put(majorStr, tag);
+			} else {
+				String last = rangeMap.get(majorStr);
+				int prevUntil = walk.parseCommit(repo.resolve(last)).getCommitTime();
+				if (prevUntil < time) {
+					rangeMap.put(majorStr, tag);
+				}
+			}
+		}
+		Map<String, String> lts = new HashMap<String, String>();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
+		for (Entry<String, String> e2: rangeMap.entrySet()) {
+			ObjectId sinceRef = repo.resolve(e2.getKey());
+			ObjectId untilRef = repo.resolve(e2.getValue());
+			if (sinceRef == null || untilRef == null) {
+				continue;
+			}
+			long since = walk.parseCommit(sinceRef).getCommitTime();
+			long until = walk.parseCommit(untilRef).getCommitTime();
+			if ((until - since) / 3600 / 24 > 365) {
+				lts.put(e2.getKey() + " - " + e2.getValue(), 
+						sdf.format(new Date(since * 1000)) + " - " + sdf.format(new Date(until * 1000)));
+				Iterator<RevCommit> logs = getIterator(repo, git, e2.getKey(), e2.getValue(), null);
+				iterateAndWrite(logs, writer);
+			}
+		}
+		System.out.println("Detected long-term stable versions:");
+		PrintWriter pw = JobUtils.getPrintWriter(conf.finalStableCommitStatsFile);
+		for (Entry<String, String> e3: lts.entrySet()) {
+			System.out.println(e3.getKey() + ": " + e3.getValue());
+			pw.println(e3.getKey() + ": " + e3.getValue());
+		}
+		pw.close();
+	}
+
 	@Override
 	public void run(Map<String, String> args) {
 		if (!args.containsKey("g")) {
@@ -227,59 +293,13 @@ public class GitCorpusJob implements NLPJob {
 
 			repo = new FileRepositoryBuilder().findGitDir(inputDir).build();
 			git = new Git(repo);
-			if (args.containsKey("sl")) {
-				RevWalk walk = new RevWalk(repo);
-				Map<String, String> rangeMap = new HashMap<String, String>();
-				for (Entry<String, Ref> e: repo.getTags().entrySet()) {
-					String tag = e.getKey();
-					if (tag.lastIndexOf("rc") != -1 || tag.lastIndexOf('-') != -1) { //ignore rc versions
-						continue;
-					} else if (!tag.startsWith("v")) {
-						continue;
-					}
-					String majorStr = tag.substring(0, tag.lastIndexOf('.'));
-					RevObject c = walk.peel(walk.parseAny(repo.resolve(tag)));
-					if (!(c instanceof RevCommit)) {
-						continue;
-					}
-					int time =  walk.parseCommit(repo.resolve(tag)).getCommitTime();
-					if (!rangeMap.containsKey(majorStr) && !tag.equals("v3") && !tag.equals("v2.6")) {
-						rangeMap.put(majorStr, tag);
-					} else {
-						String last = rangeMap.get(majorStr);
-						int prevUntil = walk.parseCommit(repo.resolve(last)).getCommitTime();
-						if (prevUntil < time) {
-							rangeMap.put(majorStr, tag);
-						}
-					}
-				}
-				Map<String, String> lts = new HashMap<String, String>();
-				SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
-				for (Entry<String, String> e2: rangeMap.entrySet()) {
-					ObjectId sinceRef = repo.resolve(e2.getKey());
-					ObjectId untilRef = repo.resolve(e2.getValue());
-					if (sinceRef == null || untilRef == null) {
-						continue;
-					}
-					long since = walk.parseCommit(sinceRef).getCommitTime();
-					long until = walk.parseCommit(untilRef).getCommitTime();
-					if ((until - since) / 3600 / 24 > 365) {
-						lts.put(e2.getKey() + " - " + e2.getValue(), 
-								sdf.format(new Date(since * 1000)) + " - " + sdf.format(new Date(until * 1000)));
-						Iterator<RevCommit> logs = getIterator(repo, git, e2.getKey(), e2.getValue(), null);
-						iterateAndWrite(logs, writer, commits);
-					}
-				}
-				System.out.println("Detected long-term stable versions:");
-				PrintWriter pw = JobUtils.getPrintWriter(conf.finalStableCommitStatsFile);
-				for (Entry<String, String> e3: lts.entrySet()) {
-					System.out.println(e3.getKey() + ": " + e3.getValue());
-					pw.println(e3.getKey() + ": " + e3.getValue());
-				}
-				pw.close();
+			if (commits.size() > 0) {
+				writeCommits(repo, commits, writer);
+			} else if (args.containsKey("sl")) {
+				iterateAndWriteStable(git, repo, writer);
 			} else {
 				Iterator<RevCommit> logs = getIterator(repo, git, sinceStr, untilStr, fileStr);
-				iterateAndWrite(logs, writer, commits);
+				iterateAndWrite(logs, writer);
 			}
 			fs.mkdirs(outputPath.getParent());
 			fs.rename(tmpOutputPath, outputPath);
