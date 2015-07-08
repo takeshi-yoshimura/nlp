@@ -129,6 +129,7 @@ public class CompareWithManualJob implements NLPJob {
 		
 		
 		Map<String, Map<String, IntTriple>> crossTables = new HashMap<String, Map<String, IntTriple>>();
+		Set<String> droppedShas = new HashSet<String>();
 		for (String sha: manClass.keySet()) {
 			for (String tag: tagNames) {
 				Map<String, IntTriple> forTagMap;
@@ -143,8 +144,7 @@ public class CompareWithManualJob implements NLPJob {
 					tr = forTagMap.get(topic);
 					
 					if (!ldaClass.containsKey(sha)) {
-						System.out.println("Dropped sha: " + sha);
-						System.out.println("This can happen the message for sha is empty or a single paragraph with Signed-off-by or when all the words are stop-words");
+						droppedShas.add(sha);
 						continue;
 					}
 					
@@ -156,6 +156,12 @@ public class CompareWithManualJob implements NLPJob {
 						tr.FN += 1;
 				}
 			}
+		}
+		if (!droppedShas.isEmpty()) {
+			for (String sha: droppedShas) {
+				System.out.println("Dropped sha (ignored): " + sha);
+			}
+			System.out.println("This can happen the message for sha is empty or a single paragraph with Signed-off-by or when all the words are stop-words");
 		}
 
 		File outDir = new File(conf.finalOutputFile, "compareWithManul");
