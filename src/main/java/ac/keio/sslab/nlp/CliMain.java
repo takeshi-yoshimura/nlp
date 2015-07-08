@@ -217,6 +217,7 @@ public class CliMain {
 		List<NLPJob> jobs = new ArrayList<NLPJob>();
 		jobs.add(new GitSetupJob());
 		jobs.add(new GitCorpusJob());
+		jobs.add(new TextCorpusJob());
 		jobs.add(new DeduplicateCorpusJob());
 		jobs.add(new LDAJob());
 		jobs.add(new LDADumpJob());
