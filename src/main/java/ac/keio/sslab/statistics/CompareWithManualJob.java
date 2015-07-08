@@ -142,6 +142,12 @@ public class CompareWithManualJob implements NLPJob {
 						forTagMap.put(topic, new IntTriple());
 					tr = forTagMap.get(topic);
 					
+					if (!ldaClass.containsKey(sha)) {
+						System.out.println("Dropped sha: " + sha);
+						System.out.println("This can happen the message for sha is empty or a single paragraph with Signed-off-by or when all the words are stop-words");
+						continue;
+					}
+					
 					if (manClass.get(sha).contains(tag) && ldaClass.get(sha).contains(topic))
 						tr.TP += 1;
 					else if (manClass.get(sha).contains(tag) && !ldaClass.get(sha).contains(topic))
