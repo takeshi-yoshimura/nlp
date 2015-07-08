@@ -9,7 +9,6 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -24,17 +23,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.Tokenizer;
-import org.apache.lucene.analysis.core.StopAnalyzer;
-import org.apache.lucene.analysis.core.StopFilter;
-import org.apache.lucene.analysis.en.KStemFilter;
-import org.apache.lucene.analysis.miscellaneous.LengthFilter;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.analysis.util.CharArraySet;
-import org.apache.lucene.analysis.util.CharTokenizer;
-import org.apache.lucene.util.Version;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
@@ -69,29 +59,6 @@ public class GitCorpusJob implements NLPJob {
 		options.addOption("sl", "stableLinux", false, "Get all the commits for stable Linux (if specified, ignore -s and -u)");
 		options.addOption("c", "commitFile", true, "File for commits to be extracted");
 		return options;
-	}
-
-	class MyTokenizer extends CharTokenizer {
-
-		public MyTokenizer(Version matchVersion, Reader in) {
-			super(matchVersion, in);
-		}
-
-		@Override
-		protected boolean isTokenChar(int c) {
-			return Character.isAlphabetic(c) || Character.isDigit(c) || c == '_';
-		}
-	}
-
-	class MyAnalyzer extends Analyzer {
-		CharArraySet stopWords = StopFilter.makeStopSet(Version.LUCENE_46, Arrays.asList(StopAnalyzer.ENGLISH_STOP_WORDS_SET), true);
-		@Override
-		protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-			Tokenizer source = new MyTokenizer(Version.LUCENE_46, reader);
-			TokenStream result = new LengthFilter(Version.LUCENE_46, source, 3, 20);
-			result = new StopFilter(Version.LUCENE_46, new KStemFilter(result), stopWords);
-			return new TokenStreamComponents(source, result);
-		}
 	}
 
 	protected Iterator<RevCommit> getIterator(Repository repo, Git git, String sinceStr, String untilStr, String fileStr) throws Exception {
