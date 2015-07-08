@@ -206,7 +206,8 @@ public class CompareWithManualJob implements NLPJob {
 				Collections.sort(sorted, reverser);
 				for (Entry<String, Double> e: sorted) {
 					String topic = e.getKey();
-					sb.append(tag).append(',').append(topic).append(e.getValue())
+					sb.append(tag).append(',').append(topic)
+					  .append(',').append(e.getValue())
 					  .append(',').append(precisions.get(topic))
 					  .append(',').append(recalls.get(topic))
 					  .append(',').append(crossTables.get(tag).get(topic).TP);
