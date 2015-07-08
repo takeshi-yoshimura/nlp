@@ -260,7 +260,7 @@ public class GitCorpusJob implements NLPJob {
 
 			repo = new FileRepositoryBuilder().findGitDir(inputDir).build();
 			git = new Git(repo);
-			if (commits.size() > 0) {
+			if (commits != null && commits.size() > 0) {
 				writeCommits(repo, commits, writer);
 			} else if (args.containsKey("sl")) {
 				iterateAndWriteStable(git, repo, writer);
