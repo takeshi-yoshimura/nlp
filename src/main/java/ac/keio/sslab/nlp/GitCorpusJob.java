@@ -90,6 +90,7 @@ public class GitCorpusJob implements NLPJob {
 		key.set(rev.getId().getName());
 		
 		StringBuilder preprocessed = new StringBuilder();
+		// TODO: the following ignores messages in a single paragraph that includes signed-off-by. Should consider the case?
 		for (String para: rev.getFullMessage().split("\n\n")) {
 			if (para.toLowerCase().indexOf("signed-off-by:") != -1 || para.toLowerCase().indexOf("cc:") != -1) {
 				continue;
