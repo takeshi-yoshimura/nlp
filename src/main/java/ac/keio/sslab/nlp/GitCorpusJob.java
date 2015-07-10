@@ -53,8 +53,8 @@ public class GitCorpusJob implements NLPJob {
 	public Options getOptions() {
 		Options options = new Options();
 		options.addOption("g", "gitID", true, "ID of a git repository");
-		options.addOption("s", "since", true, "Start object ref to be uploaded. Default is blank (means all)");
-		options.addOption("u", "until", true, "End object ref to be uploaded. Default is HEAD.");
+		options.addOption("s", "since", true, "Start object ref to be uploaded (yyyy/MM/dd). Default is blank (means all)");
+		options.addOption("u", "until", true, "End object ref to be uploaded (yyyy/MM/dd). Default is HEAD.");
 		options.addOption("f", "file", true, "target file or directory path in git repository. Default is the top of the input directory.");
 		options.addOption("sl", "stableLinux", false, "Get all the commits for stable Linux (if specified, ignore -s and -u)");
 		options.addOption("c", "commitFile", true, "File for commits to be extracted");
