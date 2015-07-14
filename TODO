@@ -1,0 +1,33 @@
+Getting rid of copied JSON library (org.json.*, org.json.zip.*)
+	finds out proper Maven repository
+
+Exception-safety SequenceFileWriter
+	uses temporal file swapping for avoiding output inconsistency at failures
+	unifies similar code written in each NLPJob class (e.g., fs.rename() in GitCorpusJob::run())
+
+DeleteJob
+	deletes job results on HDFS
+	hides HDFS from users more
+
+Result decorator for Hive queries
+	allows users to promptly analyze data by Mahout
+	needs VectorWritable parser for Hive
+
+Better logging
+
+Stopping Maven directory layout
+	moves target/ and eclipse settings out of tree for Git-friendly
+	uses CMake?
+
+Spark movement
+	potentially speeds up everything
+	but needs to consider high memory pressures
+	Parameter Server?
+
+Job history and statistics collections
+	e.g., Hadoop job configuration, task counters (.xml and .jhist files)
+	may be useful for future uses
+
+Add other data analytics
+	machine learning, graph, etc.
+
