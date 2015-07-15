@@ -47,8 +47,7 @@ public class CompareWithManualJob implements NLPJob {
 		Configuration hdfsConf = new Configuration();
 		
 		System.out.println("Load manual classification from " + manualFile.getAbsolutePath());
-		NamedMatrix docTags = NamedMatrix.buildFromCSV(manualFile, "doc", "tag");
-		docTags = docTags.normalizeRow(); // calculate p(tag|doc) = 1 / N(tag|doc) for each doc as a Matrix row
+		NamedMatrix docTags = NamedMatrix.buildFromCSV(manualFile, "doc", "tag").normalizeRow(); // calculate p(tag|doc) = 1 / N(tag|doc) for each doc as a Matrix row
 		System.out.println("Built Matrix for " + docTags.rowSize() + " documents X " + docTags.colSize() + " tags");
 
 		System.out.println("Load LDA classification from " + hdfs.cvbPath);
@@ -65,12 +64,19 @@ public class CompareWithManualJob implements NLPJob {
 		}
 
 		// now, calculate p(tag & topic)
-		NamedMatrix tagTopics = docTags.transpose().times(docTopics);
-		
-		// build tagTopic ordered by the similarity and entropy
+		NamedMatrix tagAndTopics = docTags.transpose().times(docTopics).divide(docTags.rowSize()); // calculate p(tag & topic) = sum_doc{p(tag|doc)p(topic|doc)p(doc)}
+
+		// build p(topic|tag)
+		// p(topic|tag) = p(tag, topic) / p(tag) = sum_doc{p(topic|doc)p(tag|doc)p(doc)} / sum_doc{p(tag|doc)p(doc)}
+		//              = sum_doc{p(topic|doc)* p(tag|doc) / sum_doc{p(tag|doc)}} = sum_doc{p(topic|doc) * p(doc|tag)}
+		NamedMatrix tagTopics = docTags.transpose().normalizeRow().times(docTopics);
 		ColNamedMatrix sortedTagTopics = tagTopics.buildColSorted().colSortedByValue().rowSortedByEntropy();
 
-		File outDir = new File(conf.finalOutputFile, "compareWithManul");
+		// build p(tag|topic)
+		NamedMatrix topicTags = docTopics.transpose().normalizeRow().times(docTags);
+		ColNamedMatrix sortedTopicTags = topicTags.buildColSorted().colSortedByValue().rowSortedByEntropy();
+
+		File outDir = new File(conf.finalOutputFile, "compareWithManul/" + args.get("l"));
 		if (outDir.exists()) {
 			try {
 				FileUtils.delete(outDir, FileUtils.RECURSIVE);
@@ -79,30 +85,29 @@ public class CompareWithManualJob implements NLPJob {
 				return;
 			}
 		}
-		File tmpOutputFile = new File(NLPConf.tmpDirName, args.get("l"));
+		File tmpOutputFile = new File(NLPConf.tmpDirName, "compareWithManual/" + args.get("l"));
+		tmpOutputFile.mkdirs();
 		tmpOutputFile.deleteOnExit();
 
-		// write p(tag & topic) Matrix
-		File tagTopicFile = new File(tmpOutputFile, "tagTopics.csv");
-		try {
-			tagTopics.dumpCSV(tagTopicFile);
-		} catch (Exception e) {
-			e.printStackTrace();
-			System.err.println("Failed to write " + tagTopicFile.getAbsolutePath());
-			return;
-		}
-
-		// write topics ordered by similarity for each tag with two rows: ordered topic name and similarity
+		File tagTopicMatrixFile = new File(tmpOutputFile, "tagTopicMatrix.csv");
+		File tagTopicKVSFile = new File(tmpOutputFile, "tagTopicKVS.csv");
 		File similarTopicFile = new File(tmpOutputFile, "similarTopics.csv");
+		File similarTagFile = new File(tmpOutputFile, "similarTags.csv");
+
 		try {
+			// write p(tag & topic) Matrix
+			tagAndTopics.dumpCSVInMatrixFormat(tagTopicMatrixFile);
+			tagAndTopics.dumpCSVInKeyValueFormat(tagTopicKVSFile);
+
+			// write topics ordered by similarity for each tag with two rows: ordered topic name and similarity
 			sortedTagTopics.dumpCSV(similarTopicFile, true);
+			sortedTopicTags.dumpCSV(similarTagFile, true);
 		} catch (Exception e) {
 			e.printStackTrace();
-			System.err.println("Failed to write " + similarTopicFile.getAbsolutePath());
 			return;
 		}
 		outDir.mkdirs();
-		tmpOutputFile.renameTo(new File(outDir, tmpOutputFile.getName()));
+		tmpOutputFile.renameTo(outDir);
 	}
 
 	@Override

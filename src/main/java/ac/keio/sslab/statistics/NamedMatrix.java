@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -41,7 +43,22 @@ public class NamedMatrix {
 		this.colGroupName = colGroupName;
 	}
 
-	// build matrix from csv (line: {strA,strB,strC,...}) -> raw: strA, col: strB, strC,...
+	static public NamedMatrix buildOne(int rowSize, int colSize) {
+		TreeMap<Integer, String> rowIndex = new TreeMap<Integer, String>();
+		TreeMap<Integer, String> colIndex = new TreeMap<Integer, String>();
+		Matrix one = new DenseMatrix(rowSize, colSize);
+		for (int i = 0; i < rowSize; i++) {
+			rowIndex.put(i, "one");
+			for (int j = 0; j < colSize; j++) {
+				one.set(i, j, 1.0);
+				colIndex.put(j, "one");
+			}
+		}
+
+		return new NamedMatrix(one, rowIndex, colIndex, "one", "one");
+	}
+
+	// build matrix from csv (line: {strA,strB,strC,...}) -> row: strA, col: strB, strC,...
 	static public NamedMatrix buildFromCSV(File inputFile, String rowGroupName, String colGroupName) {
 		Map<Integer, List<Integer>> rowCols = new HashMap<Integer, List<Integer>>();
 		TreeMap<Integer, String> rowIndex = new TreeMap<Integer, String>();
@@ -60,6 +77,7 @@ public class NamedMatrix {
 				List<Integer> colIndices = new ArrayList<Integer>();
 				for (int i = 1; i < splitLine.length; i++) {
 					if (!revTagNames.containsKey(splitLine[i])) {
+						revTagNames.put(splitLine[i], colIndex.size());
 						colIndex.put(colIndex.size(), splitLine[i]);
 					}
 					colIndices.add(revTagNames.get(splitLine[i]));
@@ -83,17 +101,18 @@ public class NamedMatrix {
 		return new NamedMatrix(matrix, rowIndex, colIndex, rowGroupName, colGroupName);
 	}
 
+	// TODO: this is naive
 	public NamedMatrix normalizeRow() {
 		Matrix newMatrix = new SparseMatrix(matrix.rowSize(), matrix.columnSize());
 		for (MatrixSlice slice: matrix) {
-			newMatrix.assignRow(slice.index(), slice.getVector().normalize());
+			newMatrix.assignRow(slice.index(), slice.getVector().normalize(1));
 		}
 		TreeMap<Integer, String> newRowIndex = new TreeMap<Integer, String>(rowIndex);
 		TreeMap<Integer, String> newColIndex = new TreeMap<Integer, String>(colIndex);
 		return new NamedMatrix(newMatrix, newRowIndex, newColIndex, rowGroupName, colGroupName);
 	}
 
-	static public NamedMatrix buildFromLDAFiles(LDAHDFSFiles hdfs, Configuration hdfsConf, String rawGroupName, String colGroupName) {
+	static public NamedMatrix buildFromLDAFiles(LDAHDFSFiles hdfs, Configuration hdfsConf, String rowGroupName, String colGroupName) {
 		TreeMap<Integer, String> colIndex = new TreeMap<Integer, String>();
 		try {
 			for (Entry<Integer, List<String>> e: new TopicReader(hdfs.dictionaryPath, hdfs.topicPath, hdfsConf, 2).getTopics().entrySet()) {
@@ -104,7 +123,7 @@ public class NamedMatrix {
 			return null;
 		}
 
-		TreeMap<Integer, String> rawIndex = new TreeMap<Integer, String>(colIndex);
+		TreeMap<Integer, String> rowIndex = new TreeMap<Integer, String>(colIndex);
 		try {
 			SequenceDirectoryReader dictionaryReader = new SequenceDirectoryReader(hdfs.docIndexPath, hdfsConf);
 			IntWritable key = new IntWritable();
@@ -112,7 +131,7 @@ public class NamedMatrix {
 			while (dictionaryReader.next(key, value)) {
 				int documentId = key.get();
 				String documentName = value.toString();
-				rawIndex.put(documentId, documentName);
+				rowIndex.put(documentId, documentName);
 			}
 			dictionaryReader.close();
 		} catch (Exception e) {
@@ -120,7 +139,7 @@ public class NamedMatrix {
 			return null;
 		}
 
-		Matrix matrix = new DenseMatrix(rawIndex.size(), colIndex.size());
+		Matrix matrix = new DenseMatrix(rowIndex.size(), colIndex.size());
 		try {
 			SequenceDirectoryReader reader = new SequenceDirectoryReader(hdfs.documentPath, hdfsConf);
 			IntWritable key = new IntWritable();
@@ -136,7 +155,7 @@ public class NamedMatrix {
 			return null;
 		}
 
-		return new NamedMatrix(matrix, rawIndex, colIndex, rawGroupName, colGroupName);
+		return new NamedMatrix(matrix, rowIndex, colIndex, rowGroupName, colGroupName);
 	}
 
 	public NamedMatrix times(NamedMatrix right) {
@@ -145,10 +164,22 @@ public class NamedMatrix {
 		return new NamedMatrix(matrix.times(right.matrix), newRowIndex, newColIndex, rowGroupName, right.colGroupName);
 	}
 
+	public NamedMatrix times(double v) {
+		TreeMap<Integer, String> newRowIndex = new TreeMap<Integer, String>(rowIndex);
+		TreeMap<Integer, String> newColIndex = new TreeMap<Integer, String>(colIndex);
+		return new NamedMatrix(matrix.times(v), newRowIndex, newColIndex, rowGroupName, colGroupName);
+	}
+
 	public NamedMatrix transpose() {
 		TreeMap<Integer, String> newRowIndex = new TreeMap<Integer, String>(colIndex);
 		TreeMap<Integer, String> newColIndex = new TreeMap<Integer, String>(rowIndex);
 		return new NamedMatrix(matrix.transpose(), newRowIndex, newColIndex, colGroupName, rowGroupName);
+	}
+
+	public NamedMatrix divide(double v) {
+		TreeMap<Integer, String> newRowIndex = new TreeMap<Integer, String>(rowIndex);
+		TreeMap<Integer, String> newColIndex = new TreeMap<Integer, String>(colIndex);
+		return new NamedMatrix(matrix.divide(v), newRowIndex, newColIndex, rowGroupName, colGroupName);
 	}
 
 	public int rowSize() {
@@ -157,6 +188,14 @@ public class NamedMatrix {
 
 	public int colSize() {
 		return matrix.columnSize();
+	}
+
+	public void setRowGroupName(String rowGroupName) {
+		this.rowGroupName = rowGroupName;
+	}
+
+	public void setColGroupName(String colGroupName) {
+		this.colGroupName = colGroupName;
 	}
 
 	public TreeMap<Integer, String> lostRowIndex(NamedMatrix other) {
@@ -173,22 +212,23 @@ public class NamedMatrix {
 	}
 
 	public NamedMatrix dropRows(Set<Integer> droppedRows) {
-		Matrix newMatrix = new DenseMatrix(matrix.rowSize() - droppedRows.size(), matrix.columnSize());
-		TreeMap<Integer, String> newRawIndex = new TreeMap<Integer, String>();
+		Matrix newMatrix = new SparseMatrix(matrix.rowSize() - droppedRows.size(), matrix.columnSize());
+		TreeMap<Integer, String> newrowIndex = new TreeMap<Integer, String>();
 		int index = 0;
 		for (MatrixSlice slice: matrix) {
 			if (droppedRows.contains(slice.index()))
 				continue;
-			newRawIndex.put(index, rowIndex.get(slice.index()));
+			newrowIndex.put(index, rowIndex.get(slice.index()));
 			newMatrix.assignRow(index++, slice.getVector());
 		}
 		TreeMap<Integer, String> newColIndex = new TreeMap<Integer, String>(colIndex);
-		return new NamedMatrix(newMatrix, newRawIndex, newColIndex, rowGroupName, colGroupName);
+		return new NamedMatrix(newMatrix, newrowIndex, newColIndex, rowGroupName, colGroupName);
 	}
 
-	public void dumpCSV(File out) throws Exception {
+	public void dumpCSVInMatrixFormat(File out) throws Exception {
 		PrintWriter pw = JobUtils.getPrintWriter(out);
-		StringBuilder sb = new StringBuilder("#" + rowGroupName);
+		StringBuilder sb = new StringBuilder();
+		sb.append('#').append(rowGroupName);
 		for (Entry<Integer, String> col: colIndex.entrySet()) {
 			sb.append(',').append(col.getValue());
 		}
@@ -196,10 +236,39 @@ public class NamedMatrix {
 
 		for (MatrixSlice slice: matrix) {
 			sb.setLength(0);
-			sb.append(colIndex.get(slice.index()));
+			sb.append(rowIndex.get(slice.index()));
 			for (Element p: slice.all()) {
 				sb.append(',').append(p.get());
 			}
+			pw.println(sb.toString());
+		}
+		pw.close();
+	}
+
+	public void dumpCSVInKeyValueFormat(File out) throws Exception {
+		Comparator<Entry<String, Double>> reverser = new Comparator<Entry<String, Double>>() {
+			public int compare(Entry<String, Double> e1, Entry<String, Double> e2) {
+				return e2.getValue().compareTo(e1.getValue());
+			}
+		};
+
+		Map<String, Double> values = new HashMap<String, Double>();
+		for (MatrixSlice slice: matrix) {
+			for (Element p: slice.all()) {
+				values.put(rowIndex.get(slice.index()) + "," + colIndex.get(p.index()), p.get());
+			}
+		}
+		List<Entry<String, Double>> sortedValues = new ArrayList<Entry<String, Double>>(values.entrySet());
+		Collections.sort(sortedValues, reverser);
+
+		PrintWriter pw = JobUtils.getPrintWriter(out);
+		StringBuilder sb = new StringBuilder();
+		sb.append('#').append(rowGroupName).append(colGroupName);
+		pw.println(sb.toString());
+
+		for (Entry<String, Double> value: sortedValues) {
+			sb.setLength(0);
+			sb.append(value.getKey()).append(',').append(value.getValue());
 			pw.println(sb.toString());
 		}
 		pw.close();

@@ -120,20 +120,25 @@ public class ColNamedMatrix {
 
 		for (MatrixSlice valueRow: value) {
 			String rowName = rowIndex.get(valueRow.index());
-			sb.append(rowGroupName).append(',').append(rowName);
+			sb.append(rowGroupName);
 			if (displayEntropy) {
-				sb.append("\nEntropy,").append(entropies.get(valueRow.index()));
+				sb.append(",Entropy");
 			}
-
-			sb.append('\n').append(colGroupName);
 			for (int i = 0; i < col.columnSize(); i++) {
 				sb.append(',').append(colIndex.get((int)col.get(valueRow.index(), i)));
 			}
-			sb.append("\nValue");
+			pw.println(sb.toString());
+			sb.setLength(0);
+
+			sb.append(rowName);
+			if (displayEntropy) {
+				sb.append(',').append(entropies.get(valueRow.index()));
+			}
+
 			for (Element e: valueRow.all()) {
 				sb.append(',').append(e.get());
 			}
-			pw.println(sb.append('\n').toString());
+			pw.println(sb.toString());
 			sb.setLength(0);
 		}
 		pw.close();
