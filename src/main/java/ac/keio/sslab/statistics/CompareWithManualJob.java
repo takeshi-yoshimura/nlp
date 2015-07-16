@@ -65,16 +65,26 @@ public class CompareWithManualJob implements NLPJob {
 
 		// now, calculate p(tag & topic)
 		NamedMatrix tagAndTopics = docTags.transpose().times(docTopics).divide(docTags.rowSize()); // calculate p(tag & topic) = sum_doc{p(tag|doc)p(topic|doc)p(doc)}
+		ColNamedMatrix sortedTagAndTopics = tagAndTopics.buildColSorted().colSortedByHarmony();
 
-		// build p(topic|tag)
-		// p(topic|tag) = p(tag, topic) / p(tag) = sum_doc{p(topic|doc)p(tag|doc)p(doc)} / sum_doc{p(tag|doc)p(doc)}
-		//              = sum_doc{p(topic|doc)* p(tag|doc) / sum_doc{p(tag|doc)}} = sum_doc{p(topic|doc) * p(doc|tag)}
-		NamedMatrix tagTopics = docTags.transpose().normalizeRow().times(docTopics);
-		ColNamedMatrix sortedTagTopics = tagTopics.buildColSorted().colSortedByValue().rowSortedByEntropy();
-
-		// build p(tag|topic)
-		NamedMatrix topicTags = docTopics.transpose().normalizeRow().times(docTags);
-		ColNamedMatrix sortedTopicTags = topicTags.buildColSorted().colSortedByValue().rowSortedByEntropy();
+		/**
+		 * It was not so a good strategy to calculate p(topic|tag) and p(tag|topic) for using the similarity of two classifications.
+		 * This is because classifications often cannot avoid too general classes among documents.
+		 * For example, LDA should generate topics for 'and' 'then' etc. in any corpus and even manual classification determines code cleanups and other major categories.
+		 * Comparing them results in recognizing too common classes in each other's likely-hood inference,
+		 * although important classes are often rare among documents. Thus, this way guides us only meaningless results.
+		 * The idea of using similar concept of IDF potentially increases the complexity for validating results.
+		 * 
+		 * // build p(topic|tag)
+		 * // p(topic|tag) = p(tag, topic) / p(tag) = sum_doc{p(topic|doc)p(tag|doc)p(doc)} / sum_doc{p(tag|doc)p(doc)}
+		 * //              = sum_doc{p(topic|doc)* p(tag|doc) / sum_doc{p(tag|doc)}} = sum_doc{p(topic|doc) * p(doc|tag)}
+		 * NamedMatrix tagTopics = docTags.transpose().normalizeRow().times(docTopics);
+		 * ColNamedMatrix sortedTagTopics = tagTopics.buildColSorted().colSortedByValue().rowSortedByEntropy();
+		 * 
+		 * // build p(tag|topic)
+		 * NamedMatrix topicTags = docTopics.transpose().normalizeRow().times(docTags);
+		 * ColNamedMatrix sortedTopicTags = topicTags.buildColSorted().colSortedByValue().rowSortedByEntropy();
+		 */
 
 		File outDir = new File(conf.finalOutputFile, "compareWithManul/" + args.get("l"));
 		if (outDir.exists()) {
@@ -100,8 +110,8 @@ public class CompareWithManualJob implements NLPJob {
 			tagAndTopics.dumpCSVInKeyValueFormat(tagTopicKVSFile);
 
 			// write topics ordered by similarity for each tag with two rows: ordered topic name and similarity
-			sortedTagTopics.dumpCSV(similarTopicFile, true);
-			sortedTopicTags.dumpCSV(similarTagFile, true);
+			//sortedTagTopics.dumpCSV(similarTopicFile, true);
+			//sortedTopicTags.dumpCSV(similarTagFile, true);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return;
