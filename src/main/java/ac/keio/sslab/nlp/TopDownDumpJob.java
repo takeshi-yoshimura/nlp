@@ -59,7 +59,7 @@ public class TopDownDumpJob implements NLPJob {
 			LDAHDFSFiles hdfs = new LDAHDFSFiles(new Path(conf.ldaPath, args.get("l")));
 			Configuration hdfsConf = new Configuration();
 			Map<Integer, String> topicStr = new HashMap<Integer, String>();
-			TopicReader topReader = new TopicReader(hdfs.dictionaryPath, hdfs.topicPath, hdfsConf, 2);
+			TopicReader topReader = new TopicReader(hdfs.dictionaryPath, hdfs.topicPath, hdfsConf, 1);
 			StringBuilder sb = new StringBuilder();
 			for (Entry<Integer, List<String>> topic: topReader.getTopics().entrySet()) {
 				sb.setLength(0);
@@ -144,7 +144,8 @@ public class TopDownDumpJob implements NLPJob {
 			for (Entry<Integer, Integer> e: clusterCount.entrySet()) {
 				sb.setLength(0);
 				int clusterID = e.getKey();
-				sb.append(clusterID).append(',').append(e.getValue()).append(',').append(clusterStr.get(clusterID));
+				sb.append(clusterID).append(',').append(String.format("%1$3f", e.getValue()));
+				sb.append(',').append(clusterStr.get(clusterID));
 				pw.println(sb.toString());
 			}
 			pw.close();

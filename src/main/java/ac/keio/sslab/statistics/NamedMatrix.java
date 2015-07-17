@@ -182,6 +182,36 @@ public class NamedMatrix {
 		return new NamedMatrix(matrix.divide(v), newRowIndex, newColIndex, rowGroupName, colGroupName);
 	}
 
+	public NamedMatrix timesOneByOne(NamedMatrix right) {
+		TreeMap<Integer, String> newRowIndex = new TreeMap<Integer, String>(rowIndex);
+		TreeMap<Integer, String> newColIndex = new TreeMap<Integer, String>(colIndex);
+		Matrix newMatrix = new SparseMatrix(matrix.rowSize(), matrix.columnSize());
+		for (int i = 0; i < rowIndex.size(); i++) {
+			for (int j = 0; j < colIndex.size(); j++) {
+				newMatrix.set(i, j, matrix.get(i, j) * right.matrix.get(i, j));
+			}
+		}
+		return new NamedMatrix(newMatrix, newRowIndex, newColIndex, rowGroupName, colGroupName);
+	}
+
+	public NamedMatrix divideOneByOne(NamedMatrix right) {
+		TreeMap<Integer, String> newRowIndex = new TreeMap<Integer, String>(rowIndex);
+		TreeMap<Integer, String> newColIndex = new TreeMap<Integer, String>(colIndex);
+		Matrix newMatrix = new SparseMatrix(matrix.rowSize(), matrix.columnSize());
+		for (int i = 0; i < rowIndex.size(); i++) {
+			for (int j = 0; j < colIndex.size(); j++) {
+				newMatrix.set(i, j, matrix.get(i, j) / right.matrix.get(i, j));
+			}
+		}
+		return new NamedMatrix(newMatrix, newRowIndex, newColIndex, rowGroupName, colGroupName);
+	}
+
+	public NamedMatrix plus(NamedMatrix right) {
+		TreeMap<Integer, String> newRowIndex = new TreeMap<Integer, String>(rowIndex);
+		TreeMap<Integer, String> newColIndex = new TreeMap<Integer, String>(colIndex);
+		return new NamedMatrix(matrix.plus(right.matrix), newRowIndex, newColIndex, rowGroupName, colGroupName);
+	}
+
 	public int rowSize() {
 		return matrix.rowSize();
 	}
