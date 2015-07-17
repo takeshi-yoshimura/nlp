@@ -65,7 +65,7 @@ public class CompareWithManualJob implements NLPJob {
 
 		// now, calculate p(tag & topic)
 		NamedMatrix tagAndTopics = docTags.transpose().times(docTopics).divide(docTags.rowSize()); // calculate p(tag & topic) = sum_doc{p(tag|doc)p(topic|doc)p(doc)}
-		ColNamedMatrix sortedTagAndTopics = tagAndTopics.buildColSorted().colSortedByHarmony();
+		//ColNamedMatrix sortedTagAndTopics = tagAndTopics.buildColSorted().colSortedByHarmony();
 
 		/**
 		 * It was not so a good strategy to calculate p(topic|tag) and p(tag|topic) for using the similarity of two classifications.

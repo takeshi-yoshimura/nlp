@@ -223,6 +223,7 @@ public class CliMain {
 		jobs.add(new LDADumpJob());
 		jobs.add(new ExtractGroupJob());
 		jobs.add(new TopDownJob());
+		jobs.add(new TopDownDumpJob());
 		jobs.add(new TopicTrendJob());
 		jobs.add(new LoadBugResultJob());
 		jobs.add(new CompareWithManualJob());

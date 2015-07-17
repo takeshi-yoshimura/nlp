@@ -60,6 +60,10 @@ public class TopicReader {
 		return ret;
 	}
 
+	public void loadDictionary(Map<Integer, String> dictionary) {
+		termIDTermString = dictionary;
+	}
+
 	public void loadDictionary(Path dictionary, Configuration conf) throws IOException {
 		termIDTermString = new HashMap<Integer, String>();
 		SequenceDirectoryReader dictionaryReader = new SequenceDirectoryReader(dictionary, conf);
