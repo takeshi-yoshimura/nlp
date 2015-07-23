@@ -58,7 +58,8 @@ public class GitCorpusJob implements NLPJob {
 		options.addOption("f", "file", true, "target file or directory path in git repository. Default is the top of the input directory.");
 		options.addOption("sl", "stableLinux", false, "Get all the commits for stable Linux (if specified, ignore -s and -u)");
 		options.addOption("c", "commitFile", true, "File for commits to be extracted");
-		options.addOption("t", "tokenizeAtUnderline", true, "does tokenize at underline? (default is true)");
+		options.addOption("t", "tokenizeAtUnderline", true, "tokenize at underline? (default is true)");
+		options.addOption("n", "useNLTKStopwords", true, "use NLTK stopwords? (default is false)");
 		return options;
 	}
 
@@ -92,6 +93,7 @@ public class GitCorpusJob implements NLPJob {
 		
 		StringBuilder preprocessed = new StringBuilder();
 		// TODO: the following ignores messages in a single paragraph that includes signed-off-by. Should consider the case?
+		// TODO: use Lucene/Solr to process both paragraphs and words
 		for (String para: rev.getFullMessage().split("\n\n")) {
 			if (para.toLowerCase().indexOf("signed-off-by:") != -1 || para.toLowerCase().indexOf("cc:") != -1) {
 				continue;
@@ -113,7 +115,7 @@ public class GitCorpusJob implements NLPJob {
 			} else if ((word.matches("[a-f0-9]+") && !word.matches("[a-f]+")) || (word.matches("0x[a-f0-9]+"))) {
 				continue;
 			}
-			filtered.append(word.toLowerCase());
+			filtered.append(word);
 			filtered.append(delimiter);
         }
         stream.end();
@@ -222,6 +224,10 @@ public class GitCorpusJob implements NLPJob {
 		if (args.containsKey("t")) {
 			tokenizeAtUnderline = Boolean.parseBoolean(args.get("t"));
 		}
+		boolean useNLTKStopwords = false;
+		if (args.containsKey("n")) {
+			useNLTKStopwords = Boolean.parseBoolean(args.get("n"));
+		}
 		Set<String> commits = null;
 		if (args.containsKey("c")) {
 			try {
@@ -264,7 +270,7 @@ public class GitCorpusJob implements NLPJob {
 
 			repo = new FileRepositoryBuilder().findGitDir(inputDir).build();
 			git = new Git(repo);
-			MyAnalyzer analyzer = new MyAnalyzer();
+			MyAnalyzer analyzer = new MyAnalyzer(tokenizeAtUnderline, useNLTKStopwords);
 			if (commits != null && commits.size() > 0) {
 				writeCommits(repo, commits, writer, analyzer);
 			} else if (args.containsKey("sl")) {

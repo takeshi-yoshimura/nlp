@@ -36,6 +36,8 @@ public class TextCorpusJob implements NLPJob {
 		options.addOption("i", "input", true, "Input file");
 		options.addOption("iS", "ID_separator", true, "begining separator of ID sections");
 		options.addOption("dS", "data_separator", true, "begin separator of data sections");
+		options.addOption("t", "tokenizeAtUnderline", true, "tokenize at underline? (default is true)");
+		options.addOption("n", "useNLTKStopwords", true, "use NLTK stopwords? (default is false)");
 		return options;
 	}
 
@@ -49,8 +51,16 @@ public class TextCorpusJob implements NLPJob {
 		Path outputPath = new Path(conf.corpusPath, args.get("j"));
 		String iS = args.get("iS");
 		String dS = args.get("dS");
+		boolean tokenizeAtUnderline = true;
+		if (args.containsKey("t")) {
+			tokenizeAtUnderline = Boolean.parseBoolean(args.get("t"));
+		}
+		boolean useNLTKStopwords = false;
+		if (args.containsKey("n")) {
+			useNLTKStopwords = Boolean.parseBoolean(args.get("n"));
+		}
 		
-		MyAnalyzer analyzer = new MyAnalyzer();
+		MyAnalyzer analyzer = new MyAnalyzer(tokenizeAtUnderline, useNLTKStopwords);
 		Text key = new Text(); Text value = new Text();
 
 		SequenceFile.Writer writer = null;
@@ -85,6 +95,7 @@ public class TextCorpusJob implements NLPJob {
 					if (inData) {
 						StringBuilder preprocessed = new StringBuilder();
 						// TODO: the following ignores messages in a single paragraph that includes signed-off-by. Should consider the case?
+						// TODO: use Lucene/Solr to process both paragraphs and words
 						for (String para: dataStr.toString().split("\n\n")) {
 							if (para.toLowerCase().indexOf("signed-off-by:") != -1 || para.toLowerCase().indexOf("cc:") != -1) {
 								continue;
@@ -106,7 +117,7 @@ public class TextCorpusJob implements NLPJob {
 							} else if ((word.matches("[a-f0-9]+") && !word.matches("[a-f]+")) || (word.matches("0x[a-f0-9]+"))) {
 								continue;
 							}
-							filtered.append(word.toLowerCase());
+							filtered.append(word);
 							filtered.append(GitCorpusJob.delimiter);
 				        }
 				        stream.end();

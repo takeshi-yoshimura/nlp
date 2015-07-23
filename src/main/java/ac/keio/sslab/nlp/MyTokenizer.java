@@ -8,12 +8,15 @@ import org.apache.lucene.util.Version;
 
 class MyTokenizer extends CharTokenizer {
 
-	public MyTokenizer(Version matchVersion, Reader in) {
+	protected boolean tokenizeAtUnderline;
+
+	public MyTokenizer(Version matchVersion, Reader in, boolean tokenizeAtUnderline) {
 		super(matchVersion, in);
+		this.tokenizeAtUnderline = tokenizeAtUnderline;
 	}
 
 	@Override
 	protected boolean isTokenChar(int c) {
-		return Character.isAlphabetic(c) || Character.isDigit(c) || c == '_';
+		return Character.isAlphabetic(c) || Character.isDigit(c) || (tokenizeAtUnderline && c == '_');
 	}
 }
