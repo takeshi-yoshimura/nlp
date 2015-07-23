@@ -58,6 +58,7 @@ public class GitCorpusJob implements NLPJob {
 		options.addOption("f", "file", true, "target file or directory path in git repository. Default is the top of the input directory.");
 		options.addOption("sl", "stableLinux", false, "Get all the commits for stable Linux (if specified, ignore -s and -u)");
 		options.addOption("c", "commitFile", true, "File for commits to be extracted");
+		options.addOption("t", "tokenizeAtUnderline", true, "does tokenize at underline? (default is true)");
 		return options;
 	}
 
@@ -81,7 +82,7 @@ public class GitCorpusJob implements NLPJob {
 		}
 		return logs;
 	}
-	
+
 	protected void writeSingle(SequenceFile.Writer writer, MyAnalyzer analyzer, Text key, Text value, RevCommit rev) throws Exception {
 		if (rev.getParentCount() > 1) {//--no-merges
 			return;
@@ -126,8 +127,7 @@ public class GitCorpusJob implements NLPJob {
 		}
 	}
 
-	protected void writeCommits(Repository repo, Set<String> shas, SequenceFile.Writer writer) throws Exception {
-		MyAnalyzer analyzer = new MyAnalyzer();
+	protected void writeCommits(Repository repo, Set<String> shas, SequenceFile.Writer writer, MyAnalyzer analyzer) throws Exception {
 		Text key = new Text(); Text value = new Text();
 		RevWalk walk = new RevWalk(repo);
 		for (String sha: shas) {
@@ -137,8 +137,7 @@ public class GitCorpusJob implements NLPJob {
 		analyzer.close();
 	}
 
-	protected void iterateAndWrite(Iterator<RevCommit> logs, SequenceFile.Writer writer) throws Exception {
-		MyAnalyzer analyzer = new MyAnalyzer();
+	protected void iterateAndWrite(Iterator<RevCommit> logs, SequenceFile.Writer writer, MyAnalyzer analyzer) throws Exception {
 		Text key = new Text(); Text value = new Text();
 		while (logs.hasNext()) {
 			RevCommit rev = logs.next();
@@ -147,7 +146,7 @@ public class GitCorpusJob implements NLPJob {
 		analyzer.close();
 	}
 	
-	protected void iterateAndWriteStable(Git git, Repository repo, SequenceFile.Writer writer) throws Exception {
+	protected void iterateAndWriteStable(Git git, Repository repo, SequenceFile.Writer writer, MyAnalyzer analyzer) throws Exception {
 		RevWalk walk = new RevWalk(repo);
 		Map<String, String> rangeMap = new HashMap<String, String>();
 		for (Entry<String, Ref> e: repo.getTags().entrySet()) {
@@ -187,7 +186,7 @@ public class GitCorpusJob implements NLPJob {
 				lts.put(e2.getKey() + " - " + e2.getValue(), 
 						sdf.format(new Date(since * 1000)) + " - " + sdf.format(new Date(until * 1000)));
 				Iterator<RevCommit> logs = getIterator(repo, git, e2.getKey(), e2.getValue(), null);
-				iterateAndWrite(logs, writer);
+				iterateAndWrite(logs, writer, analyzer);
 			}
 		}
 		System.out.println("Detected long-term stable versions:");
@@ -218,6 +217,10 @@ public class GitCorpusJob implements NLPJob {
 		String fileStr = null;
 		if (args.containsKey("f")) {
 			fileStr = args.get("f");
+		}
+		boolean tokenizeAtUnderline = true;
+		if (args.containsKey("t")) {
+			tokenizeAtUnderline = Boolean.parseBoolean(args.get("t"));
 		}
 		Set<String> commits = null;
 		if (args.containsKey("c")) {
@@ -261,13 +264,14 @@ public class GitCorpusJob implements NLPJob {
 
 			repo = new FileRepositoryBuilder().findGitDir(inputDir).build();
 			git = new Git(repo);
+			MyAnalyzer analyzer = new MyAnalyzer(tokenizeAtUnderline);
 			if (commits != null && commits.size() > 0) {
-				writeCommits(repo, commits, writer);
+				writeCommits(repo, commits, writer, analyzer);
 			} else if (args.containsKey("sl")) {
-				iterateAndWriteStable(git, repo, writer);
+				iterateAndWriteStable(git, repo, writer, analyzer);
 			} else {
 				Iterator<RevCommit> logs = getIterator(repo, git, sinceStr, untilStr, fileStr);
-				iterateAndWrite(logs, writer);
+				iterateAndWrite(logs, writer, analyzer);
 			}
 			fs.mkdirs(outputPath.getParent());
 			fs.rename(tmpOutputPath, outputPath);
