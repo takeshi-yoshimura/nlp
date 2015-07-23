@@ -63,9 +63,14 @@ public class CompareWithManualJob implements NLPJob {
 			docTags = docTags.dropRows(ignored.keySet());
 		}
 
-		// now, calculate p(tag & topic)
 		NamedMatrix tagAndTopics = docTags.transpose().times(docTopics).divide(docTags.rowSize()); // calculate p(tag & topic) = sum_doc{p(tag|doc)p(topic|doc)p(doc)}
-		//ColNamedMatrix sortedTagAndTopics = tagAndTopics.buildColSorted().colSortedByHarmony();
+		NamedMatrix tagTags = docTags.transpose().times(NamedMatrix.buildOne(docTags.rowSize(), docTopics.colSize())).divide(docTags.rowSize());
+		NamedMatrix tagTopics = docTopics.transpose().times(NamedMatrix.buildOne(docTopics.rowSize(), docTags.colSize())).divide(docTopics.rowSize()).transpose();
+		NamedMatrix tagTagPlusTopics = tagTags.plus(tagTopics);
+		tagTagPlusTopics.setRowGroupName("tag");
+		tagTagPlusTopics.setColGroupName("topic");
+		NamedMatrix harmony = tagAndTopics.times(2).divideOneByOne(tagTagPlusTopics); // 2 * p(tag & topic) / (p(tag) + p(topic))
+		ColNamedMatrix sortedHarmony = harmony.buildColSorted().colSortedByValue();
 
 		/**
 		 * It was not so a good strategy to calculate p(topic|tag) and p(tag|topic) for using the similarity of two classifications.
@@ -101,8 +106,8 @@ public class CompareWithManualJob implements NLPJob {
 
 		File tagTopicMatrixFile = new File(tmpOutputFile, "tagTopicMatrix.csv");
 		File tagTopicKVSFile = new File(tmpOutputFile, "tagTopicKVS.csv");
-		File similarTopicFile = new File(tmpOutputFile, "similarTopics.csv");
-		File similarTagFile = new File(tmpOutputFile, "similarTags.csv");
+		File tagHarmonyMatrixFile = new File(tmpOutputFile, "tagTopicKVS.csv");
+		File tagHarmonyKVSFile = new File(tmpOutputFile, "tagTopicKVS.csv");
 
 		try {
 			// write p(tag & topic) Matrix
@@ -110,8 +115,8 @@ public class CompareWithManualJob implements NLPJob {
 			tagAndTopics.dumpCSVInKeyValueFormat(tagTopicKVSFile);
 
 			// write topics ordered by similarity for each tag with two rows: ordered topic name and similarity
-			//sortedTagTopics.dumpCSV(similarTopicFile, true);
-			//sortedTopicTags.dumpCSV(similarTagFile, true);
+			sortedHarmony.dumpCSV(tagHarmonyMatrixFile, false);
+			sortedHarmony.dumpCSV(tagHarmonyKVSFile, false);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return;
