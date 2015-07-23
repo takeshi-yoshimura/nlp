@@ -13,8 +13,6 @@ import org.apache.lucene.analysis.miscellaneous.LengthFilter;
 import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.util.Version;
 
-
-
 class MyAnalyzer extends Analyzer {
 	CharArraySet stopWords = StopFilter.makeStopSet(Version.LUCENE_46, Arrays.asList(StopAnalyzer.ENGLISH_STOP_WORDS_SET), true);
 	@Override
