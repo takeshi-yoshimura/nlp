@@ -6,8 +6,7 @@ MAHOUT_HOME=/usr/lib/mahout
 NLPBIN=`ls ${NLPDIR}/target/nlp-*-jar-with-dependencies.jar`
 CONF=${NLPDIR}/conf.json
 
-CLASSPATH=`hadoop classpath`:${NLPBIN}
-
+CLASSPATH=`hadoop classpath`
 for f in $MAHOUT_HOME/mahout-*.jar; do
 	CLASSPATH=${CLASSPATH}:$f;
 done
@@ -22,4 +21,5 @@ for f in $MAHOUT_HOME/lib/*.jar; do
 	CLASSPATH=${CLASSPATH}:$f;
 done
 
-java -cp ${CLASSPATH}ac.keio.sslab.nlp.CliMain ${@} NLPCONF=${CONF}
+CLASSPATH=${CLASSPATH}:${NLPBIN}
+java -cp ${CLASSPATH} ac.keio.sslab.nlp.CliMain ${@} NLPCONF=${CONF}
