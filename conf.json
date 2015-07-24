@@ -2,6 +2,5 @@
 	"nlpDirName": "/user/yos/nlp",
 	"nlpLocalDirName": "/home/yos/nlp/",
 	"tmpDirName": "/home/yos/nlp/tmp/",
-	"runPath": "/home/yos/nlp/run",
-	"tokenizeAtUnderline": "True"
+	"runPath": "/home/yos/nlp/run"
 }

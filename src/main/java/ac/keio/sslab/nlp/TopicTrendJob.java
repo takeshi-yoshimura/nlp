@@ -73,6 +73,7 @@ public class TopicTrendJob implements NLPJob {
 			ret.put(walk.parseCommit(repo.resolve(tag)).getCommitTime(), tag);
 		}
 		ret.put(0, "rc");
+		walk.close();
 		return ret;
 	}
 
@@ -94,6 +95,7 @@ public class TopicTrendJob implements NLPJob {
 				logs = git.log().add(untilRef).addPath(fileStr).call().iterator();
 			}
 		}
+		walk.close();
 		return logs;
 	}
 
@@ -255,9 +257,11 @@ public class TopicTrendJob implements NLPJob {
 				continue;
 			}
 			CanonicalTreeParser p = new CanonicalTreeParser();
-			p.reset(repo.newObjectReader(), new RevWalk(repo).parseTree(rev));
+			RevWalk walk = new RevWalk(repo);
+			p.reset(repo.newObjectReader(), walk.parseTree(rev));
 			CanonicalTreeParser p2 = new CanonicalTreeParser();
-			p2.reset(repo.newObjectReader(), new RevWalk(repo).parseTree(next));
+			p2.reset(repo.newObjectReader(), walk.parseTree(next));
+			walk.close();
 			for (DiffEntry diff: git.diff().setShowNameAndStatusOnly(true).setNewTree(p).setOldTree(p2).call()) {
 				File file = null;
 				switch(diff.getChangeType()) {

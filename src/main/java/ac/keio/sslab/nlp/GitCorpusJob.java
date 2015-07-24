@@ -81,6 +81,7 @@ public class GitCorpusJob implements NLPJob {
 				logs = git.log().add(untilRef).addPath(fileStr).call().iterator();
 			}
 		}
+		walk.close();
 		return logs;
 	}
 
@@ -136,7 +137,7 @@ public class GitCorpusJob implements NLPJob {
 			RevCommit rev = walk.parseCommit(repo.resolve(sha));
 			writeSingle(writer, analyzer, key, value, rev);
 		}
-		analyzer.close();
+		walk.close();
 	}
 
 	protected void iterateAndWrite(Iterator<RevCommit> logs, SequenceFile.Writer writer, MyAnalyzer analyzer) throws Exception {
@@ -145,7 +146,6 @@ public class GitCorpusJob implements NLPJob {
 			RevCommit rev = logs.next();
 			writeSingle(writer, analyzer, key, value, rev);
 		}
-		analyzer.close();
 	}
 	
 	protected void iterateAndWriteStable(Git git, Repository repo, SequenceFile.Writer writer, MyAnalyzer analyzer) throws Exception {
@@ -198,6 +198,7 @@ public class GitCorpusJob implements NLPJob {
 			pw.println(e3.getKey() + ": " + e3.getValue());
 		}
 		pw.close();
+		walk.close();
 	}
 
 	@Override
@@ -279,6 +280,8 @@ public class GitCorpusJob implements NLPJob {
 				Iterator<RevCommit> logs = getIterator(repo, git, sinceStr, untilStr, fileStr);
 				iterateAndWrite(logs, writer, analyzer);
 			}
+			analyzer.close();
+			writer.close();
 			fs.mkdirs(outputPath.getParent());
 			fs.rename(tmpOutputPath, outputPath);
 		} catch (Exception e) {

@@ -15,11 +15,15 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.SequenceFile.CompressionType;
+import org.apache.hadoop.io.SequenceFile.Writer;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.mahout.clustering.iterator.ClusterWritable;
+
+import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
 
 public class KMeansDriver {
 
@@ -69,16 +73,16 @@ public class KMeansDriver {
 		FileStatus [] oldStat = fs.listStatus(oldOutput);
 		FileStatus [] oldoldStat = fs.listStatus(oldoldOutput);
 		for (int s = 0; s < newStat.length && s < oldStat.length && s < oldoldStat.length; s++) {
-			SequenceFile.Reader newReader = null;
-			SequenceFile.Reader oldReader = null;
-			SequenceFile.Reader oldoldReader = null;
+			SequenceDirectoryReader newReader = null;
+			SequenceDirectoryReader oldReader = null;
+			SequenceDirectoryReader oldoldReader = null;
 			//put the same key records near each other
 			if (s < newStat.length && !newStat[s].isDirectory() && newStat[s].getLen() > 0)
-				newReader = new SequenceFile.Reader(fs, newStat[s].getPath(), conf);
+				newReader = new SequenceDirectoryReader(newStat[s].getPath(), conf);
 			if (s < oldStat.length && !oldStat[s].isDirectory() && oldStat[s].getLen() > 0)
-				oldReader = new SequenceFile.Reader(fs, oldStat[s].getPath(), conf);
+				oldReader = new SequenceDirectoryReader(oldStat[s].getPath(), conf);
 			if (s < oldoldStat.length && !oldoldStat[s].isDirectory() && oldoldStat[s].getLen() > 0)
-				oldoldReader = new SequenceFile.Reader(fs, oldoldStat[s].getPath(), conf);
+				oldoldReader = new SequenceDirectoryReader(oldoldStat[s].getPath(), conf);
 			
 			boolean newFin, oldFin, oldoldFin;
 			newFin = oldFin = oldoldFin = false;
@@ -123,7 +127,12 @@ public class KMeansDriver {
 			if (oldoldOutput != null && i % convergenceConfirmEvery == 0) {
 				//combine split files into a file for better performance
 				Path tmpInput = new Path(iterationDir, "tmpInputForConvergenceCalc.seq");
-				SequenceFile.Writer writer = new SequenceFile.Writer(fs, conf, tmpInput, IntWritable.class, ClusterWritable.class);
+
+				Writer.Option fileOpt = Writer.file(tmpInput);
+				Writer.Option keyOpt = Writer.keyClass(IntWritable.class);
+				Writer.Option valueOpt = Writer.valueClass(ClusterWritable.class);
+				Writer.Option compOpt = Writer.compression(CompressionType.NONE);
+				Writer writer = SequenceFile.createWriter(conf, fileOpt, keyOpt, valueOpt, compOpt);
 				combineKMeansOutput(conf, writer, iterationOutput, oldOutput, oldoldOutput);
 				writer.close();
 				
@@ -153,14 +162,18 @@ public class KMeansDriver {
 		//combine converged files split across iteration-X dirs
 		i++;
 		Path finalOutput = new Path(output, "iteration-" + i + "-final.seq");
-		SequenceFile.Writer writer = new SequenceFile.Writer(fs, conf, finalOutput, IntWritable.class, ClusterWritable.class);
+		Writer.Option fileOpt = Writer.file(finalOutput);
+		Writer.Option keyOpt = Writer.keyClass(IntWritable.class);
+		Writer.Option valueOpt = Writer.valueClass(ClusterWritable.class);
+		Writer.Option compOpt = Writer.compression(CompressionType.NONE);
+		Writer writer = SequenceFile.createWriter(conf, fileOpt, keyOpt, valueOpt, compOpt);
 		IntWritable key = new IntWritable();
 		ClusterWritable value = new ClusterWritable();
 		for (Path out: finalOutputs) {
 			for (FileStatus status: fs.listStatus(out)) {
 				if (status.isDirectory() || status.getLen() == 0) //avoid reading _SUCCESS
 					continue;
-				SequenceFile.Reader reader = new SequenceFile.Reader(fs, status.getPath(), conf);
+				SequenceDirectoryReader reader = new SequenceDirectoryReader(status.getPath(), conf);
 				while (reader.next(key, value)) {
 					writer.append(key, value);
 				}
@@ -199,11 +212,12 @@ public class KMeansDriver {
 			Path mainLoopOutput = KMeansMainLoop(conf, input, retryOutput);
 			
 			//use the lowest RSS result for better clustering
-			SequenceFile.Reader reader = new SequenceFile.Reader(fs, mainLoopOutput, conf);
+			SequenceDirectoryReader reader = new SequenceDirectoryReader(mainLoopOutput, conf);
 			double RSS = 0;
 			while (reader.next(key, value)) {
 				RSS += ((TopDownKMeansCluster) value.getValue()).getRSSk();
 			}
+			reader.close();
 			if (RSS < lowestRSS) {
 				if (lowestRSS != Double.MAX_VALUE) {
 					//output is usually GB-order. need to save disk space
@@ -254,7 +268,7 @@ public class KMeansDriver {
 			for (FileStatus status: fs.listStatus(new Path(oldOutputDirLink))) {
 				if (status.isDirectory() || status.getLen() == 0) //avoid reading _SUCCESS
 					continue;
-				SequenceFile.Reader reader = new SequenceFile.Reader(fs, status.getPath(), conf);
+				SequenceDirectoryReader reader = new SequenceDirectoryReader(status.getPath(), conf);
 				while (reader.next(inKey, inValue)) {
 					map.put(inKey.get(), (TopDownKMeansCluster) inValue.getValue());
 				}
@@ -288,7 +302,7 @@ public class KMeansDriver {
 			for (FileStatus status: fs.listStatus(oldoldOutputDir)) {
 				if (status.isDirectory() || status.getLen() == 0) //avoid reading _SUCCESS
 					continue;
-				SequenceFile.Reader reader = new SequenceFile.Reader(fs, status.getPath(), conf);
+				SequenceDirectoryReader reader = new SequenceDirectoryReader(status.getPath(), conf);
 				while (reader.next(inKey, inValue)) {
 					map.put(inKey.get(),
 							(TopDownKMeansCluster) inValue.getValue());

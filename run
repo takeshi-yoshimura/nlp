@@ -1,8 +1,25 @@
 #!/bin/bash
 
 NLPDIR=/home/yoshimura/src/nlp
+MAHOUT_HOME=/usr/lib/mahout
+
 NLPBIN=`ls ${NLPDIR}/target/nlp-*-jar-with-dependencies.jar`
 CONF=${NLPDIR}/conf.json
 
-java -cp `hadoop classpath`:${NLPBIN} \
-	 ac.keio.sslab.nlp.CliMain ${@} NLPCONF=${CONF}
+CLASSPATH=`hadoop classpath`:${NLPBIN}
+
+for f in $MAHOUT_HOME/mahout-*.jar; do
+	CLASSPATH=${CLASSPATH}:$f;
+done
+
+# add dev targets if they exist
+for f in $MAHOUT_HOME/examples/target/mahout-examples-*-job.jar $MAHOUT_HOME/mahout-examples-*-job.jar ; do
+	CLASSPATH=${CLASSPATH}:$f;
+done
+
+# add release dependencies to CLASSPATH
+for f in $MAHOUT_HOME/lib/*.jar; do
+	CLASSPATH=${CLASSPATH}:$f;
+done
+
+java -cp ${CLASSPATH}ac.keio.sslab.nlp.CliMain ${@} NLPCONF=${CONF}

@@ -8,12 +8,16 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.SequenceFile.CompressionType;
+import org.apache.hadoop.io.SequenceFile.Writer;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.mahout.clustering.iterator.ClusterWritable;
 import org.apache.mahout.common.AbstractJob;
 import org.apache.mahout.math.VectorWritable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
 
 public class Main extends AbstractJob {
 
@@ -30,7 +34,7 @@ public class Main extends AbstractJob {
 		for (FileStatus status: fs.listStatus(preprocessOutput)) {
 			if (status.isDirectory() || status.getLen() == 0) //avoid reading _SUCCESS
 				continue;
-			SequenceFile.Reader reader = new SequenceFile.Reader(fs, status.getPath(), conf);
+			SequenceDirectoryReader reader = new SequenceDirectoryReader(status.getPath(), conf);
 			while (reader.next(key, value)) {
 				firstCluster.observe(value.get());
 			}
@@ -40,7 +44,11 @@ public class Main extends AbstractJob {
 		Path firstClustersFinal = new Path(outputDir, "topdown-0/iteration-0-final.seq");
 		key.set(1);	
 		ClusterWritable outValue = new ClusterWritable(firstCluster);
-		SequenceFile.Writer writer = new SequenceFile.Writer(fs, conf, firstClustersFinal, IntWritable.class, ClusterWritable.class);
+		Writer.Option fileOpt = Writer.file(firstClustersFinal);
+		Writer.Option keyOpt = Writer.keyClass(IntWritable.class);
+		Writer.Option valueOpt = Writer.valueClass(ClusterWritable.class);
+		Writer.Option compOpt = Writer.compression(CompressionType.NONE);
+		Writer writer = SequenceFile.createWriter(conf, fileOpt, keyOpt, valueOpt, compOpt);
 		writer.append(key, outValue);
 		writer.close();
 	}

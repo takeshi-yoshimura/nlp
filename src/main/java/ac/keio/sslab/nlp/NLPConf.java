@@ -5,7 +5,7 @@ import java.io.FileInputStream;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.Path;
-import org.json.JSONObject;
+import org.codehaus.jettison.json.JSONObject;
 
 public class NLPConf {
 

@@ -11,7 +11,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
@@ -19,6 +18,8 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.mahout.clustering.Cluster;
 import org.apache.mahout.clustering.iterator.ClusterWritable;
 import org.apache.mahout.math.VectorWritable;
+
+import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
 
 public class KMeansClassifierDriver {
 	static int numClusterDivision = 2;
@@ -77,7 +78,7 @@ public class KMeansClassifierDriver {
 			for (FileStatus status: fs.listStatus(new Path(kmeansFinalDirLink))) {
 				if (status.isDirectory() || status.getLen() == 0) //avoid reading _SUCCESS
 					continue;
-				SequenceFile.Reader reader = new SequenceFile.Reader(fs, status.getPath(), conf);
+				SequenceDirectoryReader reader = new SequenceDirectoryReader(status.getPath(), conf);
 				while (reader.next(inKey, inValue)) {
 					map.put(inKey.get(), inValue.getValue());
 				}
