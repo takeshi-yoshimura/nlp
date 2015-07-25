@@ -14,16 +14,16 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.SequenceFile.CompressionType;
-import org.apache.hadoop.io.SequenceFile.Writer;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.mahout.clustering.Cluster;
 import org.apache.mahout.clustering.iterator.ClusterWritable;
 
 import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
+import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
+import ac.keio.sslab.nlp.NLPConf;
 
 public class KMeansDriver {
 
@@ -46,59 +46,50 @@ public class KMeansDriver {
 
 		job.setJarByClass(KMeansMapper.class);
 
-		SideData.setNumClusterDivision(job.getConfiguration(),
-				numClusterDivision);
+		SideData.setNumClusterDivision(job.getConfiguration(), numClusterDivision);
 		SideData.setOldOutputDirPath(job.getConfiguration(), oldOutput);
 		if (oldoldOutput != null)
-			SideData.setOldOldOutputDirPath(job.getConfiguration(),
-					oldoldOutput);
+			SideData.setOldOldOutputDirPath(job.getConfiguration(), oldoldOutput);
 
 		if (!job.waitForCompletion(true))
-			throw new InterruptedException("job failure at"
-					+ job.getJobName());
+			throw new InterruptedException("job failure at" + job.getJobName());
 	}
 	
-	static public void combineKMeansOutput(Configuration conf, SequenceFile.Writer writer, Path iterationOutput, 
+	static public void combineKMeansOutput(Configuration conf, SequenceSwapWriter<Integer, Cluster> writer, Path iterationOutput, 
 			Path oldOutput, Path oldoldOutput) throws IOException {
 		FileSystem fs = FileSystem.get(conf);
-		IntWritable [] inKey = new IntWritable[3];
-		ClusterWritable [] inValue = new ClusterWritable[3];
-		for (int t = 0; t < 3; t++) {
-			inKey[t] = new IntWritable();
-			inValue[t] = new ClusterWritable();
-		}
 
 		//combine split files into a file for better performance
 		FileStatus [] newStat = fs.listStatus(iterationOutput);
 		FileStatus [] oldStat = fs.listStatus(oldOutput);
 		FileStatus [] oldoldStat = fs.listStatus(oldoldOutput);
 		for (int s = 0; s < newStat.length && s < oldStat.length && s < oldoldStat.length; s++) {
-			SequenceDirectoryReader newReader = null;
-			SequenceDirectoryReader oldReader = null;
-			SequenceDirectoryReader oldoldReader = null;
+			SequenceDirectoryReader<Integer, Cluster> newReader = null;
+			SequenceDirectoryReader<Integer, Cluster> oldReader = null;
+			SequenceDirectoryReader<Integer, Cluster> oldoldReader = null;
 			//put the same key records near each other
 			if (s < newStat.length && !newStat[s].isDirectory() && newStat[s].getLen() > 0)
-				newReader = new SequenceDirectoryReader(newStat[s].getPath(), conf);
+				newReader = new SequenceDirectoryReader<>(newStat[s].getPath(), conf);
 			if (s < oldStat.length && !oldStat[s].isDirectory() && oldStat[s].getLen() > 0)
-				oldReader = new SequenceDirectoryReader(oldStat[s].getPath(), conf);
+				oldReader = new SequenceDirectoryReader<>(oldStat[s].getPath(), conf);
 			if (s < oldoldStat.length && !oldoldStat[s].isDirectory() && oldoldStat[s].getLen() > 0)
-				oldoldReader = new SequenceDirectoryReader(oldoldStat[s].getPath(), conf);
-			
+				oldoldReader = new SequenceDirectoryReader<>(oldoldStat[s].getPath(), conf);
+
 			boolean newFin, oldFin, oldoldFin;
 			newFin = oldFin = oldoldFin = false;
 			do {
 				if (newReader != null)
-					newFin = newReader.next(inKey[0], inValue[0]);
+					newFin = newReader.seekNext();
 				if (newFin)
-					writer.append(inKey[0], inValue[0]);
+					writer.append(newReader.keyW(), newReader.valW());
 				if (oldReader != null)
-					oldFin = oldReader.next(inKey[1], inValue[1]);
+					oldFin = oldReader.seekNext();
 				if (oldFin)
-					writer.append(inKey[1], inValue[1]);
+					writer.append(oldReader.keyW(), oldReader.valW());
 				if (oldoldReader != null)
-					oldoldFin = oldoldReader.next(inKey[2], inValue[2]);
+					oldoldFin = oldoldReader.seekNext();
 				if (oldoldFin)
-					writer.append(inKey[2], inValue[2]);
+					writer.append(oldoldReader.keyW(), oldoldReader.valW());
 			} while (newFin || oldFin || oldoldFin);
 			if (newReader != null) newReader.close();
 			if (oldReader != null) oldReader.close();
@@ -106,21 +97,20 @@ public class KMeansDriver {
 		}
 	}
 	
-	static public Path KMeansMainLoop(Configuration conf, Path input, Path output) 
-			throws IOException, ClassNotFoundException,	InterruptedException {
-		FileSystem fs = FileSystem.get(conf);
+	static public Path KMeansMainLoop(Configuration hdfsConf, Path input, Path output) throws IOException, ClassNotFoundException, InterruptedException {
+		FileSystem fs = FileSystem.get(hdfsConf);
 		List<Path> finalOutputs = new ArrayList<Path>();
 		Path initialOutput = new Path(output, "iteration-0/clusters");
-		KMeansInitDriver.run(conf, input, initialOutput);
-		
+		KMeansInitDriver.run(hdfsConf, input, initialOutput);
+		NLPConf conf = NLPConf.getInstance();
+
 		Path oldOutput = initialOutput;
 		Path oldoldOutput = null;
 		int i;
 		for (i = 1; i <= maxIteration; i++) {
 			Path iterationDir = new Path(output, "iteration-" + i);
 			Path iterationOutput = new Path(iterationDir, "clusters");
-			Job job = new Job(conf, "KMeans Iteration #" + i + " over input:"
-					+ input);
+			Job job = new Job(hdfsConf, "KMeans Iteration #" + i + " over input:" + input);
 			doKMeansMR(job, input, iterationOutput, oldOutput, oldoldOutput);
 
 			//decide if we can stop iterations or not
@@ -128,16 +118,12 @@ public class KMeansDriver {
 				//combine split files into a file for better performance
 				Path tmpInput = new Path(iterationDir, "tmpInputForConvergenceCalc.seq");
 
-				Writer.Option fileOpt = Writer.file(tmpInput);
-				Writer.Option keyOpt = Writer.keyClass(IntWritable.class);
-				Writer.Option valueOpt = Writer.valueClass(ClusterWritable.class);
-				Writer.Option compOpt = Writer.compression(CompressionType.NONE);
-				Writer writer = SequenceFile.createWriter(conf, fileOpt, keyOpt, valueOpt, compOpt);
-				combineKMeansOutput(conf, writer, iterationOutput, oldOutput, oldoldOutput);
+				SequenceSwapWriter<Integer, Cluster> writer = new SequenceSwapWriter<>(tmpInput, conf.tmpPath, hdfsConf, true);
+				combineKMeansOutput(hdfsConf, writer, iterationOutput, oldOutput, oldoldOutput);
 				writer.close();
-				
+
 				Path convergenceOutput = new Path(iterationDir, "convergence");
-				long unconvergedCount = CalcConvergenceDriver.run(conf, tmpInput, convergenceOutput);
+				long unconvergedCount = CalcConvergenceDriver.run(hdfsConf, tmpInput, convergenceOutput);
 				Path convergedPath = new Path(convergenceOutput, "converged");
 				if (fs.exists(convergedPath))
 					finalOutputs.add(convergedPath);
@@ -158,24 +144,18 @@ public class KMeansDriver {
 			return oldOutput;
 		else if (oldOutput != null)
 			finalOutputs.add(oldOutput);
-		
+
 		//combine converged files split across iteration-X dirs
 		i++;
 		Path finalOutput = new Path(output, "iteration-" + i + "-final.seq");
-		Writer.Option fileOpt = Writer.file(finalOutput);
-		Writer.Option keyOpt = Writer.keyClass(IntWritable.class);
-		Writer.Option valueOpt = Writer.valueClass(ClusterWritable.class);
-		Writer.Option compOpt = Writer.compression(CompressionType.NONE);
-		Writer writer = SequenceFile.createWriter(conf, fileOpt, keyOpt, valueOpt, compOpt);
-		IntWritable key = new IntWritable();
-		ClusterWritable value = new ClusterWritable();
+		SequenceSwapWriter<Integer, Cluster> writer = new SequenceSwapWriter<>(finalOutput, conf.tmpPath, hdfsConf, true);
 		for (Path out: finalOutputs) {
 			for (FileStatus status: fs.listStatus(out)) {
 				if (status.isDirectory() || status.getLen() == 0) //avoid reading _SUCCESS
 					continue;
-				SequenceDirectoryReader reader = new SequenceDirectoryReader(status.getPath(), conf);
-				while (reader.next(key, value)) {
-					writer.append(key, value);
+				SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(status.getPath(), hdfsConf);
+				while (reader.seekNext()) {
+					writer.append(reader.keyW(), reader.valW());
 				}
 				reader.close();
 			}
@@ -183,14 +163,11 @@ public class KMeansDriver {
 		writer.close();
 		return finalOutput;
 	}
-	
-	static public Path run(Configuration conf, Path input, Path output) 
-					throws IOException, ClassNotFoundException,	InterruptedException {
+
+	static public Path run(Configuration conf, Path input, Path output) throws IOException, ClassNotFoundException,	InterruptedException {
 		int retry;
 		Path bestResult = null;
 		double lowestRSS = Double.MAX_VALUE;
-		IntWritable key = new IntWritable();
-		ClusterWritable value = new ClusterWritable();
 		FileSystem fs = FileSystem.get(conf);
 
 		int startFrom = 0;
@@ -212,10 +189,10 @@ public class KMeansDriver {
 			Path mainLoopOutput = KMeansMainLoop(conf, input, retryOutput);
 			
 			//use the lowest RSS result for better clustering
-			SequenceDirectoryReader reader = new SequenceDirectoryReader(mainLoopOutput, conf);
+			SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(mainLoopOutput, conf);
 			double RSS = 0;
-			while (reader.next(key, value)) {
-				RSS += ((TopDownKMeansCluster) value.getValue()).getRSSk();
+			while (reader.seekNext()) {
+				RSS += ((TopDownKMeansCluster)reader.val()).getRSSk();
 			}
 			reader.close();
 			if (RSS < lowestRSS) {
@@ -258,19 +235,16 @@ public class KMeansDriver {
 			DistributedCache.createSymlink(conf);
 		}
 
-		static public Map<Integer, TopDownKMeansCluster> getOldClusterMap(
-				Configuration conf) throws IOException, URISyntaxException {
-			IntWritable inKey = new IntWritable();
-			ClusterWritable inValue = new ClusterWritable();
+		static public Map<Integer, TopDownKMeansCluster> getOldClusterMap(Configuration conf) throws IOException, URISyntaxException {
 			Map<Integer, TopDownKMeansCluster> map = new HashMap<Integer, TopDownKMeansCluster>();
 			FileSystem fs = FileSystem.getLocal(conf);
 			
 			for (FileStatus status: fs.listStatus(new Path(oldOutputDirLink))) {
 				if (status.isDirectory() || status.getLen() == 0) //avoid reading _SUCCESS
 					continue;
-				SequenceDirectoryReader reader = new SequenceDirectoryReader(status.getPath(), conf);
-				while (reader.next(inKey, inValue)) {
-					map.put(inKey.get(), (TopDownKMeansCluster) inValue.getValue());
+				SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(status.getPath(), conf);
+				while (reader.seekNext()) {
+					map.put(reader.key(), (TopDownKMeansCluster) reader.val());
 				}
 				reader.close();
 			}
@@ -286,15 +260,11 @@ public class KMeansDriver {
 			DistributedCache.createSymlink(conf);
 		}
 
-		static public Map<Integer, TopDownKMeansCluster> getOldOldClusterMap(
-				Configuration conf) throws IOException, URISyntaxException {
-			IntWritable inKey = new IntWritable();
-			ClusterWritable inValue = new ClusterWritable();
+		static public Map<Integer, TopDownKMeansCluster> getOldOldClusterMap(Configuration conf) throws IOException, URISyntaxException {
 			Map<Integer, TopDownKMeansCluster> map = null;
 			FileSystem fs = FileSystem.getLocal(conf);
-			
 			Path oldoldOutputDir = new Path(oldoldOutputDirLink);
-			
+
 			if (!fs.exists(oldoldOutputDir)) {
 				return null;
 			}
@@ -302,10 +272,9 @@ public class KMeansDriver {
 			for (FileStatus status: fs.listStatus(oldoldOutputDir)) {
 				if (status.isDirectory() || status.getLen() == 0) //avoid reading _SUCCESS
 					continue;
-				SequenceDirectoryReader reader = new SequenceDirectoryReader(status.getPath(), conf);
-				while (reader.next(inKey, inValue)) {
-					map.put(inKey.get(),
-							(TopDownKMeansCluster) inValue.getValue());
+				SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(status.getPath(), conf);
+				while (reader.seekNext()) {
+					map.put(reader.key(), (TopDownKMeansCluster)reader.val());
 				}
 				reader.close();
 			}

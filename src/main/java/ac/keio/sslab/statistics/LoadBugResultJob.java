@@ -179,16 +179,6 @@ public class LoadBugResultJob implements NLPJob {
 	}
 
 	@Override
-	public void takeSnapshot() {
-		/* do nothing */
-	}
-
-	@Override
-	public void restoreSnapshot() {
-		/* do nothing */
-	}
-
-	@Override
 	public boolean runInBackground() {
 		return false;
 	}

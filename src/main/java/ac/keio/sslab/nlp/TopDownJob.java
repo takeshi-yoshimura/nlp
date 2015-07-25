@@ -46,14 +46,6 @@ public class TopDownJob implements NLPJob {
 	}
 
 	@Override
-	public void takeSnapshot() {
-	}
-
-	@Override
-	public void restoreSnapshot() {
-	}
-
-	@Override
 	public boolean runInBackground() {
 		return true;
 	}

@@ -1,23 +1,17 @@
 package ac.keio.sslab.nlp;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import ac.keio.sslab.nlp.lda.CVB0;
-import ac.keio.sslab.nlp.lda.CVB0Snapshot;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
-import ac.keio.sslab.nlp.lda.LDALocalFiles;
 import ac.keio.sslab.nlp.lda.RowId;
-import ac.keio.sslab.nlp.lda.RowIdSnapshot;
 import ac.keio.sslab.nlp.lda.Seq2sparse;
-import ac.keio.sslab.nlp.lda.Seq2sparseSnapshot;
 
 public class LDAJob implements NLPJob {
 	
@@ -25,7 +19,7 @@ public class LDAJob implements NLPJob {
 
 	@Override
 	public String getJobName() {
-		return NLPConf.LDAJobName;
+		return "lda";
 	}
 
 	@Override
@@ -111,40 +105,6 @@ public class LDAJob implements NLPJob {
 			cvb.start(corpusPath, numTopics, numIterations);
 		} catch (Exception e) {
 			System.err.println("CVB0 failed: " + e.toString());
-		}
-	}
-
-	@Override
-	public void takeSnapshot() {
-		try {
-			FileSystem fs = FileSystem.get(new Configuration());
-			conf.localLdaFile.mkdir();
-			for (FileStatus stat: fs.listStatus(conf.ldaPath)) {
-				LDAHDFSFiles hdfs = new LDAHDFSFiles(stat.getPath());
-				LDALocalFiles local = new LDALocalFiles(new File(conf.localLdaFile, stat.getPath().getName()));
-				(new Seq2sparseSnapshot(fs, hdfs, local)).takeSnapshot();
-				(new RowIdSnapshot(fs, hdfs, local)).takeSnapshot();
-				(new CVB0Snapshot(fs, hdfs, local)).takeSnapshot();
-			}
-		} catch (IOException e) {
-			System.err.println("Taking snapshot failed at " + getJobName() + ": " + e.toString());
-		}
-	}
-
-	@Override
-	public void restoreSnapshot() {
-		try {
-			FileSystem fs = FileSystem.get(new Configuration());
-			fs.mkdirs(conf.ldaPath);
-			for (File localOutputFile: conf.localLdaFile.listFiles()) {
-				LDAHDFSFiles hdfs = new LDAHDFSFiles(new Path(conf.ldaPath, localOutputFile.getName()));
-				LDALocalFiles local = new LDALocalFiles(localOutputFile);
-				(new Seq2sparseSnapshot(fs, hdfs, local)).restoreSnapshot();
-				(new RowIdSnapshot(fs, hdfs, local)).restoreSnapshot();
-				(new CVB0Snapshot(fs, hdfs, local)).restoreSnapshot();
-			}
-		} catch (IOException e) {
-			System.err.println("Restoring snapshot failed at " + getJobName() + ": " + e.toString());
 		}
 	}
 

@@ -11,11 +11,8 @@ import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.mahout.common.Pair;
 import org.apache.mahout.math.Vector;
-import org.apache.mahout.math.VectorWritable;
 import org.apache.mahout.math.Vector.Element;
 
 import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
@@ -53,11 +50,10 @@ public class DocumentReader {
 
 	public void loadDocumentIndex(Path docIndexPath, Configuration conf) throws IOException {
 		docIndex = new HashMap<Integer, String>();
-		SequenceDirectoryReader dictionaryReader = new SequenceDirectoryReader(docIndexPath, conf);
-		IntWritable key = new IntWritable(); Text value = new Text();
-		while (dictionaryReader.next(key, value)) {
-			int documentId = key.get();
-			String documentName = value.toString();
+		SequenceDirectoryReader<Integer, String> dictionaryReader = new SequenceDirectoryReader<>(docIndexPath, conf);
+		while (dictionaryReader.seekNext()) {
+			int documentId = dictionaryReader.key();
+			String documentName = dictionaryReader.val();
 			docIndex.put(documentId, documentName);
 		}
 		dictionaryReader.close();
@@ -65,12 +61,11 @@ public class DocumentReader {
 
 	public void loadDocumentDir(Path documentDir, Configuration conf, int maxTopics) throws IOException {
 		docTopicId = new HashMap<Integer, List<Integer>>();
-		SequenceDirectoryReader reader = new SequenceDirectoryReader(documentDir, conf);
-		IntWritable key = new IntWritable(); VectorWritable value = new VectorWritable();
+		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(documentDir, conf);
 		FirstReverseSorter sorter = new FirstReverseSorter();
-		while (reader.next(key, value)) {
-			int docId = key.get();
-			Vector vector = value.get();
+		while (reader.seekNext()) {
+			int docId = reader.key();
+			Vector vector = reader.val();
 			List<Pair<Double, Integer>> docTopic = new ArrayList<Pair<Double, Integer>>();
 			for (Element e: vector.all()) {
 				docTopic.add(new Pair<Double, Integer>(e.get(), e.index()));

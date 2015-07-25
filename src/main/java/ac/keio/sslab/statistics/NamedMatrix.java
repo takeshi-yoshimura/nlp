@@ -16,13 +16,11 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.mahout.math.DenseMatrix;
 import org.apache.mahout.math.Matrix;
 import org.apache.mahout.math.MatrixSlice;
 import org.apache.mahout.math.SparseMatrix;
-import org.apache.mahout.math.VectorWritable;
+import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
 
 import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
@@ -125,13 +123,9 @@ public class NamedMatrix {
 
 		TreeMap<Integer, String> rowIndex = new TreeMap<Integer, String>(colIndex);
 		try {
-			SequenceDirectoryReader dictionaryReader = new SequenceDirectoryReader(hdfs.docIndexPath, hdfsConf);
-			IntWritable key = new IntWritable();
-			Text value = new Text();
-			while (dictionaryReader.next(key, value)) {
-				int documentId = key.get();
-				String documentName = value.toString();
-				rowIndex.put(documentId, documentName);
+			SequenceDirectoryReader<Integer, String> dictionaryReader = new SequenceDirectoryReader<>(hdfs.docIndexPath, hdfsConf);
+			while (dictionaryReader.seekNext()) {
+				rowIndex.put(dictionaryReader.key(), dictionaryReader.val());
 			}
 			dictionaryReader.close();
 		} catch (Exception e) {
@@ -141,12 +135,10 @@ public class NamedMatrix {
 
 		Matrix matrix = new DenseMatrix(rowIndex.size(), colIndex.size());
 		try {
-			SequenceDirectoryReader reader = new SequenceDirectoryReader(hdfs.documentPath, hdfsConf);
-			IntWritable key = new IntWritable();
-			VectorWritable value = new VectorWritable();
-			while (reader.next(key, value)) {
-				for (Element p: value.get().nonZeroes()) {
-					matrix.set(key.get(), p.index(), p.get());
+			SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(hdfs.documentPath, hdfsConf);
+			while (reader.seekNext()) {
+				for (Element p: reader.val().nonZeroes()) {
+					matrix.set(reader.key(), p.index(), p.get());
 				}
 			}
 			reader.close();

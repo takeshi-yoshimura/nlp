@@ -12,13 +12,10 @@ import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.mahout.common.Pair;
 import org.apache.mahout.common.distance.SquaredEuclideanDistanceMeasure;
 import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.Vector;
-import org.apache.mahout.math.VectorWritable;
 import org.apache.mahout.math.Vector.Element;
 
 import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
@@ -86,12 +83,11 @@ public class DocumentGroupReader {
 
 	public void loadDocumentIndex(Path docIndexPath, Set<Integer> group, Configuration conf) throws IOException {
 		docIndex = new HashMap<Integer, String>();
-		SequenceDirectoryReader dictionaryReader = new SequenceDirectoryReader(docIndexPath, conf);
-		IntWritable key = new IntWritable(); Text value = new Text();
-		while (dictionaryReader.next(key, value)) {
-			int documentId = key.get();
+		SequenceDirectoryReader<Integer, String> dictionaryReader = new SequenceDirectoryReader<>(docIndexPath, conf);
+		while (dictionaryReader.seekNext()) {
+			int documentId = dictionaryReader.key();
 			if (group.contains(documentId)) {
-				String documentName = value.toString();
+				String documentName = dictionaryReader.val().toString();
 				docIndex.put(documentId, documentName);
 			}
 		}
@@ -101,18 +97,17 @@ public class DocumentGroupReader {
 	public void loadDocumentDir(Path documentDir,  Set<Integer> group, Configuration conf, int maxTopics) throws IOException {
 		docTopicId = new HashMap<Integer, List<Integer>>();
 		distance = new ArrayList<Pair<Double, Integer>>();
-		SequenceDirectoryReader reader = new SequenceDirectoryReader(documentDir, conf);
-		IntWritable key = new IntWritable(); VectorWritable value = new VectorWritable();
+		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(documentDir, conf);
 		FirstReverseSorter sorter = new FirstReverseSorter();
 		int numVec = 0;
 		Map<Integer, Vector> vectors = new HashMap<Integer, Vector>();
-		while (reader.next(key, value)) {
-			int docId = key.get();
+		while (reader.seekNext()) {
+			int docId = reader.key();
 			if (!group.contains(docId)) {
 				continue;
 			}
 			numVec++;
-			Vector vector = value.get();
+			Vector vector = reader.val();
 			if (centroid == null) {
 				centroid = new DenseVector(vector);
 			} else {

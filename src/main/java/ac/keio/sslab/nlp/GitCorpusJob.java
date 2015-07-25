@@ -3,7 +3,6 @@ package ac.keio.sslab.nlp;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringReader;
@@ -18,11 +17,7 @@ import java.util.Set;
 
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.Text;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.eclipse.jgit.api.Git;
@@ -34,6 +29,8 @@ import org.eclipse.jgit.revwalk.RevObject;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
+import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
+
 public class GitCorpusJob implements NLPJob {
 
 	public static final String delimiter = " ";
@@ -41,7 +38,7 @@ public class GitCorpusJob implements NLPJob {
 
 	@Override
 	public String getJobName() {
-		return NLPConf.gitCorpusJobName;
+		return "gitCorpus";
 	}
 
 	@Override
@@ -52,7 +49,7 @@ public class GitCorpusJob implements NLPJob {
 	@Override
 	public Options getOptions() {
 		Options options = new Options();
-		options.addOption("g", "gitID", true, "ID of a git repository");
+		options.addOption("g", "gitDir", true, "path to a git repository");
 		options.addOption("s", "since", true, "Start object ref to be uploaded (yyyy/MM/dd). Default is blank (means all)");
 		options.addOption("u", "until", true, "End object ref to be uploaded (yyyy/MM/dd). Default is HEAD.");
 		options.addOption("f", "file", true, "target file or directory path in git repository. Default is the top of the input directory.");
@@ -85,13 +82,13 @@ public class GitCorpusJob implements NLPJob {
 		return logs;
 	}
 
-	protected void writeSingle(SequenceFile.Writer writer, MyAnalyzer analyzer, Text key, Text value, RevCommit rev) throws Exception {
+	protected void writeSingle( SequenceSwapWriter<String, String> writer, MyAnalyzer analyzer, RevCommit rev) throws Exception {
 		if (rev.getParentCount() > 1) {//--no-merges
 			return;
 		}
 		System.err.println("Writing commit " + rev.getId().getName());
-		key.set(rev.getId().getName());
-		
+		String key = rev.getId().getName();
+
 		StringBuilder preprocessed = new StringBuilder();
 		// TODO: the following ignores messages in a single paragraph that includes signed-off-by. Should consider the case?
 		// TODO: use Lucene/Solr to process both paragraphs and words
@@ -125,30 +122,27 @@ public class GitCorpusJob implements NLPJob {
 			//strip the last delimiter
 			filtered.setLength(filtered.length() - delimiter.length());
 			//do not touch key
-			value.set(filtered.toString());
-			writer.append(key, value);
+			writer.append(key, filtered.toString());
 		}
 	}
 
-	protected void writeCommits(Repository repo, Set<String> shas, SequenceFile.Writer writer, MyAnalyzer analyzer) throws Exception {
-		Text key = new Text(); Text value = new Text();
+	protected void writeCommits(Repository repo, Set<String> shas, SequenceSwapWriter<String, String> writer, MyAnalyzer analyzer) throws Exception {
 		RevWalk walk = new RevWalk(repo);
 		for (String sha: shas) {
 			RevCommit rev = walk.parseCommit(repo.resolve(sha));
-			writeSingle(writer, analyzer, key, value, rev);
+			writeSingle(writer, analyzer, rev);
 		}
 		walk.close();
 	}
 
-	protected void iterateAndWrite(Iterator<RevCommit> logs, SequenceFile.Writer writer, MyAnalyzer analyzer) throws Exception {
-		Text key = new Text(); Text value = new Text();
+	protected void iterateAndWrite(Iterator<RevCommit> logs, SequenceSwapWriter<String, String> writer, MyAnalyzer analyzer) throws Exception {
 		while (logs.hasNext()) {
 			RevCommit rev = logs.next();
-			writeSingle(writer, analyzer, key, value, rev);
+			writeSingle(writer, analyzer, rev);
 		}
 	}
 	
-	protected void iterateAndWriteStable(Git git, Repository repo, SequenceFile.Writer writer, MyAnalyzer analyzer) throws Exception {
+	protected void iterateAndWriteStable(Git git, Repository repo, SequenceSwapWriter<String, String> writer, MyAnalyzer analyzer) throws Exception {
 		RevWalk walk = new RevWalk(repo);
 		Map<String, String> rangeMap = new HashMap<String, String>();
 		for (Entry<String, Ref> e: repo.getTags().entrySet()) {
@@ -204,10 +198,10 @@ public class GitCorpusJob implements NLPJob {
 	@Override
 	public void run(Map<String, String> args) {
 		if (!args.containsKey("g")) {
-			System.err.println("Need to specify --gitID");
+			System.err.println("Need to specify --gitDir");
 			return;
 		}
-		File inputDir = new File(conf.localGitFile, args.get("g"));
+		File inputDir = new File(args.get("g"));
 		Path outputPath = new Path(conf.corpusPath, args.get("j"));
 		String sinceStr = "";
 		if (args.containsKey("s")) {
@@ -247,30 +241,10 @@ public class GitCorpusJob implements NLPJob {
 			}
 		}
 
-		Repository repo = null;
-		Git git = null;
-		SequenceFile.Writer writer = null;
 		try {
-			Configuration hdfsConf = new Configuration();
-			FileSystem fs = FileSystem.get(hdfsConf);
-			if (fs.exists(outputPath)) {
-				if (args.containsKey("ow")) {
-					if (!JobUtils.promptDeleteDirectory(fs, outputPath, args.containsKey("force"))) {
-						throw new Exception("Overwrite revoked");
-					}
-				} else {
-					throw new Exception(outputPath.toString() + " exists. You might want to use --overwrite.");
-				}
-			}
-			Path tmpOutputPath = new Path(conf.tmpPath, outputPath.toString());
-			SequenceFile.Writer.Option fileOpt = SequenceFile.Writer.file(tmpOutputPath);
-			SequenceFile.Writer.Option keyClass = SequenceFile.Writer.keyClass(Text.class);
-			SequenceFile.Writer.Option valueClass = SequenceFile.Writer.valueClass(Text.class);
-			fs.mkdirs(tmpOutputPath.getParent());
-			writer = SequenceFile.createWriter(hdfsConf, fileOpt, keyClass, valueClass);
-
-			repo = new FileRepositoryBuilder().findGitDir(inputDir).build();
-			git = new Git(repo);
+			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, new Configuration(), args.containsKey("ow"));
+			Repository repo = new FileRepositoryBuilder().findGitDir(inputDir).build();
+			Git git = new Git(repo);
 			MyAnalyzer analyzer = new MyAnalyzer(tokenizeAtUnderline, useNLTKStopwords);
 			if (commits != null && commits.size() > 0) {
 				writeCommits(repo, commits, writer, analyzer);
@@ -281,9 +255,9 @@ public class GitCorpusJob implements NLPJob {
 				iterateAndWrite(logs, writer, analyzer);
 			}
 			analyzer.close();
+			git.close();
+			repo.close();
 			writer.close();
-			fs.mkdirs(outputPath.getParent());
-			fs.rename(tmpOutputPath, outputPath);
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.err.println("Writing logs to HDFS failed");
@@ -296,46 +270,6 @@ public class GitCorpusJob implements NLPJob {
 			if (fileStr != null) {
 				System.err.println("File: " + fileStr);
 			}
-		}
-		if (git != null) {
-			git.close();
-		}
-		if (repo != null) {
-			repo.close();
-		}
-		if (writer != null) {
-			try {
-				writer.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.err.println("writer.close failed");
-			}
-		}
-	}
-
-	@Override
-	public void takeSnapshot() {
-		try {
-			FileSystem fs = FileSystem.get(new Configuration());
-			conf.localCorpusFile.mkdirs();
-			for (FileStatus stat: fs.listStatus(conf.corpusPath)) {
-				fs.copyToLocalFile(stat.getPath(), new Path(conf.localCorpusFile.getAbsolutePath(), stat.getPath().getName()));
-			}
-		} catch (Exception e) {
-			System.err.println("Taking snapshot failed at " + getJobName() + ": " + e.toString());
-		}
-	}
-
-	@Override
-	public void restoreSnapshot() {
-		try {
-			FileSystem fs = FileSystem.get(new Configuration());
-			fs.mkdirs(conf.corpusPath);
-			for (File localOutputFile: conf.localLdaFile.listFiles()) {
-				fs.copyFromLocalFile(new Path(localOutputFile.getAbsolutePath()), new Path(conf.corpusPath, localOutputFile.getName()));
-			}
-		} catch (Exception e) {
-			System.err.println("Restoring snapshot failed at " + getJobName() + ": " + e.toString());
 		}
 	}
 

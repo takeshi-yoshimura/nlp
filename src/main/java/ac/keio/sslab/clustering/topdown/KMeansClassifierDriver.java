@@ -16,7 +16,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.mahout.clustering.Cluster;
-import org.apache.mahout.clustering.iterator.ClusterWritable;
 import org.apache.mahout.math.VectorWritable;
 
 import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
@@ -24,9 +23,7 @@ import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
 public class KMeansClassifierDriver {
 	static int numClusterDivision = 2;
 
-	static public void run(Configuration conf, Path input, Path output,
-			Path kmeansFinal) throws IOException,
-			ClassNotFoundException, InterruptedException {
+	static public void run(Configuration conf, Path input, Path output, Path kmeansFinal) throws IOException, ClassNotFoundException, InterruptedException {
 		Job job = new Job(conf, "KMeans Classifier over input: " + input);
 		FileInputFormat.addInputPath(job, input);
 		job.setInputFormatClass(SequenceFileInputFormat.class);
@@ -38,8 +35,7 @@ public class KMeansClassifierDriver {
 		job.setOutputKeyClass(IntWritable.class);
 		job.setOutputValueClass(VectorWritable.class);
 
-		SideData.setNumClusterDivision(job.getConfiguration(),
-				numClusterDivision);
+		SideData.setNumClusterDivision(job.getConfiguration(), numClusterDivision);
 		SideData.setKMeansFinalPath(job.getConfiguration(), kmeansFinal);
 
 		job.setJarByClass(KMeansClassifierMapper.class);
@@ -68,19 +64,16 @@ public class KMeansClassifierDriver {
 			DistributedCache.createSymlink(conf);
 		}
 
-		static public Map<Integer, Cluster> getFinalClusterMap(
-				Configuration conf) throws IOException {
-			IntWritable inKey = new IntWritable();
-			ClusterWritable inValue = new ClusterWritable();
+		static public Map<Integer, Cluster> getFinalClusterMap(Configuration conf) throws IOException {
 			Map<Integer, Cluster> map = new HashMap<Integer, Cluster>();
 			FileSystem fs = FileSystem.getLocal(conf);
-			
+
 			for (FileStatus status: fs.listStatus(new Path(kmeansFinalDirLink))) {
 				if (status.isDirectory() || status.getLen() == 0) //avoid reading _SUCCESS
 					continue;
-				SequenceDirectoryReader reader = new SequenceDirectoryReader(status.getPath(), conf);
-				while (reader.next(inKey, inValue)) {
-					map.put(inKey.get(), inValue.getValue());
+				SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(status.getPath(), conf);
+				while (reader.seekNext()) {
+					map.put(reader.key(), reader.val());
 				}
 				reader.close();
 			}
@@ -89,5 +82,4 @@ public class KMeansClassifierDriver {
 			return map;
 		}
 	}
-
 }

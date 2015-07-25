@@ -13,8 +13,7 @@ import org.apache.mahout.common.distance.DistanceMeasure;
 import org.apache.mahout.common.distance.SquaredEuclideanDistanceMeasure;
 import org.apache.mahout.math.VectorWritable;
 
-public class KMeansMapper extends
-		Mapper<IntWritable, VectorWritable, IntWritable, ClusterWritable> {
+public class KMeansMapper extends Mapper<IntWritable, VectorWritable, IntWritable, ClusterWritable> {
 
 	Map<Integer, TopDownKMeansCluster> oldClusters;
 	Map<Integer, TopDownKMeansCluster> oldoldClusters;
@@ -39,14 +38,12 @@ public class KMeansMapper extends
 		}
 
 		measure = new SquaredEuclideanDistanceMeasure();
-		newClusters = new HashMap<Integer, Map<Integer, TopDownKMeansCluster>>(
-				oldClusters.size() * 4 / 3); // optimizing initial capacity
+		newClusters = new HashMap<Integer, Map<Integer, TopDownKMeansCluster>>(oldClusters.size() * 4 / 3); // optimizing initial capacity
 		numClusterDivision = KMeansDriver.SideData.getNumClusterDivision(conf);
 	}
 
 	@Override
-	public void map(IntWritable key, VectorWritable value, Context context)
-			throws InterruptedException {
+	public void map(IntWritable key, VectorWritable value, Context context) throws InterruptedException {
 		/*
 		 * input key: old, prior, parent cluster ID, input value: point vector
 		 */
@@ -75,8 +72,7 @@ public class KMeansMapper extends
 				// converged or the cluster size is very small
 				continue;
 			}
-			double distance = measure
-					.distance(cluster.getCenter(), value.get());
+			double distance = measure.distance(cluster.getCenter(), value.get());
 			if (distance < nearestDistance) {
 				nearestClusterID = clusterID;
 				nearestDistance = distance;
@@ -89,8 +85,7 @@ public class KMeansMapper extends
 					//in case of converged cluster
 					continue;
 				}
-				double oldDistance = measure.distance(oldCluster.getCenter(),
-						value.get());
+				double oldDistance = measure.distance(oldCluster.getCenter(), value.get());
 				if (oldDistance < oldNearestDistance) {
 					nearestOldClusterID = clusterID;
 					oldNearestDistance = oldDistance; 
@@ -129,21 +124,18 @@ public class KMeansMapper extends
 			TopDownKMeansCluster dummyCluster = tmpOutputValue.get(dummyClusterID);
 			dummyCluster.incrementRSSk(value.get());
 		} else {
-			TopDownKMeansCluster dummyCluster = new TopDownKMeansCluster(oldClusters.get(nearestOldClusterID).getCenter(),
-					dummyClusterID, null);
+			TopDownKMeansCluster dummyCluster = new TopDownKMeansCluster(oldClusters.get(nearestOldClusterID).getCenter(), dummyClusterID, null);
 			dummyCluster.incrementRSSk(value.get());
 			tmpOutputValue.put(dummyClusterID, dummyCluster);
 		}
 	}
 
 	@Override
-	public void cleanup(Context context) throws IOException,
-			InterruptedException {
+	public void cleanup(Context context) throws IOException, InterruptedException {
 		IntWritable outKey = new IntWritable();
 		ClusterWritable outValue = new ClusterWritable();
 		for (int oldClusterID : newClusters.keySet()) {
-			Map<Integer, TopDownKMeansCluster> tmpNewCluster = newClusters
-					.get(oldClusterID);
+			Map<Integer, TopDownKMeansCluster> tmpNewCluster = newClusters.get(oldClusterID);
 			for (int clusterID : tmpNewCluster.keySet()) {
 				TopDownKMeansCluster cluster = tmpNewCluster.get(clusterID);
 				outKey.set(oldClusterID);

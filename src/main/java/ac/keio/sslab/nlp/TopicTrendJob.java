@@ -14,10 +14,8 @@ import java.util.TreeMap;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
+import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
-import org.apache.mahout.math.VectorWritable;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.lib.ObjectId;
@@ -52,7 +50,7 @@ public class TopicTrendJob implements NLPJob {
 	public Options getOptions() {
 		Options opt = new Options();
 		opt.addOption("l", "ldaID", true, "ID for lda job");
-		opt.addOption("g", "gitID", true, "ID for git setup job");
+		opt.addOption("g", "gitDir", true, "Path to a git repository");
 		return opt;
 	}
 
@@ -111,11 +109,11 @@ public class TopicTrendJob implements NLPJob {
 	@Override
 	public void run(Map<String, String> args) {
 		if (!args.containsKey("l") || !args.containsKey("g")) {
-			System.err.println("Need to specify --ldaID and --gitID");
+			System.err.println("Need to specify --ldaID and --gitDir");
 			return;
 		}
 		File topicTrendFile = new File(conf.finalOutputFile, "topicTrend");
-		File gitFile = new File(conf.localGitFile, args.get("g"));
+		File gitFile = new File(args.get("g"));
 		File outputFile = new File(topicTrendFile, args.get("l"));
 		outputFile.mkdirs();
 
@@ -135,10 +133,9 @@ public class TopicTrendJob implements NLPJob {
 			System.out.println("Load p(topic|document) and calculate p(topic|ver), p(topic|dir)");
 			Map<Integer, Map<Integer, Double>> pTopicVer = new HashMap<Integer, Map<Integer, Double>>(); //<topicID, <ver, p(topic|ver)>>
 			Map<Integer, Map<String, Double>> pTopicDir = new HashMap<Integer, Map<String, Double>>(); //<topicID, <dir, p(topic|dir)>>
-			SequenceDirectoryReader docReader = new SequenceDirectoryReader(hdfs.documentPath, hdfsConf);
-			IntWritable key = new IntWritable(); VectorWritable value = new VectorWritable();
-			while (docReader.next(key, value)) {
-				int sha = key.get();
+			SequenceDirectoryReader<Integer, Vector> docReader = new SequenceDirectoryReader<>(hdfs.documentPath, hdfsConf);
+			while (docReader.seekNext()) {
+				int sha = docReader.key();
 				if (!shas.containsKey(sha)) {
 					System.err.println("sha id " + sha + " was not found");
 					continue;
@@ -150,7 +147,7 @@ public class TopicTrendJob implements NLPJob {
 					System.out.print(" " + dir);
 				}
 				System.out.println();
-				for (Element e: value.get().all()) { //p(topic|doc)
+				for (Element e: docReader.val().all()) { //p(topic|doc)
 					Map<Integer, Double> verMap; //<ver time, current p(topic|ver)> for topicID (== e.index())
 					Map<String, Double> dirMap; //<dir, current p(topic|dir)> for topicID ( == e.index())
 					if (pTopicVer.containsKey(e.index())) {
@@ -223,13 +220,12 @@ public class TopicTrendJob implements NLPJob {
 			Repository repo, Map<Integer, String> vers, Map<Integer, Integer> verDocs, Map<String, Integer> dirDocs) throws Exception {
 		System.out.println("Load docIndex");
 		Map<String, Integer> revDocIndex = new HashMap<String, Integer>();
-		IntWritable key = new IntWritable(); Text value = new Text();
-		SequenceDirectoryReader docIndexReader = new SequenceDirectoryReader(docIndexPath, hdfsConf);
-		while (docIndexReader.next(key, value)) {
-			if (value.toString().indexOf('-') != -1) {
-				revDocIndex.put(value.toString().substring(0, value.toString().lastIndexOf('-')), key.get());
+		SequenceDirectoryReader<Integer, String> docIndexReader = new SequenceDirectoryReader<>(docIndexPath, hdfsConf);
+		while (docIndexReader.seekNext()) {
+			if (docIndexReader.val().indexOf('-') != -1) {
+				revDocIndex.put(docIndexReader.val().substring(0, docIndexReader.val().lastIndexOf('-')), docIndexReader.key());
 			} else {
-				revDocIndex.put(value.toString(), key.get());
+				revDocIndex.put(docIndexReader.val(), docIndexReader.key());
 			}
 		}
 		docIndexReader.close();
@@ -296,14 +292,6 @@ public class TopicTrendJob implements NLPJob {
 			System.out.println();
 		}
 		return shas;
-	}
-
-	@Override
-	public void takeSnapshot() {
-	}
-
-	@Override
-	public void restoreSnapshot() {
 	}
 
 	@Override

@@ -72,8 +72,8 @@ public class CliMain {
 		if (options == null) {
 			options = new Options();
 		}
-		if (options.hasOption("j") || options.hasOption("ow") || options.hasOption("force") || options.hasOption("h")) {
-			System.err.println("Options -j --jobID, -ow --overwrite, -force --forceOverwrite, -h --help are used at " 
+		if (options.hasOption("j") || options.hasOption("ow") || options.hasOption("h")) {
+			System.err.println("Options -j --jobID, -ow --overwrite, -h --help are used at " 
 								+ this.getClass().getName());
 			System.exit(-1);
 			return null;
@@ -83,7 +83,6 @@ public class CliMain {
 		required.addOption(new Option("j", "jobID", true, "ID of the job"));
 		options.addOptionGroup(required);
 		options.addOption("ow", "overwrite", false, "Overwrite (ask overwriting again later if no -f or --forceOverwrite)");
-		options.addOption("force", "forceOverwrite", false, "Foce to overwrite (ignored if no --overwrite or -o)");
 		options.addOption("h", "help", false, "Help");
 		return options;
 	}
@@ -166,14 +165,6 @@ public class CliMain {
 			runInBackground = job.runInBackground();
 		}
 
-		if (job.getJobName() == NLPConf.snapshotJobName) {
-			String [] newArgs2 = new String[newArgs.length + 2];
-			System.arraycopy(newArgs, 0, newArgs2, 0, newArgs.length);
-			newArgs2[newArgs.length - 2] = "-j";
-			newArgs2[newArgs.length - 1] = "takeSnapshot";
-			newArgs = newArgs2;
-		}
-
 		if (runInBackground) {
 			forkProcess(job, newArgs);
 			return;
@@ -190,13 +181,10 @@ public class CliMain {
 			}
 			if (argMap.containsKey("h")) {
 				printHelp(job.getJobName(), options);
-			} else if (manager.hasJobIDArgs(jobID) && !argMap.containsKey("ow")) {
+			} else if (manager.hasJobIDArgs(jobID)) {
 				System.out.println("Found the past output for job " + job.getJobName() + " ID = " + jobID + ". Use the past arguments");
 				job.run(manager.getJobIDArgs(jobID));
 			} else {
-				if (job.getJobName() != NLPConf.snapshotJobName) {
-					manager.saveJobIDArgs(jobID, argMap);
-				}
 				job.run(argMap);
 			}
 			manager.unLock(jobID);
@@ -215,7 +203,6 @@ public class CliMain {
 			}
 		}
 		List<NLPJob> jobs = new ArrayList<NLPJob>();
-		jobs.add(new GitSetupJob());
 		jobs.add(new GitCorpusJob());
 		jobs.add(new TextCorpusJob());
 		jobs.add(new DeduplicateCorpusJob());
@@ -227,8 +214,6 @@ public class CliMain {
 		jobs.add(new TopicTrendJob());
 		jobs.add(new LoadBugResultJob());
 		jobs.add(new CompareWithManualJob());
-
-		jobs.add(new SnapshotManager(jobs));
 
 		(new CliMain(jobs, confFile)).run(args);
 	}

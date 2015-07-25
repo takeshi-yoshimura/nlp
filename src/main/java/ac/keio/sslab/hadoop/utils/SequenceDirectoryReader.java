@@ -13,18 +13,30 @@ import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.SequenceFile.Reader;
 
-public class SequenceDirectoryReader {
+public class SequenceDirectoryReader<K, V> {
 
 	FileSystem fs;
 	Configuration conf;
 	List<Path> files;
 	int currentIndex;
 	SequenceFile.Reader reader;
+	
+	WritableMediator<K, ? extends Writable> keyM;
+	WritableMediator<V, ? extends Writable> valueM;
 
 	public SequenceDirectoryReader(Path dir, Configuration conf) throws FileNotFoundException, IOException {
 		FileSystem fs = dir.getFileSystem(conf);
 		this.fs = fs;
 		this.conf = conf;
+
+		try {
+			WritableMediatorFactory<K> keyFactory = new WritableMediatorFactory<K>();
+			keyM = keyFactory.getMediator();
+			WritableMediatorFactory<V> valueFactory = new WritableMediatorFactory<V>();
+			valueM = valueFactory.getMediator();
+		} catch (Exception e) {
+			throw new IOException("Instantiation failure");
+		}
 
 		files = new ArrayList<Path>();
 		for (FileStatus status: fs.listStatus(dir)) {
@@ -40,16 +52,32 @@ public class SequenceDirectoryReader {
 		reader = new Reader(fs.getConf(), fileOpt);
 	}
 
-	public boolean next(Writable key, Writable val) throws IOException {
-		boolean result = reader.next(key, val);
+	public boolean seekNext() throws IOException {
+		boolean result = reader.next(keyM.writable, valueM.writable);
 		if (result == false &&  currentIndex + 1 < files.size()) {
 			currentIndex++;
 			reader.close();
 			Reader.Option fileOpt = Reader.file(files.get(currentIndex));
 			reader = new Reader(fs.getConf(), fileOpt);
-			result = reader.next(key, val);
+			result = reader.next(keyM.writable, valueM.writable);
 		}
 		return result;
+	}
+
+	public K key() {
+		return keyM.get();
+	}
+
+	public Writable keyW() {
+		return keyM.writable;
+	}
+
+	public Writable valW() {
+		return valueM.writable;
+	}
+
+	public V val() {
+		return valueM.get();
 	}
 	
 	public void close() throws IOException {

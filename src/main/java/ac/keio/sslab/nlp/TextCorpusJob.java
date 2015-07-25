@@ -9,12 +9,11 @@ import java.util.Map;
 
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.Text;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+
+import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
 
 public class TextCorpusJob implements NLPJob {
 
@@ -61,27 +60,9 @@ public class TextCorpusJob implements NLPJob {
 		}
 		
 		MyAnalyzer analyzer = new MyAnalyzer(tokenizeAtUnderline, useNLTKStopwords);
-		Text key = new Text(); Text value = new Text();
-
-		SequenceFile.Writer writer = null;
+		String key = null;
 		try {
-			Configuration hdfsConf = new Configuration();
-			FileSystem fs = FileSystem.get(hdfsConf);
-			if (fs.exists(outputPath)) {
-				if (args.containsKey("ow")) {
-					if (!JobUtils.promptDeleteDirectory(fs, outputPath, args.containsKey("force"))) {
-						throw new Exception("Overwrite revoked");
-					}
-				} else {
-					throw new Exception(outputPath.toString() + " exists. You might want to use --overwrite.");
-				}
-			}
-			Path tmpOutputPath = new Path(conf.tmpPath, outputPath.toString());
-			SequenceFile.Writer.Option fileOpt = SequenceFile.Writer.file(tmpOutputPath);
-			SequenceFile.Writer.Option keyClass = SequenceFile.Writer.keyClass(Text.class);
-			SequenceFile.Writer.Option valueClass = SequenceFile.Writer.valueClass(Text.class);
-			fs.mkdirs(tmpOutputPath.getParent());
-			writer = SequenceFile.createWriter(hdfsConf, fileOpt, keyClass, valueClass);
+			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, new Configuration(), args.containsKey("ow"));
 			
 			BufferedReader br = new BufferedReader(new FileReader(input));
 			String line;
@@ -126,8 +107,7 @@ public class TextCorpusJob implements NLPJob {
 							//strip the last delimiter
 							filtered.setLength(filtered.length() - GitCorpusJob.delimiter.length());
 							//do not touch key
-							value.set(filtered.toString());
-							writer.append(key, value);
+							writer.append(key, filtered.toString());
 						}
 						dataStr.setLength(0);
 						idStr.setLength(0);
@@ -136,7 +116,7 @@ public class TextCorpusJob implements NLPJob {
 				} else if (line == dS) {
 					inID = false;
 					inData = true;
-					key.set(idStr.toString());
+					key = idStr.toString();
 					System.err.println("Writing id " + idStr.toString());
 				} else if (inID) {
 					idStr.append(line).append('\n');
@@ -146,23 +126,12 @@ public class TextCorpusJob implements NLPJob {
 			}
 			br.close();
 			writer.close();
-
-			fs.mkdirs(outputPath.getParent());
-			fs.rename(tmpOutputPath, outputPath);
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.err.println("Failed to load Local file " + input.getAbsolutePath());
 			System.err.println("OR Failed to write HDFS file " + new Path(conf.tmpPath, outputPath.toString()) + " or " + outputPath);
 		}
 		analyzer.close();
-	}
-
-	@Override
-	public void takeSnapshot() {
-	}
-
-	@Override
-	public void restoreSnapshot() {
 	}
 
 	@Override

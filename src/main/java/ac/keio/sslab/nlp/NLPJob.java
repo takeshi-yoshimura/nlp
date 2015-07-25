@@ -34,19 +34,5 @@ public interface NLPJob {
 	 */
 	public void run(Map<String, String> args);
 
-	/**
-	 * Take the snapshot of the job.
-	 * Typically, they copy the necessary data on HDFS in case of failures.
-	 * See detail in Snapshot class.
-	 */
-	public void takeSnapshot();
-
-	/**
-	 * Restore the snapshot of the job.
-	 * Typically, they copy the necessary data on HDFS in case of failures.
-	 * See detail in Snapshot class.
-	 */
-	public void restoreSnapshot();
-
 	public boolean runInBackground();
 }

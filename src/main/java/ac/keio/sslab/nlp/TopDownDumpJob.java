@@ -15,10 +15,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.mahout.clustering.iterator.ClusterWritable;
+import org.apache.mahout.clustering.Cluster;
 import org.apache.mahout.math.Vector.Element;
-import org.apache.mahout.math.VectorWritable;
+import org.apache.mahout.math.Vector;
 import org.eclipse.jgit.util.FileUtils;
 
 import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
@@ -93,13 +92,11 @@ public class TopDownDumpJob implements NLPJob {
 					continue;
 				}
 				Path centroidsPath = iterationSeqs[0].getPath();
-				SequenceDirectoryReader centroidReader = new SequenceDirectoryReader(centroidsPath, hdfsConf);
-				IntWritable key = new IntWritable();
-				ClusterWritable value = new ClusterWritable();
+				SequenceDirectoryReader<Integer, Cluster> centroidReader = new SequenceDirectoryReader<>(centroidsPath, hdfsConf);
 
-				while (centroidReader.next(key, value)) {
+				while (centroidReader.seekNext()) {
 					Map<Integer, Double> tmpMap = new HashMap<Integer, Double>();
-					for (Element e: value.getValue().getCenter().all()) {
+					for (Element e: centroidReader.val().getCenter().all()) {
 						tmpMap.put(e.index(), e.get());
 					}
 					List<Entry<Integer, Double>> sorted = new ArrayList<Entry<Integer, Double>>(tmpMap.entrySet());
@@ -107,16 +104,15 @@ public class TopDownDumpJob implements NLPJob {
 					sb.setLength(0);
 					sb.append(topicStr.get(sorted.get(0).getKey())).append(':').append(sorted.get(0).getValue());
 					sb.append(',').append(topicStr.get(sorted.get(1).getKey())).append(':').append(sorted.get(1).getValue());
-					clusterStr.put(key.get(), sb.toString());
+					clusterStr.put(centroidReader.key(), sb.toString());
 				}
 
-				SequenceDirectoryReader seq = new SequenceDirectoryReader(clusteredPoints, hdfsConf);
-				VectorWritable value2 = new VectorWritable();
-				while (seq.next(key, value2)) {
-					if (!clusterCount.containsKey(key.get())) {
-						clusterCount.put(key.get(), 0);
+				SequenceDirectoryReader<Integer, Vector> seq = new SequenceDirectoryReader<>(clusteredPoints, hdfsConf);
+				while (seq.seekNext()) {
+					if (!clusterCount.containsKey(seq.key())) {
+						clusterCount.put(seq.key(), 0);
 					}
-					clusterCount.put(key.get(), clusterCount.get(key.get()) + 1);
+					clusterCount.put(seq.key(), clusterCount.get(seq.key()) + 1);
 				}
 			}
 		} catch (Exception e) {
@@ -155,14 +151,6 @@ public class TopDownDumpJob implements NLPJob {
 		}
 		outDir.mkdirs();
 		tmpOutputFile.renameTo(outDir);
-	}
-
-	@Override
-	public void takeSnapshot() {
-	}
-
-	@Override
-	public void restoreSnapshot() {
 	}
 
 	@Override

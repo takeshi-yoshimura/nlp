@@ -44,10 +44,6 @@ MIT
 
 ## TODO
 
-* Exception-safety SequenceFileWriter
-	* Temporal file swapping for avoiding output inconsistency at failures
-	* Unifies similar code written in each NLPJob class (e.g., fs.rename() in GitCorpusJob::run())
-
 * DeleteJob
 	* Deletes job results on HDFS
 	* Hides HDFS from users more

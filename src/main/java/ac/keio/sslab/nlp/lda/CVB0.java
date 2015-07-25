@@ -4,20 +4,19 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.GlobFilter;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.SequenceFile.CompressionType;
-import org.apache.hadoop.io.SequenceFile.Writer;
 import org.apache.mahout.clustering.lda.cvb.CVB0Driver;
 import org.apache.mahout.common.AbstractJob;
-import org.apache.mahout.math.VectorWritable;
+import org.apache.mahout.math.Vector;
 
 import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
+import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
 import ac.keio.sslab.nlp.JobUtils;
+import ac.keio.sslab.nlp.NLPConf;
 
 public class CVB0 extends RestartableLDAJob {
 
 	int numMappers, numReducers;
+	NLPConf conf = NLPConf.getInstance();
 
 	public CVB0(FileSystem fs, LDAHDFSFiles hdfs, int numMappers, int numReducers) {
 		super(fs, hdfs);
@@ -37,12 +36,10 @@ public class CVB0 extends RestartableLDAJob {
 
 	@Override
 	public void postRun(Path corpusPath, int numLDATopics, int numLDAIterations) throws Exception {
-		SequenceDirectoryReader reader = new SequenceDirectoryReader(hdfs.matrixPath, fs.getConf());
+		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(hdfs.matrixPath, fs.getConf());
 
-		IntWritable key = new IntWritable();
-		VectorWritable val = new VectorWritable();
 		long size = 0;
-		while (reader.next(key, val)) {
+		while (reader.seekNext()) {
 			size++;
 		}
 		reader.close();
@@ -51,22 +48,17 @@ public class CVB0 extends RestartableLDAJob {
 		}
 		fs.mkdirs(hdfs.splitMatrixPath);
 		int chunks = 1;
-		reader = new SequenceDirectoryReader(hdfs.matrixPath, fs.getConf());
-		Writer.Option fileOpt = Writer.file(new Path(hdfs.splitMatrixPath, "chunk-" + chunks));
-		Writer.Option keyOpt = Writer.keyClass(IntWritable.class);
-		Writer.Option valueOpt = Writer.valueClass(VectorWritable.class);
-		Writer.Option compOpt = Writer.compression(CompressionType.NONE);
-		Writer writer = SequenceFile.createWriter(fs.getConf(), fileOpt, keyOpt, valueOpt, compOpt);
+		reader = new SequenceDirectoryReader<>(hdfs.matrixPath, fs.getConf());
+		SequenceSwapWriter<Integer, Vector> writer = new SequenceSwapWriter<>(new Path(hdfs.splitMatrixPath, "chunk-" + chunks), conf.tmpPath, fs.getConf(), true);
 		long count = 0;
-		while (reader.next(key, val)) {
+		while (reader.seekNext()) {
 			if (count++ > size / numMappers) {
 				writer.close();
 				chunks++;
 				count = 0;
-				fileOpt = Writer.file(new Path(hdfs.splitMatrixPath, "chunk-" + chunks));
-				writer = SequenceFile.createWriter(fs.getConf(), fileOpt, keyOpt, valueOpt, compOpt);
+				writer = new SequenceSwapWriter<>(new Path(hdfs.splitMatrixPath, "chunk-" + chunks), conf.tmpPath, fs.getConf(), true);
 			}
-			writer.append(key, val);
+			writer.append(reader.keyW(), reader.valW());
 		}
 		writer.close();
 		reader.close();

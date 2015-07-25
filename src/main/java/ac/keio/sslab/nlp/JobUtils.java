@@ -12,17 +12,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.SequenceFile.CompressionType;
-import org.apache.hadoop.io.SequenceFile.Reader;
-import org.apache.hadoop.io.SequenceFile.Writer;
 import org.eclipse.jgit.util.FileUtils;
 import org.json.JSONObject;
 
+import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
+import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
 import ac.keio.sslab.nlp.lda.LDAFiles;
 
 public class JobUtils {
@@ -37,48 +34,21 @@ public class JobUtils {
 	}
 
 	public static void saveArguments(FileSystem fs, Path argPath, String[] args) throws IOException {
-		Writer writer = null;
-		try {
-			Writer.Option fileOpt = Writer.file(argPath);
-			Writer.Option keyOpt = Writer.keyClass(Text.class);
-			Writer.Option valueOpt = Writer.valueClass(NullWritable.class);
-			Writer.Option compOpt = Writer.compression(CompressionType.NONE);
-			writer = SequenceFile.createWriter(fs.getConf(), fileOpt, keyOpt, valueOpt, compOpt);
-			Text key = new Text();
-			NullWritable value = NullWritable.get();
-			for (String arg: args) {
-				key.set(arg);
-				writer.append(key, value);
-			}
-			writer.close();
-		} catch(Exception e) {
-			try {
-				writer.close();
-				fs.delete(argPath, true);
-			} catch (IOException e2) {
-				throw new IOException("Writing parameters aborts: " + e.toString()
-									+ "\nHowever deleting " + argPath + " also fails: " + e2.toString()
-									+ "\nTry deleting " + argPath + " by manual.");
-			}
-			throw new IOException("Writing arguments aborts: " + e.toString());
+		NLPConf conf = NLPConf.getInstance();
+		SequenceSwapWriter<String, Void> writer = new SequenceSwapWriter<>(argPath, conf.tmpPath, new Configuration(), true);
+		for (String arg: args) {
+			writer.append(arg, null);
 		}
+		writer.close();
 	}
 
 	public static String[] restoreArguments(FileSystem fs, Path argPath) throws IOException {
 		List<String> list = new ArrayList<String>();
-		Reader reader = null;
-		try {
-			Reader.Option fileOpt = Reader.file(argPath);
-			reader = new Reader(fs.getConf(), fileOpt);
-			Text key = new Text();
-			while (reader.next(key)) {
-				list.add(key.toString());
-			}
-			reader.close();
-		} catch(Exception e) {
-			reader.close();
-			throw new IOException("Reading arguments aborts: " + e.toString());
+		SequenceDirectoryReader<String, Void> reader = new SequenceDirectoryReader<>(argPath, fs.getConf());
+		while (reader.seekNext()) {
+			list.add(reader.key());
 		}
+		reader.close();
 		return list.toArray(new String[list.size()]);
 	}
 
@@ -137,36 +107,6 @@ public class JobUtils {
 		} catch (IOException e) {
 			System.err.println("Local I/O failed : " + e.toString());
 			return false;
-		}
-	}
-
-	public static void runGNUPatch(File diffFile, File patchedDirectory) {
-		ProcessBuilder pb = new ProcessBuilder();
-		pb.directory(patchedDirectory);
-		List<String> cmd = new ArrayList<String>();
-		cmd.add("patch"); cmd.add("-p1"); cmd.add("--no-backup-if-mismatch"); cmd.add("-r"); cmd.add("-");
-		cmd.add("-i"); cmd.add(diffFile.getAbsolutePath()); cmd.add("-f");
-		pb.command(cmd);
-		pb.inheritIO(); //use stdout, stdin, stderr
-		Process p;
-		try {
-			p = pb.start();
-		} catch (IOException e) {
-			System.err.println("patch failed: " + e.toString());
-			return;
-		}
-		try {
-			p.waitFor();
-		} catch (InterruptedException e) {
-			/* do nothing */
-		}
-		try {
-			p.getInputStream().close();
-			p.getErrorStream().close();
-			p.getOutputStream().close();
-			p.destroy();
-		} catch (Exception e) {
-			System.err.println("Error while closing file descriptors: " + e.toString());
 		}
 	}
 

@@ -13,12 +13,9 @@ import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.mahout.common.Pair;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
-import org.apache.mahout.math.VectorWritable;
 
 //Read "maxTerms" words for each topic from HDFS
 public class TopicReader {
@@ -66,11 +63,10 @@ public class TopicReader {
 
 	public void loadDictionary(Path dictionary, Configuration conf) throws IOException {
 		termIDTermString = new HashMap<Integer, String>();
-		SequenceDirectoryReader dictionaryReader = new SequenceDirectoryReader(dictionary, conf);
-		Text key = new Text(); IntWritable value = new IntWritable();
-		while (dictionaryReader.next(key, value)) {
-			int termID = value.get();
-			String term = key.toString();
+		SequenceDirectoryReader<String, Integer> dictionaryReader = new SequenceDirectoryReader<>(dictionary, conf);
+		while (dictionaryReader.seekNext()) {
+			int termID = dictionaryReader.val();
+			String term = dictionaryReader.key();
 			termIDTermString.put(termID, term);
 		}
 		dictionaryReader.close();
@@ -78,12 +74,11 @@ public class TopicReader {
 
 	public void loadTopicTermDir(Path topicTerm, Configuration conf, int maxTerms) throws IOException {
 		topicIDTermID = new HashMap<Integer, List<Integer>>();
-		SequenceDirectoryReader topicTermReader = new SequenceDirectoryReader(topicTerm, conf);
-		IntWritable key = new IntWritable(); VectorWritable value = new VectorWritable();
+		SequenceDirectoryReader<Integer, Vector> topicTermReader = new SequenceDirectoryReader<>(topicTerm, conf);
 		FirstReverseSorter sorter = new FirstReverseSorter();
-		while (topicTermReader.next(key, value)) {
-			int topicID = key.get();
-			Vector vector = value.get();
+		while (topicTermReader.seekNext()) {
+			int topicID = topicTermReader.key();
+			Vector vector = topicTermReader.val();
 			List<Pair<Double, Integer>> termID = new ArrayList<Pair<Double, Integer>>();
 			for (Element e: vector.all()) {
 				termID.add(new Pair<Double, Integer>(e.get(), e.index()));

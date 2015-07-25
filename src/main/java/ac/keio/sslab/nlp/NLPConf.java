@@ -18,7 +18,6 @@ public class NLPConf {
 
 	public File localLogFile;
 	public File localLdaFile;
-	public File localGitFile;
 	public File localCorpusFile;
 	public File localArgFile;
 	public File localLockFile;
@@ -33,18 +32,12 @@ public class NLPConf {
 	public static String tmpDirName = "/tmp/nlp/";
 	public static final String logDirName = "log";
 	public static final String LDADirName = "lda";
-	public static final String gitDirName = "git";
 	public static final String tpdownDirName = "topdown";
 	public static final String corpusDirName = "corpus";
 
 	public static final String finalOutputDirName = "final";
 	public static final String finalStableCommitStatsFileName = "stable-commits";
 
-	public static final String gitSetupJobName = "gitSetup";
-	public static final String LDAJobName = "lda";
-	public static final String gitCorpusJobName = "gitCorpus";
-	public static final String linuxPatchJobName = "linuxPatch";
-	public static final String snapshotJobName = "snapshot";
 	public static final String argDirName = "ARGUMENT";
 	public static final String lockDirName = "LOCK";
 
@@ -64,7 +57,6 @@ public class NLPConf {
 
 		localLogFile = new File(localRootFile, logDirName);
 		localLdaFile = new File(localRootFile, LDADirName);
-		localGitFile = new File(localRootFile, gitDirName);
 		localCorpusFile = new File(localRootFile, corpusDirName);
 		localArgFile = new File(localRootFile, argDirName);
 		localLockFile = new File(localRootFile, lockDirName);
