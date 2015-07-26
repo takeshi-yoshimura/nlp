@@ -30,7 +30,7 @@
 					</descriptorRefs>
 					<archive>
 						<manifest>
-							<mainClass>ac.keio.sslab.flanker.CliMain</mainClass>
+							<mainClass>ac.keio.sslab.nlp.CliMain</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
