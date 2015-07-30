@@ -92,7 +92,7 @@ public class TopDownDumpJob implements NLPJob {
 					continue;
 				}
 				Path centroidsPath = iterationSeqs[0].getPath();
-				SequenceDirectoryReader<Integer, Cluster> centroidReader = new SequenceDirectoryReader<>(centroidsPath, hdfsConf);
+				SequenceDirectoryReader<Integer, Cluster> centroidReader = new SequenceDirectoryReader<>(centroidsPath, hdfsConf, Integer.class, Cluster.class);
 
 				while (centroidReader.seekNext()) {
 					Map<Integer, Double> tmpMap = new HashMap<Integer, Double>();
@@ -107,7 +107,7 @@ public class TopDownDumpJob implements NLPJob {
 					clusterStr.put(centroidReader.key(), sb.toString());
 				}
 
-				SequenceDirectoryReader<Integer, Vector> seq = new SequenceDirectoryReader<>(clusteredPoints, hdfsConf);
+				SequenceDirectoryReader<Integer, Vector> seq = new SequenceDirectoryReader<>(clusteredPoints, hdfsConf, Integer.class, Vector.class);
 				while (seq.seekNext()) {
 					if (!clusterCount.containsKey(seq.key())) {
 						clusterCount.put(seq.key(), 0);

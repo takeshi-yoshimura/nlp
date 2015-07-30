@@ -22,27 +22,28 @@ public final class SequenceSwapWriter<K, V> implements AutoCloseable {
 	private WritableMediator<K, ? extends Writable> keyM;
 	private WritableMediator<V, ? extends Writable> valueM;
 
-	public SequenceSwapWriter(Path outputPath, Path tmpDirPath, Configuration conf, boolean forceOverwrite) throws IOException {
+	public SequenceSwapWriter(Path outputPath, Path tmpDirPath, Configuration conf, boolean forceOverwrite, Class<K> keyClass, Class<V> valueClass) throws IOException {
 		this.outputPath = outputPath;
 		fs = FileSystem.get(conf);
-		tmpPath = new Path(tmpDirPath, RandomStringUtils.randomAscii(32) + "/" + outputPath.getName());
+		tmpPath = new Path(tmpDirPath, RandomStringUtils.randomAlphanumeric(32) + "/" + outputPath.getName());
 		while (fs.exists(tmpPath)) {
-			tmpPath = new Path(tmpDirPath, RandomStringUtils.randomAscii(32) + "/" + outputPath.getName());
+			tmpPath = new Path(tmpDirPath, RandomStringUtils.randomAlphanumeric(32) + "/" + outputPath.getName());
 		}
 		fs.deleteOnExit(tmpPath.getParent());
 
 		try {
-			WritableMediatorFactory<K> keyFactory = new WritableMediatorFactory<K>();
-			WritableMediatorFactory<V> valueFactory = new WritableMediatorFactory<V>();
+			WritableMediatorFactory<K> keyFactory = new WritableMediatorFactory<>(keyClass);
+			WritableMediatorFactory<V> valueFactory = new WritableMediatorFactory<>(valueClass);
 			keyM = keyFactory.getMediator();
 			valueM = valueFactory.getMediator();
 		} catch (Exception e) {
+			e.printStackTrace();
 			throw new IOException("Instantiation failure");
 		}
 
 		SequenceFile.Writer.Option fileOpt = SequenceFile.Writer.file(tmpPath);
-		SequenceFile.Writer.Option keyClass = SequenceFile.Writer.keyClass(keyM.writableClass);
-		SequenceFile.Writer.Option valueClass = SequenceFile.Writer.valueClass(valueM.writableClass);
+		SequenceFile.Writer.Option keyWritableClass = SequenceFile.Writer.keyClass(keyM.writable.getClass());
+		SequenceFile.Writer.Option valueWritableClass = SequenceFile.Writer.valueClass(valueM.writable.getClass());
 
 		if (fs.exists(outputPath)) {
 			if (!JobUtils.promptDeleteDirectory(fs, outputPath, forceOverwrite)) {
@@ -53,9 +54,9 @@ public final class SequenceSwapWriter<K, V> implements AutoCloseable {
 
 		// Dummy writer for exclusive writes (All the HDFS files are exclusively written)
 		SequenceFile.Writer.Option lock = SequenceFile.Writer.file(outputPath);
-		outputLocker = SequenceFile.createWriter(conf, lock, keyClass, valueClass);
+		outputLocker = SequenceFile.createWriter(conf, lock, keyWritableClass, valueWritableClass);
 
-		tmpWriter = SequenceFile.createWriter(conf, fileOpt, keyClass, valueClass);
+		tmpWriter = SequenceFile.createWriter(conf, fileOpt, keyWritableClass, valueWritableClass);
 	}
 
 	public void append(K key, V value) throws IOException {

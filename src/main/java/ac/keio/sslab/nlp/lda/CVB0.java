@@ -36,7 +36,7 @@ public class CVB0 extends RestartableLDAJob {
 
 	@Override
 	public void postRun(Path corpusPath, int numLDATopics, int numLDAIterations) throws Exception {
-		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(hdfs.matrixPath, fs.getConf());
+		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(hdfs.matrixPath, fs.getConf(), Integer.class, Vector.class);
 
 		long size = 0;
 		while (reader.seekNext()) {
@@ -48,15 +48,15 @@ public class CVB0 extends RestartableLDAJob {
 		}
 		fs.mkdirs(hdfs.splitMatrixPath);
 		int chunks = 1;
-		reader = new SequenceDirectoryReader<>(hdfs.matrixPath, fs.getConf());
-		SequenceSwapWriter<Integer, Vector> writer = new SequenceSwapWriter<>(new Path(hdfs.splitMatrixPath, "chunk-" + chunks), conf.tmpPath, fs.getConf(), true);
+		reader = new SequenceDirectoryReader<>(hdfs.matrixPath, fs.getConf(), Integer.class, Vector.class);
+		SequenceSwapWriter<Integer, Vector> writer = new SequenceSwapWriter<>(new Path(hdfs.splitMatrixPath, "chunk-" + chunks), conf.tmpPath, fs.getConf(), true, Integer.class, Vector.class);
 		long count = 0;
 		while (reader.seekNext()) {
 			if (count++ > size / numMappers) {
 				writer.close();
 				chunks++;
 				count = 0;
-				writer = new SequenceSwapWriter<>(new Path(hdfs.splitMatrixPath, "chunk-" + chunks), conf.tmpPath, fs.getConf(), true);
+				writer = new SequenceSwapWriter<>(new Path(hdfs.splitMatrixPath, "chunk-" + chunks), conf.tmpPath, fs.getConf(), true, Integer.class, Vector.class);
 			}
 			writer.append(reader.keyW(), reader.valW());
 		}

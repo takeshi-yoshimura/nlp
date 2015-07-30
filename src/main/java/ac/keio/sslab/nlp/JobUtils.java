@@ -35,7 +35,7 @@ public class JobUtils {
 
 	public static void saveArguments(FileSystem fs, Path argPath, String[] args) throws IOException {
 		NLPConf conf = NLPConf.getInstance();
-		SequenceSwapWriter<String, Void> writer = new SequenceSwapWriter<>(argPath, conf.tmpPath, new Configuration(), true);
+		SequenceSwapWriter<String, Void> writer = new SequenceSwapWriter<>(argPath, conf.tmpPath, new Configuration(), true, String.class, Void.class);
 		for (String arg: args) {
 			writer.append(arg, null);
 		}
@@ -44,7 +44,7 @@ public class JobUtils {
 
 	public static String[] restoreArguments(FileSystem fs, Path argPath) throws IOException {
 		List<String> list = new ArrayList<String>();
-		SequenceDirectoryReader<String, Void> reader = new SequenceDirectoryReader<>(argPath, fs.getConf());
+		SequenceDirectoryReader<String, Void> reader = new SequenceDirectoryReader<>(argPath, fs.getConf(), String.class, Void.class);
 		while (reader.seekNext()) {
 			list.add(reader.key());
 		}

@@ -82,7 +82,7 @@ public class GitCorpusJob implements NLPJob {
 				reader = new GitLogCorpusReader(inputDir, sinceStr, untilStr, fileStr);
 			}
 
-			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, new Configuration(), args.containsKey("ow"));
+			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, new Configuration(), args.containsKey("ow"), String.class, String.class);
 			DocumentFilter filter = new DocumentFilter(tokenizeAtUnderline, useNLTKStopwords);
 			if (!args.containsKey("p") || !Boolean.parseBoolean(args.get("p"))) {
 				StringBuilder sb = new StringBuilder("");

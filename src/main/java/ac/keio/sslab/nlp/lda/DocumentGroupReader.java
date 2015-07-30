@@ -83,7 +83,7 @@ public class DocumentGroupReader {
 
 	public void loadDocumentIndex(Path docIndexPath, Set<Integer> group, Configuration conf) throws IOException {
 		docIndex = new HashMap<Integer, String>();
-		SequenceDirectoryReader<Integer, String> dictionaryReader = new SequenceDirectoryReader<>(docIndexPath, conf);
+		SequenceDirectoryReader<Integer, String> dictionaryReader = new SequenceDirectoryReader<>(docIndexPath, conf, Integer.class, String.class);
 		while (dictionaryReader.seekNext()) {
 			int documentId = dictionaryReader.key();
 			if (group.contains(documentId)) {
@@ -97,7 +97,7 @@ public class DocumentGroupReader {
 	public void loadDocumentDir(Path documentDir,  Set<Integer> group, Configuration conf, int maxTopics) throws IOException {
 		docTopicId = new HashMap<Integer, List<Integer>>();
 		distance = new ArrayList<Pair<Double, Integer>>();
-		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(documentDir, conf);
+		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(documentDir, conf, Integer.class, Vector.class);
 		FirstReverseSorter sorter = new FirstReverseSorter();
 		int numVec = 0;
 		Map<Integer, Vector> vectors = new HashMap<Integer, Vector>();

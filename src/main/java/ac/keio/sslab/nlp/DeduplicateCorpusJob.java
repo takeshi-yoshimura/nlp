@@ -43,13 +43,13 @@ public class DeduplicateCorpusJob implements NLPJob {
 		Configuration hdfsConf = new Configuration();
 		try {
 			Map<String, String> out = new HashMap<String, String>();//<value, key> in original corpus
-			SequenceDirectoryReader<String, String> reader = new SequenceDirectoryReader<>(corpusPath, hdfsConf);
+			SequenceDirectoryReader<String, String> reader = new SequenceDirectoryReader<>(corpusPath, hdfsConf, String.class, String.class);
 			while (reader.seekNext()) {
 				out.put(reader.val(), reader.key());
 			}
 			reader.close();
 
-			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, hdfsConf, args.containsKey("ow"));
+			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, hdfsConf, args.containsKey("ow"), String.class, String.class);
 			for (Entry<String, String> e: out.entrySet()) {
 				writer.append(e.getValue(), e.getKey());
 			}

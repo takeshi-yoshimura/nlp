@@ -1,7 +1,5 @@
 package ac.keio.sslab.hadoop.utils;
 
-import java.lang.reflect.ParameterizedType;
-
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -14,29 +12,27 @@ import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
 
 public class WritableMediatorFactory<T> {
+
 	WritableMediator<T, ? extends Writable> med;
 
-	public WritableMediatorFactory() throws InstantiationException, IllegalAccessException {
-		// Hack!
-		@SuppressWarnings("unchecked")
-		Class<T> type = (Class<T>)((ParameterizedType)getClass().getGenericSuperclass()).getActualTypeArguments()[0];
-
+	@SuppressWarnings("unchecked")
+	public WritableMediatorFactory(Class<T> type) throws Exception {
 		if (type == Integer.class) {
-			med = new IntMediator<T, IntWritable>();
+			med = (WritableMediator<T, ? extends Writable>)new IntMediator();
 		} else if (type == Double.class) {
-			med = new DoubleMediator<T, DoubleWritable>();
+			med = (WritableMediator<T, ? extends Writable>)new DoubleMediator();
 		} else if (type == Long.class) {
-			med = new LongMediator<T, LongWritable>();
+			med = (WritableMediator<T, ? extends Writable>)new LongMediator();
 		} else if (type == Vector.class) {
-			med = new VectorMediator<T, VectorWritable>();
+			med = (WritableMediator<T, ? extends Writable>)new VectorMediator();
 		} else if (type == Cluster.class) {
-			med = new ClusterMediator<T, ClusterWritable>();
+			med = (WritableMediator<T, ? extends Writable>)new ClusterMediator();
 		} else if (type == Void.class) {
-			med = new VoidMediator<T, NullWritable>();
+			med = (WritableMediator<T, ? extends Writable>)new VoidMediator();
 		} else if (type == String.class) {
-			med = new StringMediator<T, Text>();
+			med = (WritableMediator<T, ? extends Writable>)new StringMediator();
 		} else {
-			throw new InstantiationException("Unsupported class: " + type.getName());
+			throw new InstantiationException("Unsupported class: " + type.getClass());
 		}
 	}
 
@@ -45,100 +41,128 @@ public class WritableMediatorFactory<T> {
 	}
 }
 
-
 //T = Integer, W == IntWritable, I expect the compiler removes redundant type conversions like C++ specialized template
-class IntMediator<T, W extends Writable> extends WritableMediator<T, W> {
+class IntMediator extends WritableMediator<Integer, IntWritable> {
 
 	@Override
-	public void set(T t) {
-		((IntWritable)writable).set((Integer)t);
+	public void set(Integer t) {
+		writable.set(t);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public T get() {
-		return (T)(Integer)((IntWritable)writable).get();
-	}
-}
-
-class DoubleMediator<T, W extends Writable> extends WritableMediator<T, W> {
-
-	@Override
-	public void set(T t) {
-		((DoubleWritable)writable).set((Double)t);
+	public Integer get() {
+		return writable.get();
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public T get() {
-		return (T)(Double)((DoubleWritable)writable).get();
+	public IntWritable newWritable() {
+		return new IntWritable();
 	}
 }
 
-class LongMediator<T, W extends Writable> extends WritableMediator<T, W> {
+class DoubleMediator extends WritableMediator<Double, DoubleWritable> {
 
 	@Override
-	public void set(T t) {
-		((LongWritable)writable).set((Long)t);
+	public void set(Double t) {
+		writable.set(t);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public T get() {
-		return (T)(Long)((LongWritable)writable).get();
-	}
-}
-
-class VectorMediator<T, W extends Writable> extends WritableMediator<T, W> {
-
-	@Override
-	public void set(T t) {
-		((VectorWritable)writable).set((Vector)t);
+	public Double get() {
+		return writable.get();
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public T get() {
-		return (T)((VectorWritable)writable).get();
+	public DoubleWritable newWritable() {
+		return new DoubleWritable();
 	}
 }
 
-class ClusterMediator<T, W extends Writable> extends WritableMediator<T, W> {
+class LongMediator extends WritableMediator<Long, LongWritable> {
 
 	@Override
-	public void set(T t) {
-		((ClusterWritable)writable).setValue((Cluster)t);
+	public void set(Long t) {
+		writable.set(t);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public T get() {
-		return (T)((ClusterWritable)writable).getValue();
+	public Long get() {
+		return writable.get();
+	}
+
+	@Override
+	public LongWritable newWritable() {
+		return new LongWritable();
 	}
 }
 
-class VoidMediator<T, W extends Writable> extends WritableMediator<T, W> {
+class VectorMediator extends WritableMediator<Vector, VectorWritable> {
 
 	@Override
-	public void set(T t) {
+	public void set(Vector t) {
+		writable.set(t);
 	}
 
 	@Override
-	public T get() {
+	public Vector get() {
+		return writable.get();
+	}
+
+	@Override
+	public VectorWritable newWritable() {
+		return new VectorWritable();
+	}
+}
+
+class ClusterMediator extends WritableMediator<Cluster, ClusterWritable> {
+
+	@Override
+	public void set(Cluster t) {
+		writable.setValue(t);
+	}
+
+	@Override
+	public Cluster get() {
+		return writable.getValue();
+	}
+
+	@Override
+	public ClusterWritable newWritable() {
+		return new ClusterWritable();
+	}
+}
+
+class VoidMediator extends WritableMediator<Void, NullWritable> {
+
+	@Override
+	public void set(Void t) {
+	}
+
+	@Override
+	public Void get() {
 		return null;
 	}
+
+	@Override
+	public NullWritable newWritable() {
+		return NullWritable.get();
+	}
 }
 
-class StringMediator<T, W extends Writable> extends WritableMediator<T, W> {
+class StringMediator extends WritableMediator<String, Text> {
 
 	@Override
-	public void set(T t) {
-		((Text)writable).set((String)t);
+	public void set(String t) {
+		writable.set(t);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public T get() {
-		return (T)((Text)writable).toString();
+	public String get() {
+		return writable.toString();
+	}
+
+	@Override
+	public Text newWritable() {
+		return new Text();
 	}
 }

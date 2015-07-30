@@ -30,7 +30,7 @@ public class Main extends AbstractJob {
 		for (FileStatus status: fs.listStatus(preprocessOutput)) {
 			if (status.isDirectory() || status.getLen() == 0) //avoid reading _SUCCESS
 				continue;
-			SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(status.getPath(), hdfsConf);
+			SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(status.getPath(), hdfsConf, Integer.class, Vector.class);
 			while (reader.seekNext()) {
 				firstCluster.observe(reader.val());
 			}
@@ -38,7 +38,7 @@ public class Main extends AbstractJob {
 		}
 
 		Path firstClustersFinal = new Path(outputDir, "topdown-0/iteration-0-final.seq");
-		SequenceSwapWriter<Integer, Cluster> writer = new SequenceSwapWriter<>(firstClustersFinal, conf.tmpPath, hdfsConf, true);
+		SequenceSwapWriter<Integer, Cluster> writer = new SequenceSwapWriter<>(firstClustersFinal, conf.tmpPath, hdfsConf, true, Integer.class, Cluster.class);
 		writer.append(1, firstCluster);
 		writer.close();
 	}

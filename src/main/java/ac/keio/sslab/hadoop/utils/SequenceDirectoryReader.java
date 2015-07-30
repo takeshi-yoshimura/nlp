@@ -24,15 +24,15 @@ public class SequenceDirectoryReader<K, V> {
 	WritableMediator<K, ? extends Writable> keyM;
 	WritableMediator<V, ? extends Writable> valueM;
 
-	public SequenceDirectoryReader(Path dir, Configuration conf) throws FileNotFoundException, IOException {
+	public SequenceDirectoryReader(Path dir, Configuration conf, Class<K> keyClass, Class<V> valueClass) throws FileNotFoundException, IOException {
 		FileSystem fs = dir.getFileSystem(conf);
 		this.fs = fs;
 		this.conf = conf;
 
 		try {
-			WritableMediatorFactory<K> keyFactory = new WritableMediatorFactory<K>();
+			WritableMediatorFactory<K> keyFactory = new WritableMediatorFactory<K>(keyClass);
 			keyM = keyFactory.getMediator();
-			WritableMediatorFactory<V> valueFactory = new WritableMediatorFactory<V>();
+			WritableMediatorFactory<V> valueFactory = new WritableMediatorFactory<V>(valueClass);
 			valueM = valueFactory.getMediator();
 		} catch (Exception e) {
 			throw new IOException("Instantiation failure");

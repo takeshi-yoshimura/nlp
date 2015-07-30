@@ -71,7 +71,7 @@ public class KMeansClassifierDriver {
 			for (FileStatus status: fs.listStatus(new Path(kmeansFinalDirLink))) {
 				if (status.isDirectory() || status.getLen() == 0) //avoid reading _SUCCESS
 					continue;
-				SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(status.getPath(), conf);
+				SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(status.getPath(), conf, Integer.class, Cluster.class);
 				while (reader.seekNext()) {
 					map.put(reader.key(), reader.val());
 				}

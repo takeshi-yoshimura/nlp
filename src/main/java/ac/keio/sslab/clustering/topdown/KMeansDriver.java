@@ -69,11 +69,11 @@ public class KMeansDriver {
 			SequenceDirectoryReader<Integer, Cluster> oldoldReader = null;
 			//put the same key records near each other
 			if (s < newStat.length && !newStat[s].isDirectory() && newStat[s].getLen() > 0)
-				newReader = new SequenceDirectoryReader<>(newStat[s].getPath(), conf);
+				newReader = new SequenceDirectoryReader<>(newStat[s].getPath(), conf, Integer.class, Cluster.class);
 			if (s < oldStat.length && !oldStat[s].isDirectory() && oldStat[s].getLen() > 0)
-				oldReader = new SequenceDirectoryReader<>(oldStat[s].getPath(), conf);
+				oldReader = new SequenceDirectoryReader<>(oldStat[s].getPath(), conf, Integer.class, Cluster.class);
 			if (s < oldoldStat.length && !oldoldStat[s].isDirectory() && oldoldStat[s].getLen() > 0)
-				oldoldReader = new SequenceDirectoryReader<>(oldoldStat[s].getPath(), conf);
+				oldoldReader = new SequenceDirectoryReader<>(oldoldStat[s].getPath(), conf, Integer.class, Cluster.class);
 
 			boolean newFin, oldFin, oldoldFin;
 			newFin = oldFin = oldoldFin = false;
@@ -118,7 +118,7 @@ public class KMeansDriver {
 				//combine split files into a file for better performance
 				Path tmpInput = new Path(iterationDir, "tmpInputForConvergenceCalc.seq");
 
-				SequenceSwapWriter<Integer, Cluster> writer = new SequenceSwapWriter<>(tmpInput, conf.tmpPath, hdfsConf, true);
+				SequenceSwapWriter<Integer, Cluster> writer = new SequenceSwapWriter<>(tmpInput, conf.tmpPath, hdfsConf, true, Integer.class, Cluster.class);
 				combineKMeansOutput(hdfsConf, writer, iterationOutput, oldOutput, oldoldOutput);
 				writer.close();
 
@@ -148,12 +148,12 @@ public class KMeansDriver {
 		//combine converged files split across iteration-X dirs
 		i++;
 		Path finalOutput = new Path(output, "iteration-" + i + "-final.seq");
-		SequenceSwapWriter<Integer, Cluster> writer = new SequenceSwapWriter<>(finalOutput, conf.tmpPath, hdfsConf, true);
+		SequenceSwapWriter<Integer, Cluster> writer = new SequenceSwapWriter<>(finalOutput, conf.tmpPath, hdfsConf, true, Integer.class, Cluster.class);
 		for (Path out: finalOutputs) {
 			for (FileStatus status: fs.listStatus(out)) {
 				if (status.isDirectory() || status.getLen() == 0) //avoid reading _SUCCESS
 					continue;
-				SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(status.getPath(), hdfsConf);
+				SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(status.getPath(), hdfsConf, Integer.class, Cluster.class);
 				while (reader.seekNext()) {
 					writer.append(reader.keyW(), reader.valW());
 				}
@@ -189,7 +189,7 @@ public class KMeansDriver {
 			Path mainLoopOutput = KMeansMainLoop(conf, input, retryOutput);
 			
 			//use the lowest RSS result for better clustering
-			SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(mainLoopOutput, conf);
+			SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(mainLoopOutput, conf, Integer.class, Cluster.class);
 			double RSS = 0;
 			while (reader.seekNext()) {
 				RSS += ((TopDownKMeansCluster)reader.val()).getRSSk();
@@ -242,7 +242,7 @@ public class KMeansDriver {
 			for (FileStatus status: fs.listStatus(new Path(oldOutputDirLink))) {
 				if (status.isDirectory() || status.getLen() == 0) //avoid reading _SUCCESS
 					continue;
-				SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(status.getPath(), conf);
+				SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(status.getPath(), conf, Integer.class, Cluster.class);
 				while (reader.seekNext()) {
 					map.put(reader.key(), (TopDownKMeansCluster) reader.val());
 				}
@@ -272,7 +272,7 @@ public class KMeansDriver {
 			for (FileStatus status: fs.listStatus(oldoldOutputDir)) {
 				if (status.isDirectory() || status.getLen() == 0) //avoid reading _SUCCESS
 					continue;
-				SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(status.getPath(), conf);
+				SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(status.getPath(), conf, Integer.class, Cluster.class);
 				while (reader.seekNext()) {
 					map.put(reader.key(), (TopDownKMeansCluster)reader.val());
 				}

@@ -54,7 +54,7 @@ public class TextCorpusJob implements NLPJob {
 		}
 
 		try {
-			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, new Configuration(), args.containsKey("ow"));
+			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, new Configuration(), args.containsKey("ow"), String.class, String.class);
 			SimpleTextCorpusReader reader = new SimpleTextCorpusReader(input, s);
 			DocumentFilter filter = new DocumentFilter(tokenizeAtUnderline, useNLTKStopwords);
 			StringBuilder sb = new StringBuilder();

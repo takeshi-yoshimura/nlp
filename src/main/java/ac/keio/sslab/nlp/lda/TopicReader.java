@@ -63,7 +63,7 @@ public class TopicReader {
 
 	public void loadDictionary(Path dictionary, Configuration conf) throws IOException {
 		termIDTermString = new HashMap<Integer, String>();
-		SequenceDirectoryReader<String, Integer> dictionaryReader = new SequenceDirectoryReader<>(dictionary, conf);
+		SequenceDirectoryReader<String, Integer> dictionaryReader = new SequenceDirectoryReader<>(dictionary, conf, String.class, Integer.class);
 		while (dictionaryReader.seekNext()) {
 			int termID = dictionaryReader.val();
 			String term = dictionaryReader.key();
@@ -74,7 +74,7 @@ public class TopicReader {
 
 	public void loadTopicTermDir(Path topicTerm, Configuration conf, int maxTerms) throws IOException {
 		topicIDTermID = new HashMap<Integer, List<Integer>>();
-		SequenceDirectoryReader<Integer, Vector> topicTermReader = new SequenceDirectoryReader<>(topicTerm, conf);
+		SequenceDirectoryReader<Integer, Vector> topicTermReader = new SequenceDirectoryReader<>(topicTerm, conf, Integer.class, Vector.class);
 		FirstReverseSorter sorter = new FirstReverseSorter();
 		while (topicTermReader.seekNext()) {
 			int topicID = topicTermReader.key();

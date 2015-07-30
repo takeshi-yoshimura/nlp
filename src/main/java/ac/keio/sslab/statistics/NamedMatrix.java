@@ -123,7 +123,7 @@ public class NamedMatrix {
 
 		TreeMap<Integer, String> rowIndex = new TreeMap<Integer, String>(colIndex);
 		try {
-			SequenceDirectoryReader<Integer, String> dictionaryReader = new SequenceDirectoryReader<>(hdfs.docIndexPath, hdfsConf);
+			SequenceDirectoryReader<Integer, String> dictionaryReader = new SequenceDirectoryReader<>(hdfs.docIndexPath, hdfsConf, Integer.class, String.class);
 			while (dictionaryReader.seekNext()) {
 				rowIndex.put(dictionaryReader.key(), dictionaryReader.val());
 			}
@@ -135,7 +135,7 @@ public class NamedMatrix {
 
 		Matrix matrix = new DenseMatrix(rowIndex.size(), colIndex.size());
 		try {
-			SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(hdfs.documentPath, hdfsConf);
+			SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(hdfs.documentPath, hdfsConf, Integer.class, Vector.class);
 			while (reader.seekNext()) {
 				for (Element p: reader.val().nonZeroes()) {
 					matrix.set(reader.key(), p.index(), p.get());

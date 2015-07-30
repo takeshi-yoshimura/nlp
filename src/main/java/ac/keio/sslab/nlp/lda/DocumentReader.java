@@ -50,7 +50,7 @@ public class DocumentReader {
 
 	public void loadDocumentIndex(Path docIndexPath, Configuration conf) throws IOException {
 		docIndex = new HashMap<Integer, String>();
-		SequenceDirectoryReader<Integer, String> dictionaryReader = new SequenceDirectoryReader<>(docIndexPath, conf);
+		SequenceDirectoryReader<Integer, String> dictionaryReader = new SequenceDirectoryReader<>(docIndexPath, conf, Integer.class, String.class);
 		while (dictionaryReader.seekNext()) {
 			int documentId = dictionaryReader.key();
 			String documentName = dictionaryReader.val();
@@ -61,7 +61,7 @@ public class DocumentReader {
 
 	public void loadDocumentDir(Path documentDir, Configuration conf, int maxTopics) throws IOException {
 		docTopicId = new HashMap<Integer, List<Integer>>();
-		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(documentDir, conf);
+		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(documentDir, conf, Integer.class, Vector.class);
 		FirstReverseSorter sorter = new FirstReverseSorter();
 		while (reader.seekNext()) {
 			int docId = reader.key();

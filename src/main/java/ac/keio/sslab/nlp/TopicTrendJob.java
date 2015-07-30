@@ -133,7 +133,7 @@ public class TopicTrendJob implements NLPJob {
 			System.out.println("Load p(topic|document) and calculate p(topic|ver), p(topic|dir)");
 			Map<Integer, Map<Integer, Double>> pTopicVer = new HashMap<Integer, Map<Integer, Double>>(); //<topicID, <ver, p(topic|ver)>>
 			Map<Integer, Map<String, Double>> pTopicDir = new HashMap<Integer, Map<String, Double>>(); //<topicID, <dir, p(topic|dir)>>
-			SequenceDirectoryReader<Integer, Vector> docReader = new SequenceDirectoryReader<>(hdfs.documentPath, hdfsConf);
+			SequenceDirectoryReader<Integer, Vector> docReader = new SequenceDirectoryReader<>(hdfs.documentPath, hdfsConf, Integer.class, Vector.class);
 			while (docReader.seekNext()) {
 				int sha = docReader.key();
 				if (!shas.containsKey(sha)) {
@@ -220,7 +220,7 @@ public class TopicTrendJob implements NLPJob {
 			Repository repo, Map<Integer, String> vers, Map<Integer, Integer> verDocs, Map<String, Integer> dirDocs) throws Exception {
 		System.out.println("Load docIndex");
 		Map<String, Integer> revDocIndex = new HashMap<String, Integer>();
-		SequenceDirectoryReader<Integer, String> docIndexReader = new SequenceDirectoryReader<>(docIndexPath, hdfsConf);
+		SequenceDirectoryReader<Integer, String> docIndexReader = new SequenceDirectoryReader<>(docIndexPath, hdfsConf, Integer.class, String.class);
 		while (docIndexReader.seekNext()) {
 			if (docIndexReader.val().indexOf('-') != -1) {
 				revDocIndex.put(docIndexReader.val().substring(0, docIndexReader.val().lastIndexOf('-')), docIndexReader.key());
