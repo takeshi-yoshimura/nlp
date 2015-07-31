@@ -77,7 +77,7 @@ public class GitCorpusJob implements NLPJob {
 			if (args.containsKey("c")) {
 				reader = new ShaFileGitCorpusReader(new File(args.get("c")), inputDir);
 			} else if (args.containsKey("sl")) {
-				reader = new StableLinuxGitCorpusReader(inputDir);
+				reader = new StableLinuxGitCorpusReader(inputDir, fileStr);
 			} else {
 				reader = new GitLogCorpusReader(inputDir, sinceStr, untilStr, fileStr);
 			}

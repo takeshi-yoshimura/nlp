@@ -23,7 +23,7 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 	List<GitCorpusReader> readers;
 	int readerIndex;
 
-	public StableLinuxGitCorpusReader(File input) throws Exception {
+	public StableLinuxGitCorpusReader(File input, String fileStr) throws Exception {
 		repo = new FileRepositoryBuilder().findGitDir(input).build();
 		git = new Git(repo);
 		RevWalk walk = new RevWalk(repo);
@@ -53,6 +53,7 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 		}
 
 		for (Entry<String, String> e2: rangeMap.entrySet()) {
+			System.out.println("Extract: " + e2.getKey() + " -- " + e2.getValue());
 			ObjectId sinceRef = repo.resolve(e2.getKey());
 			ObjectId untilRef = repo.resolve(e2.getValue());
 			if (sinceRef == null || untilRef == null) {
@@ -61,7 +62,7 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 			long since = walk.parseCommit(sinceRef).getCommitTime();
 			long until = walk.parseCommit(untilRef).getCommitTime();
 			if ((until - since) / 3600 / 24 > 365) {
-				readers.add(new GitLogCorpusReader(input, e2.getKey(), e2.getValue(), null));
+				readers.add(new GitLogCorpusReader(input, e2.getKey(), e2.getValue(), fileStr));
 			}
 		}
 		walk.close();
