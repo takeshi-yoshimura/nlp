@@ -120,7 +120,11 @@ class SignatureFilter extends FilteringTokenFilter {
 		if (str.isEmpty()) {
 			return false;
 		}
-		if (str.toLowerCase().indexOf("signed-off-by:") != -1 || str.toLowerCase().indexOf("cc:") != -1) {
+		String lower = str.toLowerCase();
+		if (lower.indexOf("signed-off-by:") != -1 || lower.indexOf("cc:") != -1) {
+			return false;
+		}
+		if ((lower.indexOf("commit") != -1 && lower.indexOf("upstream") != -1) || lower.indexOf("cherry pick") != -1) {
 			return false;
 		}
 		return true;

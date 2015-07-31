@@ -66,7 +66,7 @@ class SoftwareWordTokenizer extends CharTokenizer {
 
 	@Override
 	protected boolean isTokenChar(int c) {
-		return Character.isAlphabetic(c) || Character.isDigit(c) || (tokenizeAtUnderline && c == '_');
+		return Character.isAlphabetic(c) || Character.isDigit(c) || (!tokenizeAtUnderline && c == '_');
 	}
 }
 

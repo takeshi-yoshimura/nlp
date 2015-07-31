@@ -183,7 +183,11 @@ public class CliMain {
 				printHelp(job.getJobName(), options);
 			} else if (manager.hasJobIDArgs(jobID)) {
 				System.out.println("Found the past output for job " + job.getJobName() + " ID = " + jobID + ". Use the past arguments");
-				job.run(manager.getJobIDArgs(jobID));
+				Map<String, String> oldargs = manager.getJobIDArgs(jobID);
+				if (argMap.containsKey("ow")) {
+					oldargs.put("ow", "");
+				}
+				job.run(oldargs);
 			} else {
 				job.run(argMap);
 			}

@@ -69,7 +69,7 @@ public class GitCorpusJob implements NLPJob {
 		if (args.containsKey("f")) {
 			fileStr = args.get("f");
 		}
-		boolean tokenizeAtUnderline = true;
+		boolean tokenizeAtUnderline = false;
 		if (args.containsKey("t")) {
 			tokenizeAtUnderline = Boolean.parseBoolean(args.get("t"));
 		}
@@ -105,11 +105,14 @@ public class GitCorpusJob implements NLPJob {
 			// <id for content sha, [commit shas]>
 			Map<Integer, List<String>> idIndex = new TreeMap<Integer, List<String>>();
 			int i = 0;
-			if (!args.containsKey("p") || !Boolean.parseBoolean(args.get("p"))) {
+			int totalCommits = 0, totalDocuments = 0;
+			boolean splitParagraph = args.containsKey("p") && Boolean.parseBoolean(args.get("p"));
+			if (!splitParagraph) {
 				StringBuilder sb = new StringBuilder("");
 				while (reader.seekNext()) {
 					sb.setLength(0);
 					System.out.println("commit " + reader.getSha());
+					totalCommits++;
 					commitsWriter.println(reader.getSha());
 					for (String para: filter.filterDocument(reader.getDoc())) {
 						sb.append(para).append(' ');
@@ -121,11 +124,13 @@ public class GitCorpusJob implements NLPJob {
 						writer.append(Integer.toString(i++), sb.toString());
 					}
 					idIndex.get(contentShas.get(contentSha)).add(reader.getSha());
+					totalDocuments++;
 				}
 			} else {
 				while (reader.seekNext()) {
 					int pId = 0;
 					System.out.println("commit " + reader.getSha());
+					totalCommits++;
 					commitsWriter.println(reader.getSha());
 					for (String para: filter.filterDocument(reader.getDoc())) {
 						String contentSha = JobUtils.getSha(para);
@@ -135,9 +140,25 @@ public class GitCorpusJob implements NLPJob {
 							writer.append(Integer.toString(i++), para);
 						}
 						idIndex.get(contentShas.get(contentSha)).add(reader.getSha() + "-" + pId++);
+						totalDocuments++;
 					}
 				}
 			}
+			PrintWriter statsWriter = JobUtils.getPrintWriter(stats);
+			statsWriter.println(reader.getStats());
+			statsWriter.print("total commits: ");
+			statsWriter.println(totalCommits);
+			statsWriter.print("total documents:");
+			statsWriter.println(totalDocuments);
+			statsWriter.print("total documents after deduplication: ");
+			statsWriter.println(idIndex.size());
+			statsWriter.print("tokenize at underline?: ");
+			statsWriter.println(tokenizeAtUnderline);
+			statsWriter.print("use NLTK stopword?: ");
+			statsWriter.println(useNLTKStopwords);
+			statsWriter.print("split paragraph?: ");
+			statsWriter.println(splitParagraph);
+			statsWriter.close();
 			writer.close();
 			reader.close();
 			commitsWriter.close();
@@ -153,9 +174,6 @@ public class GitCorpusJob implements NLPJob {
 				idIndexWriter.println();
 			}
 			idIndexWriter.close();
-			PrintWriter statsWriter = JobUtils.getPrintWriter(stats);
-			statsWriter.println(reader.getSha());
-			statsWriter.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
