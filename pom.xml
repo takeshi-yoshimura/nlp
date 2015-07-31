@@ -52,7 +52,6 @@
 			<groupId>org.apache.mahout</groupId>
 			<artifactId>mahout-core</artifactId>
 			<version>0.9-cdh5.4.4</version>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jgit</groupId>

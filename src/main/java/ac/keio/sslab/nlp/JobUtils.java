@@ -14,7 +14,6 @@ import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.eclipse.jgit.util.FileUtils;
@@ -148,24 +147,5 @@ public class JobUtils {
 	        sb.append(String.format("%02x", b));
 	    }
 	    return sb.toString();
-	}
-
-	public static void addJarToDistributedCache(Class<?> classToAdd, Configuration conf) throws IOException {
-		// Retrieve jar file for class2Add
-		String jar = classToAdd.getProtectionDomain().getCodeSource().getLocation().getPath();
-		File jarFile = new File(jar);
-
-		// Declare new HDFS location
-		Path hdfsJar = new Path(NLPConf.getInstance().tmpPath, "jar/" + jarFile.getName());
-
-		// Mount HDFS
-		FileSystem hdfs = FileSystem.get(conf);
-		hdfs.mkdirs(hdfsJar.getParent());
-
-		// Copy (override) jar file to HDFS
-		hdfs.copyFromLocalFile(false, true, new Path(jar), hdfsJar);
-
-		// Add jar to distributed classPath
-		DistributedCache.addFileToClassPath(hdfsJar, conf);
 	}
 }

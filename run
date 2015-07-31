@@ -6,20 +6,20 @@ MAHOUT_HOME=/usr/lib/mahout
 NLPBIN=`ls ${NLPDIR}/target/nlp-*-jar-with-dependencies.jar`
 CONF=${NLPDIR}/conf.json
 
-CLASSPATH=`hadoop classpath`
-for f in $MAHOUT_HOME/mahout-*.jar; do
-	CLASSPATH=${CLASSPATH}:$f;
-done
-
-# add dev targets if they exist
-for f in $MAHOUT_HOME/examples/target/mahout-examples-*-job.jar $MAHOUT_HOME/mahout-examples-*-job.jar ; do
-	CLASSPATH=${CLASSPATH}:$f;
-done
-
-# add release dependencies to CLASSPATH
-for f in $MAHOUT_HOME/lib/*.jar; do
-	CLASSPATH=${CLASSPATH}:$f;
-done
+CLASSPATH=`hadoop classpath`:$MAHOUT_HOME/mahout-integration-*.jar
+#for f in $MAHOUT_HOME/mahout-*.jar; do
+#	CLASSPATH=${CLASSPATH}:$f;
+#done
+#
+## add dev targets if they exist
+#for f in $MAHOUT_HOME/examples/target/mahout-examples-*-job.jar $MAHOUT_HOME/mahout-examples-*-job.jar ; do
+#	CLASSPATH=${CLASSPATH}:$f;
+#done
+#
+## add release dependencies to CLASSPATH
+#for f in $MAHOUT_HOME/lib/*.jar; do
+#	CLASSPATH=${CLASSPATH}:$f;
+#done
 
 CLASSPATH=${CLASSPATH}:${NLPBIN}
 java -cp ${CLASSPATH} ac.keio.sslab.nlp.CliMain ${@} NLPCONF=${CONF}
