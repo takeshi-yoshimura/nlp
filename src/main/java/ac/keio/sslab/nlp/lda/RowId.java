@@ -34,7 +34,7 @@ public class RowId extends RestartableLDAJob {
 	}
 
 	@Override
-	protected void setup() throws Exception {
+	protected void setup(Path corpusPath, int numLDATopics, int numLDAIterations) throws Exception {
 		if (!JobUtils.isSucceededMapReduce(fs, hdfs.tfPath)) {
 			throw new IOException("sparse/tf-vectors does not exist or be inconsistent. Delete them and try lda again.");
 		}

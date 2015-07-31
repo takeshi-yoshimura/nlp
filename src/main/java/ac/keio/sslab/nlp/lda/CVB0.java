@@ -87,7 +87,7 @@ public class CVB0 extends RestartableLDAJob {
 	}
 
 	@Override
-	protected void setup() throws Exception {
+	protected void setup(Path corpusPath, int numLDATopics, int numLDAIterations) throws Exception {
 		if (!fs.exists(hdfs.cvbPath)) {
 			fs.mkdirs(hdfs.cvbPath);
 		}

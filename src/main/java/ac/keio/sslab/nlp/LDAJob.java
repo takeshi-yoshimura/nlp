@@ -58,7 +58,7 @@ public class LDAJob implements NLPJob {
 			return;
 		}
 		Path corpusPath = new Path(conf.corpusPath, args.get("c"));
-		
+
 		int numMappers = 20;
 		if (args.containsKey("nM")) {
 			numMappers = Integer.parseInt(args.get("nM"));

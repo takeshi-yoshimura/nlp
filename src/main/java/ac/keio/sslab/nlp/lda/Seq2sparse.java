@@ -2,12 +2,13 @@ package ac.keio.sslab.nlp.lda;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.mahout.common.AbstractJob;
 import org.apache.mahout.vectorizer.SparseVectorsFromSequenceFiles;
 
-public class Seq2sparse extends RestartableLDAJob {
+import ac.keio.sslab.nlp.JobUtils;
 
-	protected Path corpusPath;
+public class Seq2sparse extends RestartableLDAJob {
 
 	public Seq2sparse(FileSystem fs, LDAHDFSFiles hdfs) {
 		super(fs, hdfs);
@@ -24,7 +25,8 @@ public class Seq2sparse extends RestartableLDAJob {
 	}
 
 	@Override
-	protected void setup() throws Exception {
+	protected void setup(Path corpusPath, int numLDATopics, int numLDAIterations) throws Exception {
+		JobUtils.addJarToDistributedCache(WhitespaceAnalyzer.class, fs.getConf());
 		if (!fs.exists(corpusPath)) {
 			throw new Exception("corpus directory " + corpusPath + " does not exist");
 		}
@@ -32,7 +34,6 @@ public class Seq2sparse extends RestartableLDAJob {
 
 	@Override
 	protected String[] arguments(Path corpusPath, int numLDATopics, int numLDAIterations) {
-		this.corpusPath = corpusPath;
 		return new String [] {
 				"--input", corpusPath.toString(),
 				"--output", hdfs.sparsePath.toString(),

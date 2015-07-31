@@ -64,6 +64,18 @@ public class SequenceDirectoryReader<K, V> {
 		return result;
 	}
 
+	public boolean seekNextKey() throws IOException {
+		boolean result = reader.next(keyM.writable);
+		if (result == false &&  currentIndex + 1 < files.size()) {
+			currentIndex++;
+			reader.close();
+			Reader.Option fileOpt = Reader.file(files.get(currentIndex));
+			reader = new Reader(fs.getConf(), fileOpt);
+			result = reader.next(keyM.writable);
+		}
+		return result;
+	}
+
 	public K key() {
 		return keyM.get();
 	}

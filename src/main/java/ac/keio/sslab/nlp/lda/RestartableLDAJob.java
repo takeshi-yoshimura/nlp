@@ -10,7 +10,7 @@ public abstract class RestartableLDAJob {
 	protected abstract AbstractJob getMahoutJobInstance();
 	protected abstract boolean resultExists() throws Exception;
 	protected abstract String [] arguments(Path gitPath, int numLDATopics, int numLDAIterations);
-	protected abstract void setup() throws Exception;
+	protected abstract void setup(Path corpusPath, int numLDATopics, int numLDAIterations) throws Exception;
 	public abstract void recover();
 	protected abstract String getJobName();
 
@@ -47,7 +47,7 @@ public abstract class RestartableLDAJob {
 				args = arguments(corpusPath, numLDATopics, numLDAIterations);
 				JobUtils.saveArguments(fs, argPath, args);
 			}
-			setup();
+			setup(corpusPath, numLDATopics, numLDAIterations);
 		} catch (Exception e) {
 			throw new Exception("Preparing " + getJobName() + " failed.");
 		}
