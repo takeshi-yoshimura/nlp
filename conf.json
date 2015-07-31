@@ -1,6 +1,5 @@
 {
-	"nlpDirName": "/user/yos/nlp",
+	"nlpHDFSDirName": "/user/yos/nlp",
 	"nlpLocalDirName": "/home/yos/nlp/",
-	"tmpDirName": "/home/yos/nlp/tmp/",
 	"runPath": "/home/yos/nlp/run"
 }
