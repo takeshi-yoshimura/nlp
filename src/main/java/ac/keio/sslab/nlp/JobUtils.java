@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -135,5 +136,16 @@ public class JobUtils {
 		} catch (Exception e) {
 			System.err.println("List up job IDs failed: " + e.toString());
 		}
+	}
+
+	public static String getSha(String str) throws Exception {
+		MessageDigest md = MessageDigest.getInstance("SHA-512");
+	    md.update(str.getBytes());
+	    byte[] hash = md.digest();
+	    StringBuilder sb = new StringBuilder();
+	    for (byte b : hash) {
+	        sb.append(String.format("%02x", b));
+	    }
+	    return sb.toString();
 	}
 }

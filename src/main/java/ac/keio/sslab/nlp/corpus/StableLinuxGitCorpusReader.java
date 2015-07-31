@@ -2,6 +2,8 @@ package ac.keio.sslab.nlp.corpus;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,8 +24,11 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 	Git git;
 	List<GitCorpusReader> readers;
 	int readerIndex;
+	Map<String, String> lts;
+	String fileStr;
 
 	public StableLinuxGitCorpusReader(File input, String fileStr) throws Exception {
+		this.fileStr = fileStr;
 		repo = new FileRepositoryBuilder().findGitDir(input).build();
 		git = new Git(repo);
 		RevWalk walk = new RevWalk(repo);
@@ -52,6 +57,8 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 			}
 		}
 
+		lts = new HashMap<String, String>();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
 		for (Entry<String, String> e2: rangeMap.entrySet()) {
 			System.out.println("Extract: " + e2.getKey() + " -- " + e2.getValue());
 			ObjectId sinceRef = repo.resolve(e2.getKey());
@@ -62,6 +69,7 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 			long since = walk.parseCommit(sinceRef).getCommitTime();
 			long until = walk.parseCommit(untilRef).getCommitTime();
 			if ((until - since) / 3600 / 24 > 365) {
+				lts.put(e2.getKey() + " - " + e2.getValue(), sdf.format(new Date(since * 1000)) + " - " + sdf.format(new Date(until * 1000)));
 				readers.add(new GitLogCorpusReader(input, e2.getKey(), e2.getValue(), fileStr));
 			}
 		}
@@ -97,5 +105,16 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 		}
 		git.close();
 		repo.close();
+	}
+	@Override
+	public String getStats() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("Extracted versions: ");
+		for (Entry<String, String> e3: lts.entrySet()) {
+			sb.append(e3.getKey()).append('(').append(e3.getValue()).append(')').append(',');
+		}
+		sb.setLength(sb.length() - 1);
+		sb.append('\n').append("directory: ").append(fileStr);
+		return sb.toString();
 	}
 }

@@ -7,4 +7,5 @@ public interface GitCorpusReader {
 	public String getSha();
 	public String getDoc();
 	public void close() throws IOException;
+	public String getStats();
 }

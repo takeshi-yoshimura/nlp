@@ -15,7 +15,8 @@ public class SimpleTextCorpusReader {
 	public SimpleTextCorpusReader(File input, String separator) throws IOException {
 		br = new BufferedReader(new FileReader(input));
 		this.separator = separator;
-		assert br.readLine() == separator;
+		String line = br.readLine();
+		assert line.equals(separator);
 		sb = new StringBuilder();
 	}
 

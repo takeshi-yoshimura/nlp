@@ -1,7 +1,13 @@
 package ac.keio.sslab.nlp;
 
 import java.io.File;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
@@ -82,29 +88,74 @@ public class GitCorpusJob implements NLPJob {
 				reader = new GitLogCorpusReader(inputDir, sinceStr, untilStr, fileStr);
 			}
 
+			File stats = new File(conf.localCorpusFile, args.get("j") + "/stats.txt");
+			File commits = new File(stats.getParent(), "commits.txt");
+			File idIndexFile = new File(stats.getParent(), "idIndex.txt");
+			if (stats.exists()) {
+				stats.delete();
+				commits.delete();
+				idIndexFile.delete();
+			}
+			PrintWriter commitsWriter = JobUtils.getPrintWriter(commits);
+
 			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, new Configuration(), args.containsKey("ow"), String.class, String.class);
 			DocumentFilter filter = new DocumentFilter(tokenizeAtUnderline, useNLTKStopwords);
+			// <content sha, id for content sha>
+			Map<String, Integer> contentShas = new HashMap<String, Integer>();
+			// <id for content sha, [commit shas]>
+			Map<Integer, List<String>> idIndex = new TreeMap<Integer, List<String>>();
+			int i = 0;
 			if (!args.containsKey("p") || !Boolean.parseBoolean(args.get("p"))) {
 				StringBuilder sb = new StringBuilder("");
 				while (reader.seekNext()) {
 					sb.setLength(0);
-					System.err.println("Writing commit " + reader.getSha());
+					System.out.println("commit " + reader.getSha());
+					commitsWriter.println(reader.getSha());
 					for (String para: filter.filterDocument(reader.getDoc())) {
 						sb.append(para).append(' ');
 					}
-					writer.append(reader.getSha(), sb.toString());
+					String contentSha = JobUtils.getSha(sb.toString());
+					if (!contentShas.containsKey(contentSha)) {
+						idIndex.put(i, new ArrayList<String>());
+						contentShas.put(contentSha, i);
+						writer.append(Integer.toString(i++), sb.toString());
+					}
+					idIndex.get(contentShas.get(contentSha)).add(reader.getSha());
 				}
 			} else {
 				while (reader.seekNext()) {
 					int pId = 0;
-					System.err.println("Writing commit " + reader.getSha());
+					System.out.println("commit " + reader.getSha());
+					commitsWriter.println(reader.getSha());
 					for (String para: filter.filterDocument(reader.getDoc())) {
-						writer.append(reader.getSha() + "-" + pId++, para);
+						String contentSha = JobUtils.getSha(para);
+						if (!contentShas.containsKey(contentSha)) {
+							idIndex.put(i, new ArrayList<String>());
+							contentShas.put(contentSha, i);
+							writer.append(Integer.toString(i++), para);
+						}
+						idIndex.get(contentShas.get(contentSha)).add(reader.getSha() + "-" + pId++);
 					}
 				}
 			}
 			writer.close();
 			reader.close();
+			commitsWriter.close();
+
+			PrintWriter idIndexWriter = JobUtils.getPrintWriter(idIndexFile);
+			for (Entry<Integer, List<String>> id: idIndex.entrySet()) {
+				idIndexWriter.print(id.getKey());
+				idIndexWriter.print("\t\t");
+				for (String sha: id.getValue()) {
+					idIndexWriter.print(sha);
+					idIndexWriter.print(',');
+				}
+				idIndexWriter.println();
+			}
+			idIndexWriter.close();
+			PrintWriter statsWriter = JobUtils.getPrintWriter(stats);
+			statsWriter.println(reader.getSha());
+			statsWriter.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

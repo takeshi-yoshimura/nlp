@@ -15,7 +15,7 @@ import ac.keio.sslab.nlp.JobUtils;
 // output results are always destroyed unless close() is called
 public final class SequenceSwapWriter<K, V> implements AutoCloseable {
 
-	private SequenceFile.Writer tmpWriter, outputLocker;
+	private SequenceFile.Writer tmpWriter;
 	private Path tmpPath, outputPath;
 	private FileSystem fs;
 
@@ -52,10 +52,6 @@ public final class SequenceSwapWriter<K, V> implements AutoCloseable {
 		}
 		fs.mkdirs(outputPath.getParent());
 
-		// Dummy writer for exclusive writes (All the HDFS files are exclusively written)
-		SequenceFile.Writer.Option lock = SequenceFile.Writer.file(outputPath);
-		outputLocker = SequenceFile.createWriter(conf, lock, keyWritableClass, valueWritableClass);
-
 		tmpWriter = SequenceFile.createWriter(conf, fileOpt, keyWritableClass, valueWritableClass);
 	}
 
@@ -71,12 +67,9 @@ public final class SequenceSwapWriter<K, V> implements AutoCloseable {
 	@Override
 	public void close() throws IOException {
 		if (tmpPath != null && outputPath != null) {
-			Path localTmp = tmpPath, localOut = outputPath;
-			tmpPath = outputPath = null;
 			tmpWriter.close();
-			outputLocker.close();
-			// may race here
-			fs.rename(localTmp, localOut);
+			fs.rename(tmpPath, outputPath);
+			tmpPath = outputPath = null;
 		}
 	}
 }

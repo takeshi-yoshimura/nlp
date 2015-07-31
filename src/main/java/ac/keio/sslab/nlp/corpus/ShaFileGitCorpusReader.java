@@ -22,8 +22,10 @@ public class ShaFileGitCorpusReader implements GitCorpusReader {
 	Iterator<String> sha_iterator;
 	RevWalk walk;
 	String sha, doc;
+	File input;
 
 	public ShaFileGitCorpusReader(File input, File gitDir) throws Exception {
+		this.input = input;
 		repo = new FileRepositoryBuilder().findGitDir(gitDir).build();
 		git = new Git(repo);
 		walk = new RevWalk(repo);
@@ -65,6 +67,11 @@ public class ShaFileGitCorpusReader implements GitCorpusReader {
 		walk.close();
 		git.close();
 		repo.close();
+	}
+
+	@Override
+	public String getStats() {
+		return new String("Extracted: " + input.getAbsolutePath());
 	}
 
 }

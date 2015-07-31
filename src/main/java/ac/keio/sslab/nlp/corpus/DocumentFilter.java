@@ -26,8 +26,7 @@ public class DocumentFilter {
 		stream.reset();
 
 		while (stream.incrementToken()) {
-			String word = term.toString();
-			filtered.append(word);
+			filtered.append(term.toString());
 			filtered.append(' ');
 		}
 		stream.end();
@@ -48,8 +47,7 @@ public class DocumentFilter {
 		stream.reset();
 
 		while (stream.incrementToken()) {
-			String paragraph = term.toString();
-			ret.add(filterParagraph(paragraph));
+			ret.add(filterParagraph(term.toString()));
 		}
 		stream.end();
 		stream.close();

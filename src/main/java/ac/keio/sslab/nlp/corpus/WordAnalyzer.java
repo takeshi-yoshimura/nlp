@@ -83,7 +83,7 @@ class DigitFilter extends FilteringTokenFilter {
 		String str = termAtt.toString().trim();
 		if (str.matches("[0-9]+")) {
 			return false;
-		} else if ((str.matches("[a-f0-9]+") && !str.matches("[a-f]+")) || (str.matches("0x[a-f0-9]+"))) {
+		} else if (str.matches("[a-f0-9]+") || (str.matches("0x[a-f0-9]+"))) {
 			return false;
 		}
 		return true;

@@ -15,8 +15,12 @@ public class GitLogCorpusReader implements GitCorpusReader {
 	Git git;
 	Iterator<RevCommit> logs;
 	String sha, doc;
+	String sinceStr, untilStr, fileStr;
 
 	public GitLogCorpusReader(File input, String sinceStr, String untilStr, String fileStr) throws Exception {
+		this.sinceStr = sinceStr;
+		this.untilStr = untilStr;
+		this.fileStr = fileStr;
 		repo = new FileRepositoryBuilder().findGitDir(input).build();
 		git = new Git(repo);
 		RevWalk walk = new RevWalk(repo);
@@ -69,5 +73,13 @@ public class GitLogCorpusReader implements GitCorpusReader {
 	public void close() throws IOException {
 		git.close();
 		repo.close();
+	}
+
+	@Override
+	public String getStats() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("Extracted: ").append(sinceStr).append(" - ").append(untilStr).append('\n');
+		sb.append("directory: ").append(fileStr);
+		return sb.toString();
 	}
 }
