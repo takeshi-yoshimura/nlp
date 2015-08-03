@@ -3,7 +3,6 @@ package ac.keio.sslab.nlp;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,12 +11,10 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.eclipse.jgit.util.FileUtils;
-import org.json.JSONObject;
 
 import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
 import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
@@ -108,33 +105,6 @@ public class JobUtils {
 		} catch (IOException e) {
 			System.err.println("Local I/O failed : " + e.toString());
 			return false;
-		}
-	}
-
-	public static void listJobs(String jobName) {
-		NLPConf conf = NLPConf.getInstance();
-		File argFile = new File(conf.localArgFile, jobName);
-		argFile.getParentFile().mkdirs();
-		try {
-			if (!argFile.exists()) {
-				System.out.println("Job " + jobName + " has never been invoked");
-			} else {
-				FileInputStream inputStream = new FileInputStream(argFile);
-				JSONObject jobJson = new JSONObject(IOUtils.toString(inputStream));
-				StringBuilder sb = new StringBuilder();
-				for (String jobID: jobJson.keySet()) {
-					sb.setLength(0);
-					sb.append(jobID).append(":");
-					JSONObject argObj = jobJson.getJSONObject(jobID);
-					for (String arg: argObj.keySet()) {
-						sb.append(" -").append(arg).append(" ").append(argObj.get(arg));
-					}
-					System.out.println(sb.toString());
-				}
-		        inputStream.close();
-			}
-		} catch (Exception e) {
-			System.err.println("List up job IDs failed: " + e.toString());
 		}
 	}
 

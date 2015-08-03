@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -14,7 +16,6 @@ import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
 
 public class DeduplicateCorpusJob implements NLPJob {
 
-	NLPConf conf = NLPConf.getInstance();
 	@Override
 	public String getJobName() {
 		return "dedupCorpus";
@@ -27,19 +28,20 @@ public class DeduplicateCorpusJob implements NLPJob {
 
 	@Override
 	public Options getOptions() {
+		OptionGroup g = new OptionGroup();
+		g.addOption(new Option("c", "corpusID", true, "ID of a corpus"));
+		g.setRequired(true);
+
 		Options opts = new Options();
-		opts.addOption("c", "corpusID", true, "ID of a corpus");
+		opts.addOptionGroup(g);
 		return opts;
 	}
 
 	@Override
-	public void run(Map<String, String> args) {
-		if (!args.containsKey("c")) {
-			System.err.println("Need to specify --corpusID");
-			return;
-		}
-		Path corpusPath = new Path(conf.corpusPath, args.get("c"));
-		Path outputPath = new Path(conf.corpusPath, args.get("j"));
+	public void run(JobManager mgr) {
+		NLPConf conf = mgr.getNLPConf();
+		Path corpusPath = mgr.getArgJobIDPath(conf.corpusPath, "c");
+		Path outputPath = mgr.getJobIDPath(conf.corpusPath);
 		Configuration hdfsConf = new Configuration();
 		try {
 			Map<String, String> out = new HashMap<String, String>();//<value, key> in original corpus
@@ -49,7 +51,7 @@ public class DeduplicateCorpusJob implements NLPJob {
 			}
 			reader.close();
 
-			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, hdfsConf, args.containsKey("ow"), String.class, String.class);
+			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, hdfsConf, mgr.doForceWrite(), String.class, String.class);
 			for (Entry<String, String> e: out.entrySet()) {
 				writer.append(e.getValue(), e.getKey());
 			}

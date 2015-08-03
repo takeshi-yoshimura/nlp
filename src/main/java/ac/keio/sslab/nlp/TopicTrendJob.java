@@ -11,6 +11,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -34,8 +36,6 @@ import ac.keio.sslab.nlp.lda.TopicReader;
 
 public class TopicTrendJob implements NLPJob {
 
-	NLPConf conf = NLPConf.getInstance();
-
 	@Override
 	public String getJobName() {
 		return "topicTrend";
@@ -48,9 +48,13 @@ public class TopicTrendJob implements NLPJob {
 
 	@Override
 	public Options getOptions() {
+		OptionGroup g = new OptionGroup();
+		g.addOption(new Option("l", "ldaID", true, "ID for lda job"));
+		g.addOption(new Option("g", "gitDir", true, "Path to a git repository"));
+		g.setRequired(true);
+
 		Options opt = new Options();
-		opt.addOption("l", "ldaID", true, "ID for lda job");
-		opt.addOption("g", "gitDir", true, "Path to a git repository");
+		opt.addOptionGroup(g);
 		return opt;
 	}
 
@@ -107,17 +111,14 @@ public class TopicTrendJob implements NLPJob {
 	}
 
 	@Override
-	public void run(Map<String, String> args) {
-		if (!args.containsKey("l") || !args.containsKey("g")) {
-			System.err.println("Need to specify --ldaID and --gitDir");
-			return;
-		}
+	public void run(JobManager mgr) {
+		NLPConf conf = mgr.getNLPConf();
 		File topicTrendFile = new File(conf.finalOutputFile, "topicTrend");
-		File gitFile = new File(args.get("g"));
-		File outputFile = new File(topicTrendFile, args.get("l"));
+		File gitFile = new File(mgr.getArgStr("g"));
+		File outputFile = mgr.getLocalArgFile(topicTrendFile, "l");
 		outputFile.mkdirs();
 
-		LDAHDFSFiles hdfs = new LDAHDFSFiles(new Path(conf.ldaPath, args.get("l")));
+		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
 		Configuration hdfsConf = new Configuration();
 		try {
 			//get <sha, <ver, dirs>> and num(doc|ver), num(doc|dir) at first

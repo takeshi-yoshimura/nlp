@@ -1,8 +1,9 @@
 package ac.keio.sslab.nlp;
 
 import java.io.File;
-import java.util.Map;
 
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -12,8 +13,6 @@ import ac.keio.sslab.nlp.corpus.DocumentFilter;
 import ac.keio.sslab.nlp.corpus.SimpleTextCorpusReader;
 
 public class TextCorpusJob implements NLPJob {
-
-	NLPConf conf = NLPConf.getInstance();
 
 	@Override
 	public String getJobName() {
@@ -27,34 +26,29 @@ public class TextCorpusJob implements NLPJob {
 
 	@Override
 	public Options getOptions() {
+		OptionGroup g = new OptionGroup();
+		g.addOption(new Option("i", "input", true, "Input file"));
+		g.addOption(new Option("s", "separator", true, "separator of ID and data sections"));
+		g.setRequired(true);
+
 		Options options = new Options();
-		options.addOption("i", "input", true, "Input file");
-		options.addOption("s", "separator", true, "separator of ID and data sections");
+		options.addOptionGroup(g);
 		options.addOption("t", "tokenizeAtUnderline", true, "tokenize at underline? (default is true)");
 		options.addOption("n", "useNLTKStopwords", true, "use NLTK stopwords? (default is false)");
 		return options;
 	}
 
 	@Override
-	public void run(Map<String, String> args) {
-		if (!args.containsKey("i") || !args.containsKey("s")) {
-			System.err.println("Need to specify -i, -s");
-			return;
-		}
-		File input = new File(args.get("i"));
-		Path outputPath = new Path(conf.corpusPath, args.get("j"));
-		String s = args.get("s");
-		boolean tokenizeAtUnderline = true;
-		if (args.containsKey("t")) {
-			tokenizeAtUnderline = Boolean.parseBoolean(args.get("t"));
-		}
-		boolean useNLTKStopwords = false;
-		if (args.containsKey("n")) {
-			useNLTKStopwords = Boolean.parseBoolean(args.get("n"));
-		}
+	public void run(JobManager mgr) {
+		NLPConf conf = mgr.getNLPConf();
+		File input = new File(mgr.getArgStr("i"));
+		Path outputPath = mgr.getJobIDPath(conf.corpusPath);
+		String s = mgr.getArgStr("s");
+		boolean tokenizeAtUnderline = mgr.getArgOrDefault("t", true, Boolean.class);
+		boolean useNLTKStopwords = mgr.getArgOrDefault("n", false, Boolean.class);
 
 		try {
-			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, new Configuration(), args.containsKey("ow"), String.class, String.class);
+			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, new Configuration(), mgr.doForceWrite(), String.class, String.class);
 			SimpleTextCorpusReader reader = new SimpleTextCorpusReader(input, s);
 			DocumentFilter filter = new DocumentFilter(tokenizeAtUnderline, useNLTKStopwords);
 			StringBuilder sb = new StringBuilder();

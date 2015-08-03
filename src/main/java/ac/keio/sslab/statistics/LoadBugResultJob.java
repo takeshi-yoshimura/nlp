@@ -12,8 +12,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
+import ac.keio.sslab.nlp.JobManager;
 import ac.keio.sslab.nlp.JobUtils;
 import ac.keio.sslab.nlp.NLPJob;
 
@@ -31,9 +34,13 @@ public class LoadBugResultJob implements NLPJob {
 
 	@Override
 	public Options getOptions() {
+		OptionGroup g = new OptionGroup();
+		g.addOption(new Option("d", "directory", true, "json directory path for results"));
+		g.addOption(new Option("e", "error", true, "json file path for error class"));
+		g.setRequired(true);
+
 		Options opt = new Options();
-		opt.addOption("d", "directory", true, "json directory path for results");
-		opt.addOption("e", "error", true, "json file path for error class");
+		opt.addOptionGroup(g);
 		return opt;
 	}
 
@@ -107,29 +114,22 @@ public class LoadBugResultJob implements NLPJob {
 	}
 
 	@Override
-	public void run(Map<String, String> args) {
-		File outDir = new File("statistics", args.get("j"));
+	public void run(JobManager mgr) {
+		File outDir = new File("statistics", mgr.getArgStr("j"));
 		File csvDir = new File(outDir, "csv");
 		File varDir = new File(outDir, "obj-by-sbj-var");
 		File arffDir = new File(outDir, "arff");
 		File countDir = new File(outDir, "count");
-		if (!args.containsKey("d") || !args.containsKey("e")) {
-			System.err.println("Need to specify --directory and --error");
-			return;
-		}
-		if (args.containsKey("ow")) {
-			JobUtils.promptDeleteDirectory(csvDir, args.containsKey("force"));
-			JobUtils.promptDeleteDirectory(arffDir, args.containsKey("force"));
-		}
 		if (csvDir.exists() || arffDir.exists()) {
-			System.err.println("Prior results are existing. Abort (use -ow to overwrite)");
-			return;
+			if (!JobUtils.promptDeleteDirectory(csvDir, mgr.doForceWrite()) || !JobUtils.promptDeleteDirectory(arffDir, mgr.doForceWrite())) {
+				return;
+			}
 		}
 		csvDir.getParentFile().mkdirs();
 		arffDir.getParentFile().mkdirs();
 
 		try {
-			BugResult result = BugResult.loadFromDirectory(new File(args.get("d")), new File(args.get("e")));
+			BugResult result = BugResult.loadFromDirectory(new File(mgr.getArgStr("d")), new File(mgr.getArgStr("e")));
 			writeResults(result, varDir, csvDir, arffDir, countDir, "bulk");
 			writeResults(result.getFixTypeByCluster(), varDir, csvDir,arffDir, countDir, "fixtype");
 

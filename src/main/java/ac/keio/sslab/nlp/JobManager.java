@@ -7,7 +7,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.PosixParser;
 import org.apache.commons.io.IOUtils;
+import org.apache.hadoop.fs.Path;
 import org.json.JSONObject;
 
 public class JobManager {
@@ -16,14 +24,103 @@ public class JobManager {
 	protected File argFile;
 	protected File lockFile;
 
-	public JobManager(String jobName) {
-		argFile = new File(conf.localArgFile, jobName);
-		lockFile = new File(conf.localLockFile, jobName);
+	Options options;
+	String jobID;
+	Map<String, String> args;
+	NLPJob job;
+
+	public JobManager(NLPJob job, String [] arguments) throws ParseException {
+		this.job = job;
+		options = job.getOptions();
+		if (options == null) {
+			options = new Options();
+		}
+		if (options.hasOption("j") || options.hasOption("ow") || options.hasOption("h")) {
+			throw new ParseException("Options -j --jobID, -ow --overwrite, -h --help are used at "  + this.getClass().getName());
+		}
+		OptionGroup required = new OptionGroup();
+		required.setRequired(true);
+		required.addOption(new Option("j", "jobID", true, "ID of the job"));
+		options.addOptionGroup(required);
+		options.addOption("ow", "overwrite", false, "Force to overwrite");
+		options.addOption("h", "help", false, "Help");
+
+		args = new HashMap<String, String>();
+		CommandLine line = (new PosixParser()).parse(options, arguments);
+		for (Option opt: line.getOptions()) {
+			args.put(opt.getOpt(), opt.getValue());
+		}
+		this.jobID = args.get("j");
+		argFile = new File(conf.localArgFile, job.getJobName());
+		lockFile = new File(conf.localLockFile, job.getJobName());
 		argFile.getParentFile().mkdirs();
 		lockFile.mkdirs();
 	}
 
-	public boolean tryLock(String jobID) {
+	interface StrParser {
+		Object parse(String str);
+	}
+	static final Map<Class<?>, StrParser> ps = new HashMap<>();
+	static {
+		ps.put(Integer.class, new StrParser() { public Object parse(String str) { return Integer.parseInt(str); }});
+		ps.put(String.class, new StrParser() { public Object parse(String str) { return Integer.parseInt(str); }});
+		ps.put(Double.class, new StrParser() { public Object parse(String str) { return Double.parseDouble(str); }});
+		ps.put(Long.class, new StrParser() { public Object parse(String str) { return Long.parseLong(str); }});
+	};
+
+	@SuppressWarnings("unchecked")
+	public <T> T getArgOrDefault(String key, T defaultValue, Class<T> c) {
+		if (args.containsKey(key)) {
+			return (T) ps.get(c).parse(args.get(key));
+		}
+		return defaultValue;
+	}
+
+	public String getArgStr(String key) {
+		return args.get(key);
+	}
+
+	public Path getArgJobIDPath(Path p, String key) {
+		return new Path(p, args.get(key));
+	}
+
+	public Path getJobIDPath(Path p) {
+		return getArgJobIDPath(p, args.get("j"));
+	}
+
+	public File getLocalArgFile(File f, String key) {
+		return new File(f, args.get(key));
+	}
+
+	public String getJobID() {
+		return args.get("j");
+	}
+
+	public boolean hasHelp() {
+		return args.containsKey("h");
+	}
+
+	public void printHelp() {
+		new HelpFormatter().printHelp(job.getJobName(), options);
+	}
+
+	public boolean doForceWrite() {
+		return args.containsKey("ow");
+	}
+
+	public boolean hasArg(String key) {
+		return args.containsKey(key);
+	}
+
+	public void addArg(String key, String value) {
+		args.put(key, value);
+	}
+
+	public Options getOptions() {
+		return options;
+	}
+
+	public boolean tryLock() {
 		try {
 			File lock = new File(lockFile, jobID);
 			if (lock.exists()) {
@@ -40,7 +137,7 @@ public class JobManager {
 		}
 	}
 
-	public void unLock(String jobID) {
+	public void unLock() {
 		try {
 			File lock = new File(lockFile, jobID);
 			if (lock.exists()) {
@@ -53,7 +150,7 @@ public class JobManager {
 		}
 	}
 
-	public boolean hasJobIDArgs(String jobID) {
+	public boolean hasPastArgs() {
 		if (!argFile.exists()) {
 			return false;
 		}
@@ -70,7 +167,7 @@ public class JobManager {
 	    }
 	}
 
-	public Map<String, String> getJobIDArgs(String jobID) {
+	public void restoreArgs() {
 	    try {
 			Map<String, String> map = new HashMap<String, String>();
 	    	FileInputStream inputStream = new FileInputStream(argFile);
@@ -80,14 +177,17 @@ public class JobManager {
 				map.put(key, jobIDJson.getString(key));
 			}
 	        inputStream.close();
-	        return map;
+	        if (args.containsKey("ow")) {
+	        	map.put("ow", "");
+	        }
+	        args = map;
 	    } catch (Exception e) {
 	    	System.err.println("Reading json " + argFile.getAbsolutePath() + " failed: " + e.toString());
-	    	return null;
+	    	args =  null;
 	    }
 	}
 
-	public void saveJobIDArgs(String jobID, Map<String, String> args) {
+	public void saveArgs() {
 	    try {
 			FileInputStream inputStream;
 			JSONObject jobJson;
@@ -117,5 +217,9 @@ public class JobManager {
 	    } catch (Exception e) {
 	    	System.err.println("Reading or writing json " + argFile.getAbsolutePath() + " failed: " + e.toString());
 	    }
+	}
+
+	public NLPConf getNLPConf() {
+		return conf;
 	}
 }

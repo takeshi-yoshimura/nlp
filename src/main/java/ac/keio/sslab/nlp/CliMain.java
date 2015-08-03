@@ -1,6 +1,7 @@
 package ac.keio.sslab.nlp;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -8,13 +9,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionGroup;
-import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.cli.PosixParser;
+import org.apache.commons.io.IOUtils;
+import org.json.JSONObject;
 
 import ac.keio.sslab.statistics.CompareWithManualJob;
 import ac.keio.sslab.statistics.LoadBugResultJob;
@@ -36,18 +33,14 @@ public class CliMain {
 		this.conf = NLPConf.getInstance();
 		this.conf.loadConfFile(confFile);
 		for (NLPJob job: jobs) {
-			addJob(job);
+			this.jobs.put(job.getJobName(), job);
 		}
 		this.jobs.put("help", null);
 		this.jobs.put("fg", null);
 		this.jobs.put("list", null);
 	}
 
-	public void addJob(NLPJob job) {
-		jobs.put(job.getJobName(), job);
-	}
-
-	private void showJobs() {
+	public void showJobs() {
 		System.out.println("Available commands:");
 		for (Entry<String, NLPJob> e: jobs.entrySet()) {
 			if (e.getValue() != null) {
@@ -58,51 +51,42 @@ public class CliMain {
 		System.out.println("help\tShow available commands and their descriptions");
 	}
 
-	private Map<String, String> parseArgs(Options options, String [] args) throws ParseException {
-		Map<String, String> argMap = new HashMap<String, String>();
-		CommandLine line = (new PosixParser()).parse(options, args);
-		for (Option opt: line.getOptions()) {
-			argMap.put(opt.getOpt(), opt.getValue());
+	public void listJobs(String jobName) {
+		NLPConf conf = NLPConf.getInstance();
+		File argFile = new File(conf.localArgFile, jobName);
+		argFile.getParentFile().mkdirs();
+		try {
+			if (!argFile.exists()) {
+				System.out.println("Job " + jobName + " has never been invoked");
+			} else {
+				FileInputStream inputStream = new FileInputStream(argFile);
+				JSONObject jobJson = new JSONObject(IOUtils.toString(inputStream));
+				StringBuilder sb = new StringBuilder();
+				for (String jobID: jobJson.keySet()) {
+					sb.setLength(0);
+					sb.append(jobID).append(":");
+					JSONObject argObj = jobJson.getJSONObject(jobID);
+					for (String arg: argObj.keySet()) {
+						sb.append(" -").append(arg).append(" ").append(argObj.get(arg));
+					}
+					System.out.println(sb.toString());
+				}
+		        inputStream.close();
+			}
+		} catch (Exception e) {
+			System.err.println("List up job IDs failed: " + e.toString());
 		}
-		return argMap;
-	}
-
-	private Options getJobOptions(NLPJob job) {
-		Options options = job.getOptions();
-		if (options == null) {
-			options = new Options();
-		}
-		if (options.hasOption("j") || options.hasOption("ow") || options.hasOption("h")) {
-			System.err.println("Options -j --jobID, -ow --overwrite, -h --help are used at " 
-								+ this.getClass().getName());
-			System.exit(-1);
-			return null;
-		}
-		OptionGroup required = new OptionGroup();
-		required.setRequired(true);
-		required.addOption(new Option("j", "jobID", true, "ID of the job"));
-		options.addOptionGroup(required);
-		options.addOption("ow", "overwrite", false, "Overwrite (ask overwriting again later if no -f or --forceOverwrite)");
-		options.addOption("h", "help", false, "Help");
-		return options;
-	}
-
-	private void printHelp(String jobName, Options options) {
-		HelpFormatter formatter = new HelpFormatter();
-		formatter.printHelp(jobName, options);
 	}
 
 	public void forkProcess(NLPJob job, String [] args) {
-		Options options = getJobOptions(job);
-		Map<String, String> argMap;
+		String jobID = null;
 		try {
-			argMap = parseArgs(options, args);
+			JobManager manager = new JobManager(job, args);
+			jobID = manager.getJobID();
 		} catch (Exception e) {
 			System.err.println(e.toString());
-			printHelp(job.getJobName(), options);
 			return;
 		}
-		String jobID = argMap.get("j");
 		ProcessBuilder pb = new ProcessBuilder();
 		List<String> cmd = new ArrayList<String>();
 		cmd.add("nohup");
@@ -155,7 +139,7 @@ public class CliMain {
 			if (args.length == 1 || !jobs.containsKey(args[1])) {
 				System.err.println("Need to specify job type Name");
 			} else {
-				JobUtils.listJobs(args[1]);
+				listJobs(args[1]);
 			}
 			return;
 		} else {
@@ -170,31 +154,26 @@ public class CliMain {
 			return;
 		}
 
-		JobManager manager = new JobManager(job.getJobName());
-		Options options = getJobOptions(job);
 		try {
-			Map<String, String> argMap = parseArgs(options, newArgs);
-			String jobID = argMap.get("j");
-			if (!manager.tryLock(jobID)) {
+			JobManager manager = new JobManager(job, newArgs);
+			String jobID = manager.getJobID();
+			if (manager.hasHelp()) {
+				manager.printHelp();
+				return;
+			}
+			if (!manager.tryLock()) {
 				System.out.println("Currently the job " + job.getJobName() + " ID = " + jobID + " is running. Aborts");
 				return;
 			}
-			if (argMap.containsKey("h")) {
-				printHelp(job.getJobName(), options);
-			} else if (manager.hasJobIDArgs(jobID)) {
+			if (manager.hasPastArgs()) {
 				System.out.println("Found the past output for job " + job.getJobName() + " ID = " + jobID + ". Use the past arguments");
-				Map<String, String> oldargs = manager.getJobIDArgs(jobID);
-				if (argMap.containsKey("ow")) {
-					oldargs.put("ow", "");
-				}
-				job.run(oldargs);
-			} else {
-				job.run(argMap);
+				manager.restoreArgs();
 			}
-			manager.unLock(jobID);
+			job.run(manager);
+			manager.unLock();
 		} catch (ParseException e) {
 			System.err.println(e.toString());
-			printHelp(job.getJobName(), options);
+			showJobs();
 		}
 	}
 
@@ -215,6 +194,7 @@ public class CliMain {
 		jobs.add(new ExtractGroupJob());
 		jobs.add(new TopDownJob());
 		jobs.add(new TopDownDumpJob());
+		jobs.add(new BottomUpJob());
 		jobs.add(new TopicTrendJob());
 		jobs.add(new LoadBugResultJob());
 		jobs.add(new CompareWithManualJob());

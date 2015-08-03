@@ -9,7 +9,7 @@ import org.apache.mahout.math.Vector;
 
 // O(n) for calculation of minimum distance among all the clusters
 // use around 8 * n^2 / 2 bytes RAM for caching (e.g., 400MB for 10K points)
-public class InMemoryFastBottomupClustering {
+public class InMemoryFastBottomupClustering implements BottomupClusteringListener {
 
 	// {point id, point}
 	double [][] distance;
@@ -18,6 +18,7 @@ public class InMemoryFastBottomupClustering {
 	// {owner point id, cluster centroid}
 	Map<Integer, Vector> centroids;
 	int mergingPointId, mergedPointId;
+	Vector newVector;
 
 	public InMemoryFastBottomupClustering(List<Vector> idPoints, DistanceMeasure measure) {
 		this.measure = measure;
@@ -36,6 +37,7 @@ public class InMemoryFastBottomupClustering {
 		}
 	}
 
+	@Override
 	public boolean next() {
 		double min_d = Double.MAX_VALUE;
 		int min_i = -1, min_j = -1;
@@ -61,9 +63,9 @@ public class InMemoryFastBottomupClustering {
 
 		Vector iV = centroids.get(min_i);
 		Vector jV = centroids.get(min_j);
-		Vector newV = iV.plus(jV).divide(2);
+		newVector = iV.plus(jV).divide(2);
 		centroids.remove(min_i);
-		centroids.put(min_j, newV);
+		centroids.put(min_j, newVector);
 
 		for (int i = min_j; i < distance.length; i++) {
 			if (centroids.containsKey(i + 1)) {
@@ -79,11 +81,23 @@ public class InMemoryFastBottomupClustering {
 		return true;
 	}
 
+	@Override
 	public int mergingPointId() {
 		return mergingPointId;
 	}
 
+	@Override
 	public int mergedPointId() {
 		return mergedPointId;
+	}
+
+	@Override
+	public DistanceMeasure getDistanceMeasure() {
+		return measure;
+	}
+
+	@Override
+	public Vector newPointVector() {
+		return newVector;
 	}
 }

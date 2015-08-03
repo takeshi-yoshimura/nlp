@@ -9,7 +9,7 @@ import org.apache.mahout.math.Vector;
 
 //O(n^2) for calculation of minimum distance among all the clusters
 // use around (8 * D) * n bytes RAM (e.g., 800MB for 1M 100D points)
-public class InMemorySlowBottomupClustering {
+public class InMemorySlowBottomupClustering implements BottomupClusteringListener {
 
 	// {point id, point}
 	DistanceMeasure measure;
@@ -17,6 +17,7 @@ public class InMemorySlowBottomupClustering {
 	// {owner point id, cluster centroid}
 	Map<Integer, Vector> centroids;
 	int mergingPointId, mergedPointId;
+	Vector newVector;
 
 	public InMemorySlowBottomupClustering(List<Vector> idPoints, DistanceMeasure measure) {
 		this.measure = measure;
@@ -27,6 +28,7 @@ public class InMemorySlowBottomupClustering {
 		}
 	}
 
+	@Override
 	public boolean next() {
 		double min_d = Double.MAX_VALUE;
 		int min_i = -1, min_j = -1;
@@ -53,18 +55,30 @@ public class InMemorySlowBottomupClustering {
 
 		Vector iV = centroids.get(min_i);
 		Vector jV = centroids.get(min_j);
-		Vector newV = iV.plus(jV).divide(2);
+		newVector = iV.plus(jV).divide(2);
 		centroids.remove(min_i);
-		centroids.put(min_j, newV);
+		centroids.put(min_j, newVector);
 
 		return true;
 	}
 
+	@Override
 	public int mergingPointId() {
 		return mergingPointId;
 	}
 
+	@Override
 	public int mergedPointId() {
 		return mergedPointId;
+	}
+
+	@Override
+	public DistanceMeasure getDistanceMeasure() {
+		return measure;
+	}
+
+	@Override
+	public Vector newPointVector() {
+		return newVector;
 	}
 }

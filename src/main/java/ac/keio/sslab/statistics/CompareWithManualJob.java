@@ -1,22 +1,21 @@
 package ac.keio.sslab.statistics;
 
 import java.io.File;
-import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.eclipse.jgit.util.FileUtils;
 
+import ac.keio.sslab.nlp.JobManager;
 import ac.keio.sslab.nlp.NLPConf;
 import ac.keio.sslab.nlp.NLPJob;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
 
 public class CompareWithManualJob implements NLPJob {
 
-	NLPConf conf = NLPConf.getInstance();
-	
 	@Override
 	public String getJobName() {
 		return "compareWithManual";
@@ -29,21 +28,21 @@ public class CompareWithManualJob implements NLPJob {
 
 	@Override
 	public Options getOptions() {
+		OptionGroup g = new OptionGroup();
+		g.addOption(new Option("m", "manualResult", true, "csv File {commits, tag1,tag2,....}"));
+		g.addOption(new Option("l", "ldaID", true, "ID for lda job"));
+		g.setRequired(true);
+
 		Options opt = new Options();
-		opt.addOption("m", "manualResult", true, "csv File {commits, tag1,tag2,....}");
-		opt.addOption("l", "ldaID", true, "ID for lda job");
+		opt.addOptionGroup(g);
 		return opt;
 	}
 
 	@Override
-	public void run(Map<String, String> args) {
-		if (!args.containsKey("l") || !args.containsKey("m")) {
-			System.err.println("Need to specify --ldaID and --manualResult");
-			return;
-		}
-
-		File manualFile = new File(args.get("m"));
-		LDAHDFSFiles hdfs = new LDAHDFSFiles(new Path(conf.ldaPath, args.get("l")));
+	public void run(JobManager mgr) {
+		NLPConf conf = mgr.getNLPConf();
+		File manualFile = new File(mgr.getArgStr("m"));
+		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
 		Configuration hdfsConf = new Configuration();
 		
 		System.out.println("Load manual classification from " + manualFile.getAbsolutePath());
@@ -91,7 +90,7 @@ public class CompareWithManualJob implements NLPJob {
 		 * ColNamedMatrix sortedTopicTags = topicTags.buildColSorted().colSortedByValue().rowSortedByEntropy();
 		 */
 
-		File outDir = new File(conf.finalOutputFile, "compareWithManul/" + args.get("l"));
+		File outDir = new File(conf.finalOutputFile, "compareWithManul/" + mgr.getArgStr("l"));
 		if (outDir.exists()) {
 			try {
 				FileUtils.delete(outDir, FileUtils.RECURSIVE);
@@ -100,7 +99,7 @@ public class CompareWithManualJob implements NLPJob {
 				return;
 			}
 		}
-		File tmpOutputFile = new File(NLPConf.tmpDirName, "compareWithManual/" + args.get("l"));
+		File tmpOutputFile = new File(NLPConf.tmpDirName, "compareWithManual/" + mgr.getArgStr("l"));
 		tmpOutputFile.mkdirs();
 		tmpOutputFile.deleteOnExit();
 

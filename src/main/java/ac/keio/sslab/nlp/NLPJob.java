@@ -1,7 +1,5 @@
 package ac.keio.sslab.nlp;
 
-import java.util.Map;
-
 import org.apache.commons.cli.Options;
 
 public interface NLPJob {
@@ -32,7 +30,7 @@ public interface NLPJob {
 	 * @param args the parsed arguments into the form of (key, value). 
 	 *             key is option name, value is the specified argument string.
 	 */
-	public void run(Map<String, String> args);
+	public void run(JobManager mgr);
 
 	public boolean runInBackground();
 }

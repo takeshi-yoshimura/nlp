@@ -6,12 +6,12 @@ import java.io.FileReader;
 import java.io.PrintWriter;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.mahout.common.Pair;
 
 import ac.keio.sslab.nlp.lda.DocumentGroupReader;
@@ -19,7 +19,6 @@ import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
 
 public class ExtractGroupJob implements NLPJob {
 
-	NLPConf conf = NLPConf.getInstance();
 	@Override
 	public String getJobName() {
 		return "extractGroup";
@@ -32,22 +31,23 @@ public class ExtractGroupJob implements NLPJob {
 
 	@Override
 	public Options getOptions() {
+		OptionGroup g = new OptionGroup();
+		g.addOption(new Option("f", "groupFileName", true, "file that contains document IDs (plain text)"));
+		g.addOption(new Option("l", "ldaID", true, "LDA ID"));
+		g.setRequired(true);
+
 		Options opts = new Options();
-		opts.addOption("f", "groupFileName", true, "file that contains document IDs (plain text)");
-		opts.addOption("l", "ldaID", true, "LDA ID");
+		opts.addOptionGroup(g);
 		return opts;
 	}
 
 	@Override
-	public void run(Map<String, String> args) {
-		if (!args.containsKey("f") || !args.containsKey("l")) {
-			System.err.println("Need to specify --groupFileName and --ldaID");
-			return;
-		}
-		File inputFile = new File(args.get("f"));
+	public void run(JobManager mgr) {
+		NLPConf conf = mgr.getNLPConf();
+		File inputFile = new File(mgr.getArgStr("f"));
 		File groupFile = new File(conf.finalOutputFile, "group");
-		File outputFile = new File(groupFile, args.get("l"));
-		LDAHDFSFiles hdfs = new LDAHDFSFiles(new Path(conf.ldaPath, args.get("l")));
+		File outputFile = mgr.getLocalArgFile(groupFile, "l");
+		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
 		try {
 			BufferedReader reader = new BufferedReader(new FileReader(inputFile));
 			Set<Integer> group = new HashSet<Integer>();

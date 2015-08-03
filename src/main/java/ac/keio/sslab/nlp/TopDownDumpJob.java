@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -25,7 +27,6 @@ import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
 import ac.keio.sslab.nlp.lda.TopicReader;
 
 public class TopDownDumpJob implements NLPJob {
-	NLPConf conf = NLPConf.getInstance();
 
 	@Override
 	public String getJobName() {
@@ -39,23 +40,23 @@ public class TopDownDumpJob implements NLPJob {
 
 	@Override
 	public Options getOptions() {
+		OptionGroup g = new OptionGroup();
+		g.addOption(new Option("t", "topdownID", true, "ID of topdown"));
+		g.addOption(new Option("l", "ldaID", true, "ID of lda"));
+		g.setRequired(true);
+
 		Options opt = new Options();
-		opt.addOption("t", "topdownID", true, "ID of topdown");
-		opt.addOption("l", "ldaID", true, "ID of lda");
+		opt.addOptionGroup(g);
 		return opt;
 	}
 
 	@Override
-	public void run(Map<String, String> args) {
-		if (!args.containsKey("t") || !args.containsKey("l")) {
-			System.err.println("Need to specify --topdownID and --ldaID");
-			return;
-		}
-
+	public void run(JobManager mgr) {
+		NLPConf conf = mgr.getNLPConf();
 		Map<Integer, String> clusterStr = new HashMap<Integer, String>();
 		Map<Integer, Integer> clusterCount = new HashMap<Integer, Integer>();
 		try {
-			LDAHDFSFiles hdfs = new LDAHDFSFiles(new Path(conf.ldaPath, args.get("l")));
+			LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
 			Configuration hdfsConf = new Configuration();
 			Map<Integer, String> topicStr = new HashMap<Integer, String>();
 			TopicReader topReader = new TopicReader(hdfs.dictionaryPath, hdfs.topicPath, hdfsConf, 1);
@@ -70,7 +71,7 @@ public class TopDownDumpJob implements NLPJob {
 			}
 
 			FileSystem fs = FileSystem.get(hdfsConf);
-			Path topdownPath = new Path(conf.topdownPath, args.get("t"));
+			Path topdownPath = mgr.getArgJobIDPath(conf.topdownPath, "t");
 			Comparator<Entry<Integer, Double>> reverser = new Comparator<Entry<Integer, Double>>() {
 				public int compare(Entry<Integer, Double> e1, Entry<Integer, Double> e2) {
 					return e2.getValue().compareTo(e1.getValue());
@@ -120,7 +121,7 @@ public class TopDownDumpJob implements NLPJob {
 			return;
 		}
 
-		File outDir = new File(conf.finalOutputFile, "topdown/" + args.get("t"));
+		File outDir = new File(conf.finalOutputFile, "topdown/" + mgr.getArgStr("t"));
 		if (outDir.exists()) {
 			try {
 				FileUtils.delete(outDir, FileUtils.RECURSIVE);
@@ -129,7 +130,7 @@ public class TopDownDumpJob implements NLPJob {
 				return;
 			}
 		}
-		File tmpOutputFile = new File(NLPConf.tmpDirName, "topdown/" + args.get("t"));
+		File tmpOutputFile = new File(NLPConf.tmpDirName, "topdown/" + mgr.getArgStr("t"));
 		tmpOutputFile.mkdirs();
 		tmpOutputFile.deleteOnExit();
 

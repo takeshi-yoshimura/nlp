@@ -3,21 +3,18 @@ package ac.keio.sslab.nlp;
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.eclipse.jgit.util.FileUtils;
 
 import ac.keio.sslab.nlp.lda.DocumentReader;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
 import ac.keio.sslab.nlp.lda.TopicReader;
 
 public class LDADumpJob implements NLPJob {
-
-	NLPConf conf = NLPConf.getInstance();
 
 	@Override
 	public String getJobName() {
@@ -31,36 +28,31 @@ public class LDADumpJob implements NLPJob {
 
 	@Override
 	public Options getOptions() {
+		OptionGroup g = new OptionGroup();
+		g.addOption(new Option("l", "ldaID", true, "ID of lda job"));
+		g.setRequired(true);
+
 		Options opts = new Options();
-		opts.addOption("l", "ldaID", true, "ID of lda job");
+		opts.addOptionGroup(g);
 		return opts;
 	}
 
 	@Override
-	public void run(Map<String, String> args) {
-		if (!args.containsKey("l")) {
-			System.err.println("Need to specify --ldaID");
-			return;
-		}
+	public void run(JobManager mgr) {
+		NLPConf conf = mgr.getNLPConf();
 		File ldaDumpFile = new File(conf.finalOutputFile, "ldaDump");
-		File outputFile = new File(ldaDumpFile, args.get("l"));
-		if (args.containsKey("ow")) {
-			try {
-				FileUtils.delete(outputFile, FileUtils.RECURSIVE);
-			} catch (Exception e) {
-				e.printStackTrace();
-				System.err.println("Deleting existing directory " + outputFile.getAbsolutePath() + " failed: " + e.toString());
-				return;
-			}
+		File outputFile = mgr.getLocalArgFile(ldaDumpFile, "l");
+		if (!JobUtils.promptDeleteDirectory(outputFile, mgr.doForceWrite())) {
+			return;
 		}
 		outputFile.mkdirs();
 
-		LDAHDFSFiles hdfs = new LDAHDFSFiles(new Path(conf.ldaPath, args.get("l")));
-		Configuration conf = new Configuration();
+		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
+		Configuration hdfsConf = new Configuration();
 		try {
 			File topicFile = new File(outputFile, "topics.txt");
 			System.out.println("Extracting top 10 topics: " + topicFile.getAbsolutePath());
-			TopicReader topReader = new TopicReader(hdfs.dictionaryPath, hdfs.topicPath, conf, 10);
+			TopicReader topReader = new TopicReader(hdfs.dictionaryPath, hdfs.topicPath, hdfsConf, 10);
 			PrintWriter pw = JobUtils.getPrintWriter(topicFile);
 			StringBuilder sb = new StringBuilder();
 			for (Entry<Integer, List<String>> topic: topReader.getTopics().entrySet()) {
@@ -78,7 +70,7 @@ public class LDADumpJob implements NLPJob {
 			File documentFile = new File(outputFile, "documents.txt");
 			System.out.println("Extracting documents with top 10 topics: " + documentFile.getAbsolutePath());
 			PrintWriter pw2 = JobUtils.getPrintWriter(documentFile);
-			DocumentReader docReader = new DocumentReader(hdfs.docIndexPath, hdfs.documentPath, conf, 10);
+			DocumentReader docReader = new DocumentReader(hdfs.docIndexPath, hdfs.documentPath, hdfsConf, 10);
 			for (Entry<String, List<Integer>> document: docReader.getDocuments().entrySet()) {
 				sb.setLength(0);
 				for (int topicId: document.getValue()) {

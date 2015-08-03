@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -22,8 +24,6 @@ import ac.keio.sslab.nlp.corpus.StableLinuxGitCorpusReader;
 
 public class GitCorpusJob implements NLPJob {
 
-	NLPConf conf = NLPConf.getInstance();
-
 	@Override
 	public String getJobName() {
 		return "gitCorpus";
@@ -36,8 +36,12 @@ public class GitCorpusJob implements NLPJob {
 
 	@Override
 	public Options getOptions() {
+		OptionGroup g = new OptionGroup();
+		g.addOption(new Option("g", "gitDir", true, "path to a git repository"));
+		g.setRequired(true);
+
 		Options options = new Options();
-		options.addOption("g", "gitDir", true, "path to a git repository");
+		options.addOptionGroup(g);
 		options.addOption("s", "since", true, "Start object ref to be uploaded (yyyy/MM/dd). Default is blank (means all)");
 		options.addOption("u", "until", true, "End object ref to be uploaded (yyyy/MM/dd). Default is HEAD.");
 		options.addOption("f", "file", true, "target file or directory path in git repository. Default is the top of the input directory.");
@@ -50,45 +54,28 @@ public class GitCorpusJob implements NLPJob {
 	}
 
 	@Override
-	public void run(Map<String, String> args) {
-		if (!args.containsKey("g")) {
-			System.err.println("Need to specify --gitDir");
-			return;
-		}
-		File inputDir = new File(args.get("g"));
-		Path outputPath = new Path(conf.corpusPath, args.get("j"));
-		String sinceStr = "";
-		if (args.containsKey("s")) {
-			sinceStr = args.get("s");
-		}
-		String untilStr = "HEAD";
-		if (args.containsKey("u")) {
-			untilStr = args.get("u");
-		}
-		String fileStr = null;
-		if (args.containsKey("f")) {
-			fileStr = args.get("f");
-		}
-		boolean tokenizeAtUnderline = false;
-		if (args.containsKey("t")) {
-			tokenizeAtUnderline = Boolean.parseBoolean(args.get("t"));
-		}
-		boolean useNLTKStopwords = false;
-		if (args.containsKey("n")) {
-			useNLTKStopwords = Boolean.parseBoolean(args.get("n"));
-		}
+	public void run(JobManager mgr) {
+		NLPConf conf = mgr.getNLPConf();
+		File inputDir = new File(mgr.getArgStr("g"));
+		Path outputPath = mgr.getJobIDPath(conf.corpusPath);
+		String sinceStr = mgr.getArgOrDefault("s", "", String.class);
+		String untilStr = mgr.getArgOrDefault("u", "HEAD", String.class);
+		String fileStr = mgr.getArgOrDefault("f", null, String.class);
+		boolean tokenizeAtUnderline = mgr.getArgOrDefault("t", false, Boolean.class);
+		boolean useNLTKStopwords = mgr.getArgOrDefault("n", false, Boolean.class);
+		boolean splitParagraph = mgr.getArgOrDefault("p", false, Boolean.class);
 
 		try {
 			GitCorpusReader reader = null;
-			if (args.containsKey("c")) {
-				reader = new ShaFileGitCorpusReader(new File(args.get("c")), inputDir);
-			} else if (args.containsKey("sl")) {
+			if (mgr.hasArg("c")) {
+				reader = new ShaFileGitCorpusReader(new File(mgr.getArgStr("c")), inputDir);
+			} else if (mgr.hasArg("sl")) {
 				reader = new StableLinuxGitCorpusReader(inputDir, fileStr);
 			} else {
 				reader = new GitLogCorpusReader(inputDir, sinceStr, untilStr, fileStr);
 			}
 
-			File stats = new File(conf.localCorpusFile, args.get("j") + "/stats.txt");
+			File stats = new File(conf.localCorpusFile, mgr.getJobID() + "/stats.txt");
 			File commits = new File(stats.getParent(), "commits.txt");
 			File idIndexFile = new File(stats.getParent(), "idIndex.txt");
 			if (stats.exists()) {
@@ -98,7 +85,7 @@ public class GitCorpusJob implements NLPJob {
 			}
 			PrintWriter commitsWriter = JobUtils.getPrintWriter(commits);
 
-			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, new Configuration(), args.containsKey("ow"), String.class, String.class);
+			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, new Configuration(), mgr.doForceWrite(), String.class, String.class);
 			DocumentFilter filter = new DocumentFilter(tokenizeAtUnderline, useNLTKStopwords);
 			// <content sha, id for content sha>
 			Map<String, Integer> contentShas = new HashMap<String, Integer>();
@@ -106,7 +93,6 @@ public class GitCorpusJob implements NLPJob {
 			Map<Integer, List<String>> idIndex = new TreeMap<Integer, List<String>>();
 			int i = 0;
 			int totalCommits = 0, totalDocuments = 0;
-			boolean splitParagraph = args.containsKey("p") && Boolean.parseBoolean(args.get("p"));
 			if (!splitParagraph) {
 				StringBuilder sb = new StringBuilder("");
 				while (reader.seekNext()) {
