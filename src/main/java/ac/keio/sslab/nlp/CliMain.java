@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 
@@ -79,14 +78,15 @@ public class CliMain {
 	}
 
 	public void forkProcess(NLPJob job, String [] args) {
-		String jobID = null;
+		JobManager manager = new JobManager(job);
 		try {
-			JobManager manager = new JobManager(job, args);
-			jobID = manager.getJobID();
+			manager.parseOptions(args);
 		} catch (Exception e) {
-			System.err.println(e.toString());
+			manager.printHelp();
+			System.err.println(e.getMessage());
 			return;
 		}
+		String jobID = manager.getJobID();
 		ProcessBuilder pb = new ProcessBuilder();
 		List<String> cmd = new ArrayList<String>();
 		cmd.add("nohup");
@@ -154,8 +154,9 @@ public class CliMain {
 			return;
 		}
 
+		JobManager manager = new JobManager(job);
 		try {
-			JobManager manager = new JobManager(job, newArgs);
+			manager.parseOptions(newArgs);
 			String jobID = manager.getJobID();
 			if (manager.hasHelp()) {
 				manager.printHelp();
@@ -171,9 +172,9 @@ public class CliMain {
 			}
 			job.run(manager);
 			manager.unLock();
-		} catch (ParseException e) {
-			System.err.println(e.toString());
-			showJobs();
+		} catch (Exception e) {
+			manager.printHelp();
+			System.err.println(e.getMessage());
 		}
 	}
 

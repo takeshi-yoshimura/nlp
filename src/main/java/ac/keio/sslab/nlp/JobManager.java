@@ -29,14 +29,14 @@ public class JobManager {
 	Map<String, String> args;
 	NLPJob job;
 
-	public JobManager(NLPJob job, String [] arguments) throws ParseException {
+	public JobManager(NLPJob job) {
 		this.job = job;
 		options = job.getOptions();
 		if (options == null) {
 			options = new Options();
 		}
 		if (options.hasOption("j") || options.hasOption("ow") || options.hasOption("h")) {
-			throw new ParseException("Options -j --jobID, -ow --overwrite, -h --help are used at "  + this.getClass().getName());
+			System.err.println("Ignore options -j --jobID, -ow --overwrite, -h --help at "  + this.getClass().getName());
 		}
 		OptionGroup required = new OptionGroup();
 		required.setRequired(true);
@@ -46,15 +46,19 @@ public class JobManager {
 		options.addOption("h", "help", false, "Help");
 
 		args = new HashMap<String, String>();
+
+		argFile = new File(conf.localArgFile, job.getJobName());
+		lockFile = new File(conf.localLockFile, job.getJobName());
+		argFile.getParentFile().mkdirs();
+		lockFile.mkdirs();
+	}
+
+	public void parseOptions(String [] arguments) throws ParseException {
 		CommandLine line = (new PosixParser()).parse(options, arguments);
 		for (Option opt: line.getOptions()) {
 			args.put(opt.getOpt(), opt.getValue());
 		}
 		this.jobID = args.get("j");
-		argFile = new File(conf.localArgFile, job.getJobName());
-		lockFile = new File(conf.localLockFile, job.getJobName());
-		argFile.getParentFile().mkdirs();
-		lockFile.mkdirs();
 	}
 
 	interface StrParser {
@@ -63,7 +67,7 @@ public class JobManager {
 	static final Map<Class<?>, StrParser> ps = new HashMap<>();
 	static {
 		ps.put(Integer.class, new StrParser() { public Object parse(String str) { return Integer.parseInt(str); }});
-		ps.put(String.class, new StrParser() { public Object parse(String str) { return Integer.parseInt(str); }});
+		ps.put(String.class, new StrParser() { public Object parse(String str) { return str; }});
 		ps.put(Double.class, new StrParser() { public Object parse(String str) { return Double.parseDouble(str); }});
 		ps.put(Long.class, new StrParser() { public Object parse(String str) { return Long.parseLong(str); }});
 	};

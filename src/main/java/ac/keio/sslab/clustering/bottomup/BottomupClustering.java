@@ -78,14 +78,19 @@ public class BottomupClustering implements BottomupClusteringListener {
 
 	@Override
 	public boolean next() {
-		boolean hasNext = clustering.next();
-		merged = clustering.mergedPointId();
-		merging = clustering.mergingPointId();
-		if (!hasNext) {
+		if (!clustering.next()) {
 			return false;
 		}
-		pointIndex.remove(merged);
-		newVectors.put(pointIndex.get(merging), clustering.newPointVector());
+		int orig_merged = clustering.mergedPointId();
+		int orig_merging = clustering.mergingPointId();
+		merged = pointIndex.get(orig_merged);
+		merging = pointIndex.get(orig_merging);
+
+		pointIndex.remove(orig_merged);
+		newVectors.put(merging, clustering.newPointVector());
+		if (newVectors.containsKey(orig_merged)) {
+			newVectors.remove(orig_merged);
+		}
 
 		//TODO: define another threashold when memory cannot store all the points (after implement InDiskBottomupClustering).
 		// In that case, need to consider newVectors may cause out-of-memory.
@@ -107,7 +112,8 @@ public class BottomupClustering implements BottomupClusteringListener {
 				reader.close();
 				clustering = new InMemoryFastBottomupClustering(newPoints, clustering.getDistanceMeasure());
 				pointIndex = newPointIndex;
-				newVectors = null;
+				newVectors.clear();
+				threasholdNumPoints = 0;
 				System.out.println("Change the algorithm of clustering");
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -122,12 +128,12 @@ public class BottomupClustering implements BottomupClusteringListener {
 
 	@Override
 	public int mergedPointId() {
-		return pointIndex.get(merged);
+		return merged;
 	}
 
 	@Override
 	public int mergingPointId() {
-		return pointIndex.get(merging);
+		return merging;
 	}
 
 	@Override
