@@ -156,19 +156,21 @@ public class CliMain {
 
 		JobManager manager = new JobManager(job);
 		try {
-			manager.parseOptions(newArgs);
-			String jobID = manager.getJobID();
+			manager.parseBasicArgs(newArgs);
 			if (manager.hasHelp()) {
 				manager.printHelp();
 				return;
 			}
-			if (!manager.tryLock()) {
-				System.out.println("Currently the job " + job.getJobName() + " ID = " + jobID + " is running. Aborts");
-				return;
-			}
+			String jobID = manager.getJobID();
 			if (manager.hasPastArgs()) {
 				System.out.println("Found the past output for job " + job.getJobName() + " ID = " + jobID + ". Use the past arguments");
 				manager.restoreArgs();
+			} else {
+				manager.parseOptions(newArgs);
+			}
+			if (!manager.tryLock()) {
+				System.out.println("Currently the job " + job.getJobName() + " ID = " + jobID + " is running. Aborts");
+				return;
 			}
 			job.run(manager);
 			manager.unLock();

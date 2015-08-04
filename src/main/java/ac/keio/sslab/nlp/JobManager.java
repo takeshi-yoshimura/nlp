@@ -53,6 +53,20 @@ public class JobManager {
 		lockFile.mkdirs();
 	}
 
+	public void parseBasicArgs(String [] arguments) throws ParseException {
+		OptionGroup required = new OptionGroup();
+		required.setRequired(true);
+		required.addOption(new Option("j", "jobID", true, "ID of the job"));
+		Options jobOpts = new Options();
+		jobOpts.addOption("h", "help", true, "Help");
+		jobOpts.addOptionGroup(required);
+		CommandLine line = (new PosixParser()).parse(jobOpts, arguments);
+		for (Option opt: line.getOptions()) {
+			args.put(opt.getOpt(), opt.getValue());
+		}
+		this.jobID = args.get("j");
+	}
+
 	public void parseOptions(String [] arguments) throws ParseException {
 		CommandLine line = (new PosixParser()).parse(options, arguments);
 		for (Option opt: line.getOptions()) {
