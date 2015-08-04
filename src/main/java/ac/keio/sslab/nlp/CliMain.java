@@ -167,6 +167,7 @@ public class CliMain {
 				manager.restoreArgs();
 			} else {
 				manager.parseOptions(newArgs);
+				manager.saveArgs();
 			}
 			if (!manager.tryLock()) {
 				System.out.println("Currently the job " + job.getJobName() + " ID = " + jobID + " is running. Aborts");

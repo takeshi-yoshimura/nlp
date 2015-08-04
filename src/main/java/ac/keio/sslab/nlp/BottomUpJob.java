@@ -1,13 +1,26 @@
 package ac.keio.sslab.nlp;
 
+import java.io.File;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.Map.Entry;
+
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.mahout.math.Vector;
 
 import ac.keio.sslab.clustering.bottomup.BottomupClustering;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
+import ac.keio.sslab.nlp.lda.TopicReader;
 
 public class BottomUpJob implements NLPJob {
 
@@ -122,14 +135,49 @@ public class BottomUpJob implements NLPJob {
 
 		NLPConf conf = NLPConf.getInstance();
 		LDAHDFSFiles ldaFiles = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
-		Path input = ldaFiles.docIndexPath;
+		Path input = ldaFiles.documentPath;
+		File output = new File(conf.finalOutputFile, "bottomup/" + mgr.getArgStr("l") + ".txt");
+		Comparator<Entry<Integer, Double>> reverser = new Comparator<Entry<Integer, Double>>() {
+			public int compare(Entry<Integer, Double> e1, Entry<Integer, Double> e2) {
+				return e2.getValue().compareTo(e1.getValue());
+			}
+		};
+		Configuration hdfsConf = new Configuration();
 		try {
-			BottomupClustering bc = new BottomupClustering(input, new Configuration(), mgr.getArgStr("d"), threashold);
+			TreeMap<Integer, String> topics = new TreeMap<Integer, String>();
+			for (Entry<Integer, List<String>> e: new TopicReader(ldaFiles.dictionaryPath, ldaFiles.topicPath, hdfsConf, 2).getTopics().entrySet()) {
+				topics.put(e.getKey(), "T" + e.getKey() + "-" + e.getValue().get(0) + "-" + e.getValue().get(1));
+			}
+
+			BottomupClustering bc = new BottomupClustering(input, hdfsConf, mgr.getArgStr("d"), threashold);
+			PrintWriter writer = JobUtils.getPrintWriter(output);
+			Map<Integer, Double> vec = new HashMap<Integer, Double>();
+			List<Map.Entry<Integer, Double>> sortedVec = new ArrayList<Map.Entry<Integer, Double>>();
+			StringBuilder sb = new StringBuilder();
 			while (bc.next()) {
 				int merged = bc.mergedPointId();
 				int merging = bc.mergingPointId();
-				System.out.println(merging + " <- " + merged);
+				sb.setLength(0);
+				sb.append(merging).append(" <- ").append(merged).append(": ");
+
+				vec.clear();
+				sortedVec.clear();
+				for (Vector.Element e: bc.newPointVector().all()) {
+					vec.put(e.index(), e.get());
+				}
+				sortedVec.addAll(vec.entrySet());
+				Collections.sort(sortedVec, reverser);
+				int i = 0;
+				for (Entry<Integer, Double> e: sortedVec) {
+					if (++i > 3)
+						break;
+					sb.append(topics.get(e.getKey())).append(':').append(String.format("%1.3f", e.getValue())).append(',');
+				}
+				sb.setLength(sb.length() - 1);
+				writer.println(sb.toString());
+				System.out.println(sb.toString());
 			}
+			writer.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

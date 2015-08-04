@@ -20,7 +20,7 @@ public class SequenceDirectoryReader<K, V> {
 	List<Path> files;
 	int currentIndex;
 	SequenceFile.Reader reader;
-	
+
 	WritableMediator<K, ? extends Writable> keyM;
 	WritableMediator<V, ? extends Writable> valueM;
 

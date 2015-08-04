@@ -3,7 +3,9 @@ package ac.keio.sslab.nlp;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -53,6 +55,7 @@ public class JobManager {
 		lockFile.mkdirs();
 	}
 
+	@SuppressWarnings("rawtypes")
 	public void parseBasicArgs(String [] arguments) throws ParseException {
 		OptionGroup required = new OptionGroup();
 		required.setRequired(true);
@@ -60,7 +63,13 @@ public class JobManager {
 		Options jobOpts = new Options();
 		jobOpts.addOption("h", "help", true, "Help");
 		jobOpts.addOptionGroup(required);
-		CommandLine line = (new PosixParser()).parse(jobOpts, arguments);
+
+		Collection opts = options.getOptions();
+		for (Iterator i = opts.iterator(); i.hasNext();) {
+			jobOpts.addOption((Option)i.next());
+		}
+
+		CommandLine line = (new PosixParser()).parse(jobOpts, arguments, false);
 		for (Option opt: line.getOptions()) {
 			args.put(opt.getOpt(), opt.getValue());
 		}
@@ -103,7 +112,7 @@ public class JobManager {
 	}
 
 	public Path getJobIDPath(Path p) {
-		return getArgJobIDPath(p, args.get("j"));
+		return getArgJobIDPath(p, "j");
 	}
 
 	public File getLocalArgFile(File f, String key) {
