@@ -24,7 +24,7 @@ public class BottomUpDumpJob implements NLPJob {
 
 	@Override
 	public String getJobDescription() {
-		return "generate a .dot file for a dendrogram with a topdown result";
+		return "generate .csv files for a dendrogram with a bottomup result";
 	}
 
 	@Override
@@ -43,7 +43,7 @@ public class BottomUpDumpJob implements NLPJob {
 	public void run(JobManager mgr) {
 		NLPConf conf = NLPConf.getInstance();
 		LDAHDFSFiles ldaFiles = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
-		File localOutputDir = new File(conf.finalOutputFile, "bottomup/" + mgr.getArgStr("b"));
+		File localOutputDir = mgr.getLocalArgFile(conf.localBottomupFile, "b");
 		Path mergingMergedPath = new Path(localOutputDir.getAbsolutePath(), "mergingToFrom.seq");
 		try {
 			Map<Integer, String> topics = new HashMap<Integer, String>();

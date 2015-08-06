@@ -24,6 +24,7 @@ public class NLPConf {
 	public File localRootFile;
 	public File localLogFile;
 	public File localLdaFile;
+	public File localBottomupFile;
 	public File localCorpusFile;
 	public File localArgFile;
 	public File localLockFile;
@@ -66,6 +67,7 @@ public class NLPConf {
 		localRootFile = new File(nlpLocalDirName);
 		localLogFile = new File(localRootFile, logDirName);
 		localLdaFile = new File(localRootFile, LDADirName);
+		localBottomupFile = new File(localRootFile, bottomupDirName);
 		localCorpusFile = new File(localRootFile, corpusDirName);
 		localArgFile = new File(localRootFile, argDirName);
 		localLockFile = new File(localRootFile, lockDirName);
