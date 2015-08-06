@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.mahout.clustering.lda.cvb;
+package ac.keio.sslab.nlp.lda;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,6 +37,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.mahout.clustering.lda.cvb.CVB0Driver;
+import org.apache.mahout.clustering.lda.cvb.ModelTrainer;
+import org.apache.mahout.clustering.lda.cvb.TopicModel;
 import org.apache.mahout.common.AbstractJob;
 import org.apache.mahout.common.CommandLineUtil;
 import org.apache.mahout.common.Pair;

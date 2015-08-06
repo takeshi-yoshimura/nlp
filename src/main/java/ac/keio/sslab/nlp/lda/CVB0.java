@@ -5,7 +5,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.GlobFilter;
 import org.apache.hadoop.fs.Path;
 import org.apache.mahout.clustering.lda.cvb.CVB0Driver;
-import org.apache.mahout.clustering.lda.cvb.InMemoryCollapsedVariationalBayes0;
 import org.apache.mahout.common.AbstractJob;
 import org.apache.mahout.math.Vector;
 
