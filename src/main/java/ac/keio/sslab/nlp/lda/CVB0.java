@@ -5,6 +5,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.GlobFilter;
 import org.apache.hadoop.fs.Path;
 import org.apache.mahout.clustering.lda.cvb.CVB0Driver;
+import org.apache.mahout.clustering.lda.cvb.InMemoryCollapsedVariationalBayes0;
 import org.apache.mahout.common.AbstractJob;
 import org.apache.mahout.math.Vector;
 
@@ -26,7 +27,8 @@ public class CVB0 extends RestartableLDAJob {
 
 	@Override
 	protected AbstractJob getMahoutJobInstance() {
-		return new CVB0Driver();
+		return new InMemoryCollapsedVariationalBayes0();
+		//return new CVB0Driver();
 	}
 
 	@Override
@@ -36,7 +38,7 @@ public class CVB0 extends RestartableLDAJob {
 
 	@Override
 	public void postRun(Path corpusPath, int numLDATopics, int numLDAIterations) throws Exception {
-		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(hdfs.matrixPath, fs, Integer.class, Vector.class);
+/*		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(hdfs.matrixPath, fs, Integer.class, Vector.class);
 
 		long size = 0;
 		while (reader.seekNext()) {
@@ -61,12 +63,12 @@ public class CVB0 extends RestartableLDAJob {
 			writer.append(reader.keyW(), reader.valW());
 		}
 		writer.close();
-		reader.close();
+		reader.close();*/
 	}
 
 	@Override
 	protected String[] arguments(Path corpusPath, int numLDATopics, int numLDAIterations) {
-		return new String [] {
+/*		return new String [] {
 				"--input", hdfs.splitMatrixPath.toString(),
 				"--dictionary", hdfs.dictionaryPath.toString(),
 				"--output", hdfs.topicPath.toString(),
@@ -83,6 +85,18 @@ public class CVB0 extends RestartableLDAJob {
 				"--random_seed", Long.toString(System.nanoTime() % 10000),
 				"--num_reduce_tasks", Integer.toString(numReducers),
 				"--convergenceDelta", Double.toString(0.001),
+		};*/
+		return new String [] {
+				"--input", hdfs.matrixPath.toString(),
+				"--dictionary", hdfs.dictionaryPath.toString(),
+				"--topicOutputFile", hdfs.topicPath.toString(),
+				"--docOutputFile", hdfs.docIndexPath.toString(),
+				"--numTopics", Integer.toString(numLDATopics),
+				"--maxIterations", Integer.toString(numLDAIterations),
+				"--alpha", Double.toHexString(50 / numLDATopics),
+				"--eta", Double.toString(0.1),
+				"--numTrainThreads", Integer.toString(12),
+				"--numUpdateThreads", Integer.toString(12),
 		};
 	}
 

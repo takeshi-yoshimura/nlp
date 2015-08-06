@@ -19,7 +19,7 @@ public class BottomUpDumpJob implements NLPJob {
 
 	@Override
 	public String getJobName() {
-		return "bottomup";
+		return "bottomupDump";
 	}
 
 	@Override
