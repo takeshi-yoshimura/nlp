@@ -8,7 +8,6 @@ import java.util.Map.Entry;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
 import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
@@ -42,16 +41,15 @@ public class DeduplicateCorpusJob implements NLPJob {
 		NLPConf conf = mgr.getNLPConf();
 		Path corpusPath = mgr.getArgJobIDPath(conf.corpusPath, "c");
 		Path outputPath = mgr.getJobIDPath(conf.corpusPath);
-		Configuration hdfsConf = new Configuration();
 		try {
 			Map<String, String> out = new HashMap<String, String>();//<value, key> in original corpus
-			SequenceDirectoryReader<String, String> reader = new SequenceDirectoryReader<>(corpusPath, hdfsConf, String.class, String.class);
+			SequenceDirectoryReader<String, String> reader = new SequenceDirectoryReader<>(corpusPath, conf.hdfs, String.class, String.class);
 			while (reader.seekNext()) {
 				out.put(reader.val(), reader.key());
 			}
 			reader.close();
 
-			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, hdfsConf, mgr.doForceWrite(), String.class, String.class);
+			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, conf.hdfs, mgr.doForceWrite(), String.class, String.class);
 			for (Entry<String, String> e: out.entrySet()) {
 				writer.append(e.getValue(), e.getKey());
 			}

@@ -5,7 +5,6 @@ import java.io.File;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
 import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
@@ -48,7 +47,7 @@ public class TextCorpusJob implements NLPJob {
 		boolean useNLTKStopwords = mgr.getArgOrDefault("n", false, Boolean.class);
 
 		try {
-			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, new Configuration(), mgr.doForceWrite(), String.class, String.class);
+			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, conf.hdfs, mgr.doForceWrite(), String.class, String.class);
 			SimpleTextCorpusReader reader = new SimpleTextCorpusReader(input, s);
 			DocumentFilter filter = new DocumentFilter(tokenizeAtUnderline, useNLTKStopwords);
 			StringBuilder sb = new StringBuilder();

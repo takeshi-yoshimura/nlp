@@ -1,12 +1,13 @@
 package ac.keio.sslab.clustering.bottomup;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.mahout.common.distance.CosineDistanceMeasure;
 import org.apache.mahout.common.distance.DistanceMeasure;
@@ -14,23 +15,26 @@ import org.apache.mahout.common.distance.SquaredEuclideanDistanceMeasure;
 import org.apache.mahout.math.Vector;
 
 import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
+import ac.keio.sslab.hadoop.utils.SequenceWriter;
 
 // select and run the best algorithm of bottom-up clustering
 // try to use as small amounts of memory as possible here because memory may not be able to store all the input data
-public class BottomupClustering implements BottomupClusteringListener {
+public class BottomupClustering {
 
-	BottomupClusteringListener clustering;
+	BottomupClusteringAlgorithm clustering;
 	Map<Integer, Integer> pointIndex;
 	Map<Integer, Vector> newVectors;
 	Path input;
-	Configuration conf;
+	FileSystem fs;
 	long threasholdNumPoints;
 	int merged, merging;
+
+	boolean threaded;
 
 	protected List<Vector> getPoints() throws Exception {
 		List<Vector> ret = new ArrayList<Vector>();
 		pointIndex = new HashMap<Integer, Integer>();
-		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(input, conf, Integer.class, Vector.class);
+		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(input, fs, Integer.class, Vector.class);
 		while (reader.seekNext()) {
 			pointIndex.put(ret.size(), reader.key());
 			ret.add(reader.val());
@@ -39,9 +43,9 @@ public class BottomupClustering implements BottomupClusteringListener {
 		return ret;
 	}
 
-	public BottomupClustering(Path input, Configuration conf, String measureName, long threasholdMemorySize) throws Exception {
+	public BottomupClustering(Path input, FileSystem fs, String measureName, long threasholdMemorySize, boolean threaded) throws Exception {
 		this.input = input;
-		this.conf = conf;
+		this.threaded = threaded;
 
 		DistanceMeasure measure;
 		if (measureName.toLowerCase().equals("cosine")) {
@@ -54,7 +58,7 @@ public class BottomupClustering implements BottomupClusteringListener {
 
 		long numP = 0;
 		int numD;
-		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(input, conf, Integer.class, Vector.class);
+		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(input, fs, Integer.class, Vector.class);
 		reader.seekNext();
 		numD = reader.val().size();
 		numP++;
@@ -64,10 +68,10 @@ public class BottomupClustering implements BottomupClusteringListener {
 		reader.close();
 
 		if (numP * numP * 4 < threasholdMemorySize) { // e.g., 40K * 40K * 4 = 1600M * 4 = 6.4G
-			clustering = new InMemoryFastBottomupClustering(getPoints(), measure);
+			clustering = threaded ? new ThreadedFastBottomupClustering(getPoints(), measure): new FastBottomupClustering(getPoints(), measure);
 			threasholdNumPoints = 0;
 		} else if (8 * numD * numP < threasholdMemorySize) {
-			clustering = new InMemorySlowBottomupClustering(getPoints(), measure);
+			clustering = threaded ? new ThreadedBasicBottomupClustering(getPoints(), measure): new BasicBottomupClustering(getPoints(), measure);
 			threasholdNumPoints = (long) Math.sqrt(threasholdMemorySize / 4);
 		} else {
 			throw new Exception("Too many points (" + numP + ") or large dimensions (" + numD + "). Implement InDiskBottomupClustering");
@@ -76,18 +80,19 @@ public class BottomupClustering implements BottomupClusteringListener {
 		newVectors = new HashMap<Integer, Vector>();
 	}
 
-	@Override
 	public boolean next() {
 		if (!clustering.next()) {
 			return false;
 		}
+		Vector newPointVector = clustering.update();
+
 		int orig_merged = clustering.mergedPointId();
 		int orig_merging = clustering.mergingPointId();
 		merged = pointIndex.get(orig_merged);
 		merging = pointIndex.get(orig_merging);
 
 		pointIndex.remove(orig_merged);
-		newVectors.put(merging, clustering.newPointVector());
+		newVectors.put(merging, newPointVector);
 		if (newVectors.containsKey(orig_merged)) {
 			newVectors.remove(orig_merged);
 		}
@@ -98,7 +103,7 @@ public class BottomupClustering implements BottomupClusteringListener {
 			try {
 				List<Vector> newPoints = new ArrayList<Vector>();
 				Map<Integer, Integer> newPointIndex = new HashMap<Integer, Integer>();
-				SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(input, conf, Integer.class, Vector.class);
+				SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(input, fs, Integer.class, Vector.class);
 				Collection<Integer> cached = pointIndex.values();
 				while (reader.seekNext()) {
 					if (newVectors.containsKey(reader.key())) {
@@ -110,7 +115,7 @@ public class BottomupClustering implements BottomupClusteringListener {
 					}
 				}
 				reader.close();
-				clustering = new InMemoryFastBottomupClustering(newPoints, clustering.getDistanceMeasure());
+				clustering = threaded ? new ThreadedFastBottomupClustering(getPoints(), clustering.getDistanceMeasure()): new FastBottomupClustering(getPoints(), clustering.getDistanceMeasure());
 				pointIndex = newPointIndex;
 				newVectors.clear();
 				threasholdNumPoints = 0;
@@ -126,23 +131,43 @@ public class BottomupClustering implements BottomupClusteringListener {
 		return true;
 	}
 
-	@Override
-	public int mergedPointId() {
-		return merged;
+	public void run(Path output, FileSystem fs, boolean doForceWrite) throws IOException {
+		SequenceWriter<Integer, Integer> writer = null;
+		try {
+			writer = new SequenceWriter<Integer, Integer>(output, fs, doForceWrite, Integer.class, Integer.class);
+			while(next()) {
+				writer.append(clustering.mergingPointId(), clustering.mergedPointId());
+			}
+			writer.close();
+		} catch (IOException e) {
+			if (writer != null) {
+				writer.close(); // ensure persistent intermediate data
+			}
+			throw e;
+		}
 	}
 
-	@Override
-	public int mergingPointId() {
-		return merging;
-	}
+	public void restore(Path output, FileSystem fs) throws IOException {
+		Map<Integer, Integer> revPointIndex = new HashMap<Integer, Integer>();
+		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(input, fs, Integer.class, Vector.class);
+		while (reader.seekNext()) {
+			revPointIndex.put(reader.key(), revPointIndex.size());
+		}
+		reader.close();
 
-	@Override
-	public DistanceMeasure getDistanceMeasure() {
-		return clustering.getDistanceMeasure();
-	}
+		SequenceDirectoryReader<Integer, Integer> reader2 = new SequenceDirectoryReader<Integer, Integer>(output, fs.getConf(), Integer.class, Integer.class);
+		while (reader2.seekNext()) {
+			int merging = reader2.key();
+			int merged = reader2.val();
 
-	@Override
-	public Vector newPointVector() {
-		return clustering.newPointVector();
+			int orig_merged = revPointIndex.get(merged);
+			pointIndex.remove(orig_merged);
+
+			newVectors.put(merging, clustering.update());
+			if (newVectors.containsKey(orig_merged)) {
+				newVectors.remove(orig_merged);
+			}
+		}
+		reader2.close();
 	}
 }

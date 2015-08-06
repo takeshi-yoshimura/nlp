@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.mahout.common.Pair;
 import org.apache.mahout.common.distance.SquaredEuclideanDistanceMeasure;
@@ -54,9 +54,9 @@ public class DocumentGroupReader {
 		}
 	}
 
-	public DocumentGroupReader(Path docIndex, Path documentDir, Set<Integer> group, Configuration conf, int maxTopics) throws IOException {
-		loadDocumentIndex(docIndex, group, conf);
-		loadDocumentDir(documentDir, group, conf, maxTopics);
+	public DocumentGroupReader(Path docIndex, Path documentDir, Set<Integer> group, FileSystem fs, int maxTopics) throws IOException {
+		loadDocumentIndex(docIndex, group, fs);
+		loadDocumentDir(documentDir, group, fs, maxTopics);
 	}
 
 	public List<Pair<String, List<Integer>>> getDocuments() {
@@ -81,9 +81,9 @@ public class DocumentGroupReader {
 		return topicId;
 	}
 
-	public void loadDocumentIndex(Path docIndexPath, Set<Integer> group, Configuration conf) throws IOException {
+	public void loadDocumentIndex(Path docIndexPath, Set<Integer> group, FileSystem fs) throws IOException {
 		docIndex = new HashMap<Integer, String>();
-		SequenceDirectoryReader<Integer, String> dictionaryReader = new SequenceDirectoryReader<>(docIndexPath, conf, Integer.class, String.class);
+		SequenceDirectoryReader<Integer, String> dictionaryReader = new SequenceDirectoryReader<>(docIndexPath, fs, Integer.class, String.class);
 		while (dictionaryReader.seekNext()) {
 			int documentId = dictionaryReader.key();
 			if (group.contains(documentId)) {
@@ -94,10 +94,10 @@ public class DocumentGroupReader {
 		dictionaryReader.close();
 	}
 
-	public void loadDocumentDir(Path documentDir,  Set<Integer> group, Configuration conf, int maxTopics) throws IOException {
+	public void loadDocumentDir(Path documentDir,  Set<Integer> group, FileSystem fs, int maxTopics) throws IOException {
 		docTopicId = new HashMap<Integer, List<Integer>>();
 		distance = new ArrayList<Pair<Double, Integer>>();
-		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(documentDir, conf, Integer.class, Vector.class);
+		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(documentDir, fs, Integer.class, Vector.class);
 		FirstReverseSorter sorter = new FirstReverseSorter();
 		int numVec = 0;
 		Map<Integer, Vector> vectors = new HashMap<Integer, Vector>();

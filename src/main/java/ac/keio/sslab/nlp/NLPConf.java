@@ -4,17 +4,23 @@ import java.io.File;
 import java.io.FileInputStream;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.codehaus.jettison.json.JSONObject;
 
 public class NLPConf {
 
+	public Configuration hadoopConf;
+	public FileSystem hdfs;
 	public Path rootPath;
 	public Path ldaPath;
 	public Path corpusPath;
 	public Path topdownPath;
+	public Path bottomupPath;
 	public Path tmpPath;
 
+	public FileSystem localfs;
 	public File localRootFile;
 	public File localLogFile;
 	public File localLdaFile;
@@ -33,6 +39,7 @@ public class NLPConf {
 	public static final String logDirName = "log";
 	public static final String LDADirName = "lda";
 	public static final String tpdownDirName = "topdown";
+	public static final String bottomupDirName = "bottomup";
 	public static final String corpusDirName = "corpus";
 
 	public static final String finalOutputDirName = "final";
@@ -53,6 +60,7 @@ public class NLPConf {
 		ldaPath = new Path(rootPath, LDADirName);
 		corpusPath = new Path(rootPath, corpusDirName);
 		topdownPath = new Path(rootPath, tpdownDirName);
+		bottomupPath = new Path(rootPath, bottomupDirName);
 		tmpPath = new Path(rootPath, tmpDirName);
 
 		localRootFile = new File(nlpLocalDirName);
@@ -93,6 +101,14 @@ public class NLPConf {
 	}
 
 	private NLPConf() {
+		hadoopConf = new Configuration();
+		try {
+			hdfs = FileSystem.get(hadoopConf);
+			localfs = FileSystem.getLocal(hadoopConf);
+		} catch (Exception e) {
+			System.err.println("!!!!!!WARNING: Loading hdfs or local fs failed!!!!!");
+			hdfs = localfs = null;
+		}
 		resetConf();
 	}
 }

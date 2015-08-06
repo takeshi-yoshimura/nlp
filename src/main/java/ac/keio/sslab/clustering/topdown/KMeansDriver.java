@@ -32,8 +32,7 @@ public class KMeansDriver {
 	static int convergenceConfirmEvery = 5;
 	static int numRetry = 10;
 	
-	static public void doKMeansMR(Job job, Path input, Path iterationOutput, Path oldOutput, Path oldoldOutput) 
-			throws IOException, ClassNotFoundException, InterruptedException {
+	static public void doKMeansMR(Job job, Path input, Path iterationOutput, Path oldOutput, Path oldoldOutput) throws IOException, ClassNotFoundException, InterruptedException {
 		FileInputFormat.addInputPath(job, input);
 		job.setInputFormatClass(SequenceFileInputFormat.class);
 
@@ -55,10 +54,9 @@ public class KMeansDriver {
 			throw new InterruptedException("job failure at" + job.getJobName());
 	}
 	
-	static public void combineKMeansOutput(Configuration conf, SequenceSwapWriter<Integer, Cluster> writer, Path iterationOutput, 
-			Path oldOutput, Path oldoldOutput) throws IOException {
-		FileSystem fs = FileSystem.get(conf);
-
+	static public void combineKMeansOutput(SequenceSwapWriter<Integer, Cluster> writer, Path iterationOutput, Path oldOutput, Path oldoldOutput) throws IOException {
+		FileSystem fs = NLPConf.getInstance().hdfs;
+		Configuration conf = NLPConf.getInstance().hadoopConf;
 		//combine split files into a file for better performance
 		FileStatus [] newStat = fs.listStatus(iterationOutput);
 		FileStatus [] oldStat = fs.listStatus(oldOutput);
@@ -97,12 +95,11 @@ public class KMeansDriver {
 		}
 	}
 	
-	static public Path KMeansMainLoop(Configuration hdfsConf, Path input, Path output) throws IOException, ClassNotFoundException, InterruptedException {
-		FileSystem fs = FileSystem.get(hdfsConf);
+	static public Path KMeansMainLoop(Path input, Path output) throws IOException, ClassNotFoundException, InterruptedException {
 		List<Path> finalOutputs = new ArrayList<Path>();
 		Path initialOutput = new Path(output, "iteration-0/clusters");
-		KMeansInitDriver.run(hdfsConf, input, initialOutput);
 		NLPConf conf = NLPConf.getInstance();
+		KMeansInitDriver.run(conf.hadoopConf, input, initialOutput);
 
 		Path oldOutput = initialOutput;
 		Path oldoldOutput = null;
@@ -110,7 +107,7 @@ public class KMeansDriver {
 		for (i = 1; i <= maxIteration; i++) {
 			Path iterationDir = new Path(output, "iteration-" + i);
 			Path iterationOutput = new Path(iterationDir, "clusters");
-			Job job = new Job(hdfsConf, "KMeans Iteration #" + i + " over input:" + input);
+			Job job = new Job(conf.hadoopConf, "KMeans Iteration #" + i + " over input:" + input);
 			doKMeansMR(job, input, iterationOutput, oldOutput, oldoldOutput);
 
 			//decide if we can stop iterations or not
@@ -118,14 +115,14 @@ public class KMeansDriver {
 				//combine split files into a file for better performance
 				Path tmpInput = new Path(iterationDir, "tmpInputForConvergenceCalc.seq");
 
-				SequenceSwapWriter<Integer, Cluster> writer = new SequenceSwapWriter<>(tmpInput, conf.tmpPath, hdfsConf, true, Integer.class, Cluster.class);
-				combineKMeansOutput(hdfsConf, writer, iterationOutput, oldOutput, oldoldOutput);
+				SequenceSwapWriter<Integer, Cluster> writer = new SequenceSwapWriter<>(tmpInput, conf.tmpPath, conf.hdfs, true, Integer.class, Cluster.class);
+				combineKMeansOutput(writer, iterationOutput, oldOutput, oldoldOutput);
 				writer.close();
 
 				Path convergenceOutput = new Path(iterationDir, "convergence");
-				long unconvergedCount = CalcConvergenceDriver.run(hdfsConf, tmpInput, convergenceOutput);
+				long unconvergedCount = CalcConvergenceDriver.run(conf.hadoopConf, tmpInput, convergenceOutput);
 				Path convergedPath = new Path(convergenceOutput, "converged");
-				if (fs.exists(convergedPath))
+				if (conf.hdfs.exists(convergedPath))
 					finalOutputs.add(convergedPath);
 				if (unconvergedCount == 0) {
 					oldOutput = null;
@@ -148,12 +145,12 @@ public class KMeansDriver {
 		//combine converged files split across iteration-X dirs
 		i++;
 		Path finalOutput = new Path(output, "iteration-" + i + "-final.seq");
-		SequenceSwapWriter<Integer, Cluster> writer = new SequenceSwapWriter<>(finalOutput, conf.tmpPath, hdfsConf, true, Integer.class, Cluster.class);
+		SequenceSwapWriter<Integer, Cluster> writer = new SequenceSwapWriter<>(finalOutput, conf.tmpPath, conf.hdfs, true, Integer.class, Cluster.class);
 		for (Path out: finalOutputs) {
-			for (FileStatus status: fs.listStatus(out)) {
+			for (FileStatus status: conf.hdfs.listStatus(out)) {
 				if (status.isDirectory() || status.getLen() == 0) //avoid reading _SUCCESS
 					continue;
-				SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(status.getPath(), hdfsConf, Integer.class, Cluster.class);
+				SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(status.getPath(), conf.hdfs, Integer.class, Cluster.class);
 				while (reader.seekNext()) {
 					writer.append(reader.keyW(), reader.valW());
 				}
@@ -164,16 +161,16 @@ public class KMeansDriver {
 		return finalOutput;
 	}
 
-	static public Path run(Configuration conf, Path input, Path output) throws IOException, ClassNotFoundException,	InterruptedException {
+	static public Path run(Path input, Path output) throws IOException, ClassNotFoundException,	InterruptedException {
 		int retry;
 		Path bestResult = null;
 		double lowestRSS = Double.MAX_VALUE;
-		FileSystem fs = FileSystem.get(conf);
+		NLPConf conf = NLPConf.getInstance();
 
 		int startFrom = 0;
 		//check if there are any suspended jobs
-		if (fs.exists(output)) {
-			for (FileStatus status: fs.listStatus(output)) {
+		if (conf.hdfs.exists(output)) {
+			for (FileStatus status: conf.hdfs.listStatus(output)) {
 				String pathName = status.getPath().getName();
 				if (status.isDirectory() && pathName.matches("retry-[0-9]+")) {
 					int candidate = Integer.parseInt(pathName.substring(6)) + 1;
@@ -186,10 +183,10 @@ public class KMeansDriver {
 
 		for (retry = startFrom; retry < numRetry; retry++) {
 			Path retryOutput = new Path(output, "retry-" + retry);
-			Path mainLoopOutput = KMeansMainLoop(conf, input, retryOutput);
-			
+			Path mainLoopOutput = KMeansMainLoop(input, retryOutput);
+
 			//use the lowest RSS result for better clustering
-			SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(mainLoopOutput, conf, Integer.class, Cluster.class);
+			SequenceDirectoryReader<Integer, Cluster> reader = new SequenceDirectoryReader<>(mainLoopOutput, conf.hdfs, Integer.class, Cluster.class);
 			double RSS = 0;
 			while (reader.seekNext()) {
 				RSS += ((TopDownKMeansCluster)reader.val()).getRSSk();
@@ -198,20 +195,20 @@ public class KMeansDriver {
 			if (RSS < lowestRSS) {
 				if (lowestRSS != Double.MAX_VALUE) {
 					//output is usually GB-order. need to save disk space
-					fs.delete(bestResult.getParent(), true);
+					conf.hdfs.delete(bestResult.getParent(), true);
 				}
 				lowestRSS = RSS;
 				bestResult = mainLoopOutput;
 			} else {
 				//output is usually GB-order. need to save disk space
-				fs.delete(mainLoopOutput.getParent(), true);
+				conf.hdfs.delete(mainLoopOutput.getParent(), true);
 			}
 		}
-		fs.rename(new Path(bestResult.getParent(), "clusteredPoints"), new Path(output, "clusteredPoints"));
+		conf.hdfs.rename(new Path(bestResult.getParent(), "clusteredPoints"), new Path(output, "clusteredPoints"));
 
 		Path finalOutput = new Path(output, "iteration-" + retry + "-final.seq");
-		fs.rename(bestResult, finalOutput);
-		fs.delete(bestResult.getParent(), true);
+		conf.hdfs.rename(bestResult, finalOutput);
+		conf.hdfs.delete(bestResult.getParent(), true);
 		return finalOutput;
 	}
 

@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.mahout.clustering.Cluster;
@@ -24,10 +23,8 @@ public class Main extends AbstractJob {
 
 	public void runPreprocess(Configuration hdfsConf, Path inputDir, Path outputDir, Path preprocessOutput)  throws IOException, ClassNotFoundException, InterruptedException {
 		PreProcessDriver.run(hdfsConf, inputDir, preprocessOutput);
-
-		FileSystem fs = FileSystem.get(hdfsConf);
 		TopDownKMeansCluster firstCluster = new TopDownKMeansCluster(1);
-		for (FileStatus status: fs.listStatus(preprocessOutput)) {
+		for (FileStatus status: conf.hdfs.listStatus(preprocessOutput)) {
 			if (status.isDirectory() || status.getLen() == 0) //avoid reading _SUCCESS
 				continue;
 			SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(status.getPath(), hdfsConf, Integer.class, Vector.class);
@@ -38,26 +35,24 @@ public class Main extends AbstractJob {
 		}
 
 		Path firstClustersFinal = new Path(outputDir, "topdown-0/iteration-0-final.seq");
-		SequenceSwapWriter<Integer, Cluster> writer = new SequenceSwapWriter<>(firstClustersFinal, conf.tmpPath, hdfsConf, true, Integer.class, Cluster.class);
+		SequenceSwapWriter<Integer, Cluster> writer = new SequenceSwapWriter<>(firstClustersFinal, conf.tmpPath, conf.hdfs , true, Integer.class, Cluster.class);
 		writer.append(1, firstCluster);
 		writer.close();
 	}
 
 	public int run(Path inputDir, Path outputDir, int maxIteration) throws IOException, ClassNotFoundException, InterruptedException {
-		Configuration conf = getConf();
-		FileSystem fs = FileSystem.get(conf);
 		Path preprocessOutput = new Path(outputDir, "topdown-0/clusteredPoints");
-		if (!fs.exists(preprocessOutput)) {
-			runPreprocess(conf, inputDir, outputDir, preprocessOutput);
+		if (!conf.hdfs.exists(preprocessOutput)) {
+			runPreprocess(conf.hadoopConf, inputDir, outputDir, preprocessOutput);
 		}
 
 		Path nextInput = preprocessOutput;
 		for (int i = 1; i <= maxIteration; i++) {
 			Path nextOutput = new Path(outputDir, "topdown-" + i);
 			Path clusteredPoints = new Path(nextOutput, "clusteredPoints");
-			if (!fs.exists(clusteredPoints)) {
-				Path kmeansFinal = KMeansDriver.run(conf, nextInput, nextOutput);
-				KMeansClassifierDriver.run(conf, nextInput, clusteredPoints, kmeansFinal);
+			if (!conf.hdfs.exists(clusteredPoints)) {
+				Path kmeansFinal = KMeansDriver.run(nextInput, nextOutput);
+				KMeansClassifierDriver.run(conf.hadoopConf, nextInput, clusteredPoints, kmeansFinal);
 			}
 			nextInput = clusteredPoints;
 		}

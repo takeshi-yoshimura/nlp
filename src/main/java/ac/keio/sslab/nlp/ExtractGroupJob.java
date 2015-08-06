@@ -11,7 +11,6 @@ import java.util.Set;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.mahout.common.Pair;
 
 import ac.keio.sslab.nlp.lda.DocumentGroupReader;
@@ -58,11 +57,10 @@ public class ExtractGroupJob implements NLPJob {
 			} 
 			reader.close();
 
-			Configuration hdfsConf = new Configuration();
 			File documentFile = new File(outputFile, inputFile.getName());
 			System.out.println("Extracting documents with top 10 topics: " + documentFile.getAbsolutePath());
 			PrintWriter pw2 = JobUtils.getPrintWriter(documentFile);
-			DocumentGroupReader docReader = new DocumentGroupReader(hdfs.docIndexPath, hdfs.documentPath, group, hdfsConf, 10);
+			DocumentGroupReader docReader = new DocumentGroupReader(hdfs.docIndexPath, hdfs.documentPath, group, conf.hdfs, 10);
 			StringBuilder sb = new StringBuilder();
 			sb.append("centroid\t");
 			for (int topicId: docReader.getCentroid(10)) {

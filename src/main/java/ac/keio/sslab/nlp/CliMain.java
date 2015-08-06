@@ -199,6 +199,7 @@ public class CliMain {
 		jobs.add(new TopDownJob());
 		jobs.add(new TopDownDumpJob());
 		jobs.add(new BottomUpJob());
+		jobs.add(new BottomUpDumpJob());
 		jobs.add(new TopicTrendJob());
 		jobs.add(new LoadBugResultJob());
 		jobs.add(new CompareWithManualJob());

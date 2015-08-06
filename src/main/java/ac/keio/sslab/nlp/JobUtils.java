@@ -9,11 +9,16 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.mahout.math.Vector;
 import org.eclipse.jgit.util.FileUtils;
 
 import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
@@ -33,7 +38,7 @@ public class JobUtils {
 
 	public static void saveArguments(FileSystem fs, Path argPath, String[] args) throws IOException {
 		NLPConf conf = NLPConf.getInstance();
-		SequenceSwapWriter<String, Void> writer = new SequenceSwapWriter<>(argPath, conf.tmpPath, new Configuration(), true, String.class, Void.class);
+		SequenceSwapWriter<String, Void> writer = new SequenceSwapWriter<>(argPath, conf.tmpPath, fs, true, String.class, Void.class);
 		for (String arg: args) {
 			writer.append(arg, null);
 		}
@@ -117,5 +122,24 @@ public class JobUtils {
 	        sb.append(String.format("%02x", b));
 	    }
 	    return sb.toString();
+	}
+
+	public static List<Entry<Integer, Double>> getTopElements(Vector v, int num) {
+		Comparator<Entry<Integer, Double>> reverser = new Comparator<Entry<Integer, Double>>() {
+			public int compare(Entry<Integer, Double> e1, Entry<Integer, Double> e2) {
+				return e2.getValue().compareTo(e1.getValue());
+			}
+		};
+		Map<Integer, Double> points = new HashMap<Integer, Double>();
+		for (Vector.Element e: v.nonZeroes()) {
+			points.put(e.index(), e.get());
+		}
+		List<Entry<Integer, Double>> sorted = new ArrayList<Entry<Integer, Double>>(points.entrySet());
+		Collections.sort(sorted, reverser);
+		List<Entry<Integer, Double>> ret = new ArrayList<Entry<Integer, Double>>();
+		for (int i = 0; i < sorted.size() || i < num; i++) {
+			ret.add(sorted.get(i));
+		}
+		return ret;
 	}
 }

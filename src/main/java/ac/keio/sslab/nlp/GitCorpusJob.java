@@ -12,7 +12,6 @@ import java.util.TreeMap;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
 import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
@@ -85,7 +84,7 @@ public class GitCorpusJob implements NLPJob {
 			}
 			PrintWriter commitsWriter = JobUtils.getPrintWriter(commits);
 
-			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, new Configuration(), mgr.doForceWrite(), String.class, String.class);
+			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, conf.hdfs, mgr.doForceWrite(), String.class, String.class);
 			DocumentFilter filter = new DocumentFilter(tokenizeAtUnderline, useNLTKStopwords);
 			// <content sha, id for content sha>
 			Map<String, Integer> contentShas = new HashMap<String, Integer>();

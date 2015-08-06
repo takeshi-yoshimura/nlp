@@ -16,7 +16,7 @@ import org.apache.hadoop.io.SequenceFile.Reader;
 public class SequenceDirectoryReader<K, V> {
 
 	FileSystem fs;
-	Configuration conf;
+	Configuration conf; //TODO: delte
 	List<Path> files;
 	int currentIndex;
 	SequenceFile.Reader reader;
@@ -24,10 +24,8 @@ public class SequenceDirectoryReader<K, V> {
 	WritableMediator<K, ? extends Writable> keyM;
 	WritableMediator<V, ? extends Writable> valueM;
 
-	public SequenceDirectoryReader(Path dir, Configuration conf, Class<K> keyClass, Class<V> valueClass) throws FileNotFoundException, IOException {
-		FileSystem fs = dir.getFileSystem(conf);
+	public void setup(Path dir, FileSystem fs, Class<K> keyClass, Class<V> valueClass) throws FileNotFoundException, IOException {
 		this.fs = fs;
-		this.conf = conf;
 
 		try {
 			WritableMediatorFactory<K> keyFactory = new WritableMediatorFactory<K>(keyClass);
@@ -50,6 +48,13 @@ public class SequenceDirectoryReader<K, V> {
 		currentIndex = 0;
 		Reader.Option fileOpt = Reader.file(files.get(0));
 		reader = new Reader(fs.getConf(), fileOpt);
+	}
+	public SequenceDirectoryReader(Path dir, Configuration conf, Class<K> keyClass, Class<V> valueClass) throws FileNotFoundException, IOException {
+		setup(dir, FileSystem.get(conf), keyClass, valueClass);
+	}
+
+	public SequenceDirectoryReader(Path dir, FileSystem fs, Class<K> keyClass, Class<V> valueClass) throws FileNotFoundException, IOException {
+		setup(dir, fs, keyClass, valueClass);
 	}
 
 	public boolean seekNext() throws IOException {

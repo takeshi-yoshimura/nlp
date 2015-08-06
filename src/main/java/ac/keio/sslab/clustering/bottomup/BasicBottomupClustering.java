@@ -9,7 +9,7 @@ import org.apache.mahout.math.Vector;
 
 //O(n^2) for calculation of minimum distance among all the clusters
 // use around (8 * D) * n bytes RAM (e.g., 800MB for 1M 100D points)
-public class InMemorySlowBottomupClustering implements BottomupClusteringListener {
+public class BasicBottomupClustering implements BottomupClusteringAlgorithm {
 
 	// {point id, point}
 	DistanceMeasure measure;
@@ -17,15 +17,19 @@ public class InMemorySlowBottomupClustering implements BottomupClusteringListene
 	// {owner point id, cluster centroid}
 	Map<Integer, Vector> centroids;
 	int mergingPointId, mergedPointId;
-	Vector newVector;
 
-	public InMemorySlowBottomupClustering(List<Vector> idPoints, DistanceMeasure measure) {
-		this.measure = measure;
-		centroids = new HashMap<Integer, Vector>(); 
+	// can override
+	public void initCentroids(List<Vector> idPoints) throws Exception {
 		// initially all the clusters consist of one point (key: owener point id)
 		for (int i = 0; i < idPoints.size(); i++) {
 			centroids.put(i, idPoints.get(i));
 		}
+	}
+
+	public BasicBottomupClustering(List<Vector> idPoints, DistanceMeasure measure) throws Exception {
+		this.measure = measure;
+		centroids = new HashMap<Integer, Vector>();
+		initCentroids(idPoints);
 	}
 
 	@Override
@@ -53,13 +57,19 @@ public class InMemorySlowBottomupClustering implements BottomupClusteringListene
 		mergingPointId = min_j;
 		mergedPointId = min_i;
 
-		Vector iV = centroids.get(min_i);
-		Vector jV = centroids.get(min_j);
-		newVector = iV.plus(jV).divide(2);
-		centroids.remove(min_i);
-		centroids.put(min_j, newVector);
-
 		return true;
+	}
+
+	@Override
+	public Vector update() {
+		Vector iV = centroids.get(mergedPointId);
+		Vector jV = centroids.get(mergingPointId);
+		Vector newVector = iV.plus(jV).divide(2);
+
+		centroids.remove(mergedPointId);
+		centroids.put(mergingPointId, newVector);
+
+		return newVector;
 	}
 
 	@Override
@@ -75,10 +85,5 @@ public class InMemorySlowBottomupClustering implements BottomupClusteringListene
 	@Override
 	public DistanceMeasure getDistanceMeasure() {
 		return measure;
-	}
-
-	@Override
-	public Vector newPointVector() {
-		return newVector;
 	}
 }

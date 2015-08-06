@@ -2,7 +2,6 @@ package ac.keio.sslab.hadoop.utils;
 
 import java.io.IOException;
 
-import org.apache.commons.lang.RandomStringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.SequenceFile;
@@ -12,23 +11,16 @@ import ac.keio.sslab.nlp.JobUtils;
 
 // Do not inherit this class due to generics hacks
 // output results are always destroyed unless close() is called
-public final class SequenceSwapWriter<K, V> implements AutoCloseable {
+public final class SequenceWriter<K, V> implements AutoCloseable {
 
-	private SequenceFile.Writer tmpWriter;
-	private Path tmpPath, outputPath;
-	private FileSystem fs;
+	private SequenceFile.Writer writer;
+	private Path outputPath;
 
 	private WritableMediator<K, ? extends Writable> keyM;
 	private WritableMediator<V, ? extends Writable> valueM;
 
-	public SequenceSwapWriter(Path outputPath, Path tmpDirPath, FileSystem fs, boolean forceOverwrite, Class<K> keyClass, Class<V> valueClass) throws IOException {
-		this.fs = fs;
+	public SequenceWriter(Path outputPath, FileSystem fs, boolean forceOverwrite, Class<K> keyClass, Class<V> valueClass) throws IOException {
 		this.outputPath = outputPath;
-		tmpPath = new Path(tmpDirPath, RandomStringUtils.randomAlphanumeric(32) + "/" + outputPath.getName());
-		while (fs.exists(tmpPath)) {
-			tmpPath = new Path(tmpDirPath, RandomStringUtils.randomAlphanumeric(32) + "/" + outputPath.getName());
-		}
-		fs.deleteOnExit(tmpPath.getParent());
 
 		try {
 			WritableMediatorFactory<K> keyFactory = new WritableMediatorFactory<>(keyClass);
@@ -40,7 +32,7 @@ public final class SequenceSwapWriter<K, V> implements AutoCloseable {
 			throw new IOException("Instantiation failure");
 		}
 
-		SequenceFile.Writer.Option fileOpt = SequenceFile.Writer.file(tmpPath);
+		SequenceFile.Writer.Option fileOpt = SequenceFile.Writer.file(outputPath);
 		SequenceFile.Writer.Option keyWritableClass = SequenceFile.Writer.keyClass(keyM.writable.getClass());
 		SequenceFile.Writer.Option valueWritableClass = SequenceFile.Writer.valueClass(valueM.writable.getClass());
 
@@ -51,24 +43,23 @@ public final class SequenceSwapWriter<K, V> implements AutoCloseable {
 		}
 		fs.mkdirs(outputPath.getParent());
 
-		tmpWriter = SequenceFile.createWriter(fs.getConf(), fileOpt, keyWritableClass, valueWritableClass);
+		writer = SequenceFile.createWriter(fs.getConf(), fileOpt, keyWritableClass, valueWritableClass);
 	}
 
 	public void append(K key, V value) throws IOException {
 		keyM.set(key); valueM.set(value);
-		tmpWriter.append(keyM.writable, valueM.writable);
+		writer.append(keyM.writable, valueM.writable);
 	}
 
 	public void append(Writable key, Writable value) throws IOException {
-		tmpWriter.append(key, value);
+		writer.append(key, value);
 	}
 
 	@Override
 	public void close() throws IOException {
-		if (tmpPath != null && outputPath != null) {
-			tmpWriter.close();
-			fs.rename(tmpPath, outputPath);
-			tmpPath = outputPath = null;
+		if (outputPath != null) {
+			writer.close();
+			outputPath = null;
 		}
 	}
 }
