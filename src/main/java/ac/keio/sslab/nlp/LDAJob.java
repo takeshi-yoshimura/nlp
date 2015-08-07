@@ -11,6 +11,7 @@ import org.apache.hadoop.fs.Path;
 
 import ac.keio.sslab.nlp.lda.CVB0;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
+import ac.keio.sslab.nlp.lda.LocalCVB0;
 import ac.keio.sslab.nlp.lda.RowId;
 import ac.keio.sslab.nlp.lda.Seq2sparse;
 
@@ -38,6 +39,7 @@ public class LDAJob implements NLPJob {
 		options.addOption("x", "numIterations", true, "Number of iterations. Default is 1000.");
 		options.addOption("nM", "numMappers", true, "Numer of Mappers in CVB0. Default is 20.");
 		options.addOption("nR", "numReducers", true, "Number of Reducers in CVB0. Default is 15.");
+		options.addOption("loc", "local-only", false, "Local execution of LDA");
 		/* Do not allow to change other smoothing parameters of LDA.
 		 * Because they confuse users and it is hard for users to recognize the effect.
 		 * Note that LDA itself cannot discover the perfect parameters (discovers only local-minimized, likelyhood results).
@@ -54,6 +56,7 @@ public class LDAJob implements NLPJob {
 		Path corpusPath = mgr.getArgJobIDPath(conf.corpusPath, "c");
 		int numMappers = mgr.getArgOrDefault("nM", 20, Integer.class);
 		int numReducers = mgr.getArgOrDefault("nR", 15, Integer.class);
+		boolean local = mgr.hasArg("loc");
 
 		FileSystem fs = null;
 		try {
@@ -81,11 +84,21 @@ public class LDAJob implements NLPJob {
 			return;
 		}
 
-		CVB0 cvb = new CVB0(fs, hdfs, numMappers, numReducers);
-		try {
-			cvb.start(corpusPath, numTopics, numIterations);
-		} catch (Exception e) {
-			System.err.println("CVB0 failed: " + e.toString());
+		if (!local) {
+			CVB0 cvb = new CVB0(fs, hdfs, numMappers, numReducers);
+			try {
+				cvb.start(corpusPath, numTopics, numIterations);
+			} catch (Exception e) {
+				System.err.println("CVB0 failed: " + e.toString());
+			}
+		} else {
+			LocalCVB0 locCVB = new LocalCVB0(fs, hdfs, numMappers, numReducers);
+			try {
+				locCVB.start(corpusPath, numTopics, numIterations);
+			} catch (Exception e) {
+				System.err.println("LocalCVB0 failed: " + e.toString());
+			}
+			
 		}
 	}
 

@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.mahout.common.AbstractJob;
-import org.apache.mahout.utils.vectors.RowIdJob;
 
 import ac.keio.sslab.nlp.JobUtils;
 

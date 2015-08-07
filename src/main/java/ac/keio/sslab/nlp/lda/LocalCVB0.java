@@ -4,21 +4,19 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.GlobFilter;
 import org.apache.hadoop.fs.Path;
-import org.apache.mahout.clustering.lda.cvb.CVB0Driver;
+import org.apache.mahout.clustering.lda.cvb.InMemoryCollapsedVariationalBayes0;
 import org.apache.mahout.common.AbstractJob;
-import org.apache.mahout.math.Vector;
+import org.apache.mahout.math.DenseMatrix;
 
-import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
-import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
 import ac.keio.sslab.nlp.JobUtils;
 import ac.keio.sslab.nlp.NLPConf;
 
-public class CVB0 extends RestartableLDAJob {
+public class LocalCVB0 extends RestartableLDAJob {
 
 	int numMappers, numReducers;
 	NLPConf conf = NLPConf.getInstance();
 
-	public CVB0(FileSystem fs, LDAHDFSFiles hdfs, int numMappers, int numReducers) {
+	public LocalCVB0(FileSystem fs, LDAHDFSFiles hdfs, int numMappers, int numReducers) {
 		super(fs, hdfs);
 		this.numMappers = numMappers;
 		this.numReducers = numReducers;
@@ -26,7 +24,8 @@ public class CVB0 extends RestartableLDAJob {
 
 	@Override
 	protected AbstractJob getMahoutJobInstance() {
-		return new CVB0Driver();
+		// need dummy arguments because the default constructor is in private
+		return new InMemoryCollapsedVariationalBayes0(new DenseMatrix(1, 1), null, 100, 0.5, 0.1, 1, 1, 0.0);
 	}
 
 	@Override
@@ -35,54 +34,18 @@ public class CVB0 extends RestartableLDAJob {
 	}
 
 	@Override
-	public void preRun(Path corpusPath, int numLDATopics, int numLDAIterations) throws Exception {
-		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(hdfs.matrixPath, fs, Integer.class, Vector.class);
-
-		long size = 0;
-		while (reader.seekNext()) {
-			size++;
-		}
-		reader.close();
-		if (fs.exists(hdfs.splitMatrixPath)) {
-			fs.delete(hdfs.splitMatrixPath, true);
-		}
-		fs.mkdirs(hdfs.splitMatrixPath);
-		int chunks = 1;
-		reader = new SequenceDirectoryReader<>(hdfs.matrixPath, fs.getConf(), Integer.class, Vector.class);
-		SequenceSwapWriter<Integer, Vector> writer = new SequenceSwapWriter<>(new Path(hdfs.splitMatrixPath, "chunk-" + chunks), conf.tmpPath, fs, true, Integer.class, Vector.class);
-		long count = 0;
-		while (reader.seekNext()) {
-			if (count++ > size / numMappers) {
-				writer.close();
-				chunks++;
-				count = 0;
-				writer = new SequenceSwapWriter<>(new Path(hdfs.splitMatrixPath, "chunk-" + chunks), conf.tmpPath, fs, true, Integer.class, Vector.class);
-			}
-			writer.append(reader.keyW(), reader.valW());
-		}
-		writer.close();
-		reader.close();
-	}
-
-	@Override
 	protected String[] arguments(Path corpusPath, int numLDATopics, int numLDAIterations) {
 		return new String [] {
-				"--input", hdfs.splitMatrixPath.toString(),
+				"--input", hdfs.matrixPath.toString(),
 				"--dictionary", hdfs.dictionaryPath.toString(),
-				"--output", hdfs.topicPath.toString(),
-				"--doc_topic_output", hdfs.documentPath.toString(),
-				"--topic_model_temp_dir", hdfs.modelPath.toString(),
-
-				"--num_topics", Integer.toString(numLDATopics),
-				"--maxIter", Integer.toString(numLDAIterations),
-				"--doc_topic_smoothing", Double.toString(50 / numLDATopics),
-				"--term_topic_smoothing", Double.toString(0.1),
-
-				"--iteration_block_size", Integer.toString(10),
-				"--test_set_fraction", Double.toString(0.1),
-				"--random_seed", Long.toString(System.nanoTime() % 10000),
-				"--num_reduce_tasks", Integer.toString(numReducers),
-				"--convergenceDelta", Double.toString(0.001),
+				"--topicOutputFile", hdfs.topicPath.toString(),
+				"--docOutputFile", hdfs.docIndexPath.toString(),
+				"--numTopics", Integer.toString(numLDATopics),
+				"--maxIterations", Integer.toString(numLDAIterations),
+				"--alpha", Double.toHexString(50 / numLDATopics),
+				"--eta", Double.toString(0.1),
+				"--numTrainThreads", Integer.toString(12),
+				"--numUpdateThreads", Integer.toString(12),
 		};
 	}
 
