@@ -109,8 +109,8 @@ public class BugResult {
 			}
 
 			String objectiveVarName = jsonFile.getName().substring(0, jsonFile.getName().length() - ".json".length());
-			for (String sha: bugJson.keySet()) {
-				Object fixType = bugJson.getJSONObject(sha).get("type");
+			for (Object sha: bugJson.keySet()) {
+				Object fixType = bugJson.getJSONObject((String)sha).get("type");
 				try {
 					if (fixType instanceof JSONObject) {
 						JSONObject fixJson = (JSONObject) fixType;
@@ -119,7 +119,7 @@ public class BugResult {
 						}
 						Set<String> subjectiveVarNames = ret.loadOneFix(fixJson);
 						RawRecord oneRecord = new RawRecord(subjectiveVarNames, objectiveVarName);
-						ret.raw.put(sha, oneRecord);
+						ret.raw.put((String)sha, oneRecord);
 					} else if (fixType instanceof JSONArray) {
 						JSONArray fixArray = (JSONArray) fixType;
 						for (int i = 0; i < fixArray.length(); i++) {
@@ -132,7 +132,7 @@ public class BugResult {
 						Set<String> subjectiveVarNames = new HashSet<String>();
 						subjectiveVarNames.add("fixclass:" + nonBugName.split(":")[0]);
 						RawRecord oneRecord = new RawRecord(subjectiveVarNames, objectiveVarName);
-						ret.raw.put(sha, oneRecord);
+						ret.raw.put((String)sha, oneRecord);
 					}
 					shaCount++;
 				} catch (Exception e) {
@@ -147,13 +147,13 @@ public class BugResult {
 
 	public void loadErrorClassFromJson(File errorClassFile)	throws Exception{
 		JSONObject errorJson = new JSONObject(IOUtils.toString(new FileInputStream(errorClassFile)));
-		for (String className: errorJson.keySet()) {
-			JSONObject classJson = errorJson.getJSONObject(className);
-			for (String subClassName: classJson.keySet()) {
-				JSONArray errors = classJson.getJSONArray(subClassName);
+		for (Object className: errorJson.keySet()) {
+			JSONObject classJson = errorJson.getJSONObject((String)className);
+			for (Object subClassName: classJson.keySet()) {
+				JSONArray errors = classJson.getJSONArray((String)subClassName);
 				for (int i = 0; i < errors.length(); i++) {
-					errorToClass.put(errors.getString(i), className);
-					errorToSubClass.put(errors.getString(i), subClassName);
+					errorToClass.put(errors.getString(i), (String)className);
+					errorToSubClass.put(errors.getString(i), (String)subClassName);
 				}
 			}
 		}

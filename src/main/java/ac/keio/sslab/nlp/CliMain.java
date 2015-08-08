@@ -61,12 +61,12 @@ public class CliMain {
 				FileInputStream inputStream = new FileInputStream(argFile);
 				JSONObject jobJson = new JSONObject(IOUtils.toString(inputStream));
 				StringBuilder sb = new StringBuilder();
-				for (String jobID: jobJson.keySet()) {
+				for (Object jobID: jobJson.keySet()) {
 					sb.setLength(0);
-					sb.append(jobID).append(":");
-					JSONObject argObj = jobJson.getJSONObject(jobID);
-					for (String arg: argObj.keySet()) {
-						sb.append(" -").append(arg).append(" ").append(argObj.get(arg));
+					sb.append((String)jobID).append(":");
+					JSONObject argObj = jobJson.getJSONObject((String)jobID);
+					for (Object arg: argObj.keySet()) {
+						sb.append(" -").append((String)arg).append(" ").append(argObj.get((String)arg));
 					}
 					System.out.println(sb.toString());
 				}

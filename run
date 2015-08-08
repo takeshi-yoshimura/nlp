@@ -6,7 +6,9 @@ MAHOUT_HOME=/usr/lib/mahout
 NLPBIN=`ls ${NLPDIR}/target/nlp-*-jar-with-dependencies.jar`
 CONF=${NLPDIR}/conf.json
 
-CLASSPATH=`hadoop classpath`:$MAHOUT_HOME/mahout-integration-*.jar
+CLASSPATH=`hadoop classpath`
+
+#CLASSPATH=${CLASSPATH}:$MAHOUT_HOME/mahout-integration-*.jar
 #for f in $MAHOUT_HOME/mahout-*.jar; do
 #	CLASSPATH=${CLASSPATH}:$f;
 #done

@@ -93,6 +93,7 @@ public class JobManager {
 		ps.put(String.class, new StrParser() { public Object parse(String str) { return str; }});
 		ps.put(Double.class, new StrParser() { public Object parse(String str) { return Double.parseDouble(str); }});
 		ps.put(Long.class, new StrParser() { public Object parse(String str) { return Long.parseLong(str); }});
+		ps.put(Boolean.class, new StrParser() { public Object parse(String str) { return Boolean.parseBoolean(str); }});
 	};
 
 	@SuppressWarnings("unchecked")
@@ -200,8 +201,8 @@ public class JobManager {
 	    	FileInputStream inputStream = new FileInputStream(argFile);
 			JSONObject jobJson = new JSONObject(IOUtils.toString(inputStream));
 			JSONObject jobIDJson = jobJson.getJSONObject(jobID);
-			for (String key: jobIDJson.keySet()) {
-				map.put(key, jobIDJson.getString(key));
+			for (Object key: jobIDJson.keySet()) {
+				map.put((String)key, jobIDJson.getString((String)key));
 			}
 	        inputStream.close();
 	        if (args.containsKey("ow")) {

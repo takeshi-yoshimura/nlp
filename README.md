@@ -6,7 +6,7 @@ Thus, it basically wraps Mahout and Hadoop with simple command line interfaces, 
 
 ## Requirement
 
-maven, jdk1.7 (builds with other jdk may fail), hadoop-2.6.0-cdh5.4.4, mahout-0.9-cdh5.4.4
+maven, jdk1.8 (other jdk cause failures), hadoop-2.6.0-cdh5.4.4, mahout-0.9-cdh5.4.4
 
 ## Build
 

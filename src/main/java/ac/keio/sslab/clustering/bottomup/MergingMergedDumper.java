@@ -81,7 +81,7 @@ public class MergingMergedDumper {
 		reader.close();
 
 		if (graph.size() != 1) {
-			System.err.println("WARNING: incomplete clustering: clusters.size = " + clusters.size());
+			System.err.println("WARNING: incomplete clustering: graph.size = " + graph.size());
 		}
 		root = graph.entrySet().iterator().next().getValue();
 	}
@@ -101,8 +101,10 @@ public class MergingMergedDumper {
 				clusterW.print("," + (topicStr == null ? e.getKey(): topicStr.get(e.getKey())) + ":" + String.format("%1$3", e.getValue()));
 			}
 			clusterW.println();
-			graphW.println(c.ID + "," + c.leftC.ID);
-			graphW.println(c.ID + "," + c.rightC.ID);
+			if (c.leftC != null && c.rightC != null) {
+				graphW.println(c.ID + "," + c.leftC.ID);
+				graphW.println(c.ID + "," + c.rightC.ID);
+			}
 		}
 		graphW.close();
 		clusterW.close();

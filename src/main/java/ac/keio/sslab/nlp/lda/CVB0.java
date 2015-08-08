@@ -81,8 +81,7 @@ public class CVB0 extends RestartableLDAJob {
 				"--iteration_block_size", Integer.toString(10),
 				"--test_set_fraction", Double.toString(0.1),
 				"--random_seed", Long.toString(System.nanoTime() % 10000),
-				"--num_reduce_tasks", Integer.toString(numReducers),
-				"--convergenceDelta", Double.toString(0.001),
+				"--num_reduce_tasks", Integer.toString(numReducers)
 		};
 	}
 
