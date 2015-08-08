@@ -46,7 +46,7 @@ public class GitCorpusJob implements NLPJob {
 		options.addOption("f", "file", true, "target file or directory path in git repository. Default is the top of the input directory.");
 		options.addOption("sl", "stableLinux", false, "Get all the commits for stable Linux (if specified, ignore -s and -u)");
 		options.addOption("c", "commitFile", true, "File for commits to be extracted");
-		options.addOption("t", "tokenizeAtUnderline", true, "tokenize at underline? (default is true)");
+		options.addOption("t", "tokenizeAtUnderline", true, "tokenize at underline? (default is false)");
 		options.addOption("n", "useNLTKStopwords", true, "use NLTK stopwords? (default is false)");
 		options.addOption("p", "splitParagraph", true, "split paragraphs? (default is false)");
 		return options;

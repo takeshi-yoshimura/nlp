@@ -1,5 +1,6 @@
 package ac.keio.sslab.clustering.bottomup;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.mahout.common.distance.DistanceMeasure;
@@ -30,7 +31,10 @@ public class ThreadedFastBottomupClustering extends FastBottomupClustering {
 			t[n] = new Thread() {
 				public void run() {
 					for (int i = n; i < idPoints_.size(); i += numCore) {
-						centroids.put(i, idPoints_.get(i));
+						points.put(i, idPoints_.get(i));
+						List<Integer> clusteredPoints = new ArrayList<Integer>();
+						clusteredPoints.add(i);
+						clusters.put(i, clusteredPoints);
 					}
 				}
 			};
@@ -47,7 +51,7 @@ public class ThreadedFastBottomupClustering extends FastBottomupClustering {
 			final int n = n_;
 			t[n] = new Thread() {
 				public void run() {
-					for (int i = n; i < centroids.size() - 1; i += numCore) {
+					for (int i = n; i < clusters.size() - 1; i += numCore) {
 						distance[i] = new double[i + 1];
 						for (int j = 0; j <= i; j++) {
 							distance[i][j] = measure_.distance(idPoints_.get(i + 1), idPoints_.get(j));
@@ -71,13 +75,20 @@ public class ThreadedFastBottomupClustering extends FastBottomupClustering {
 				public void run() {
 					min_d_[n] = Double.MAX_VALUE;
 					min_i_[n] = -1; min_j_[n] = -1;
-					for (int i: centroids.keySet()) {
+					for (int i: clusters.keySet()) {
 						for (int j = n; j < i; j += numCore) {
-							if (!centroids.containsKey(j)) {
+							if (!clusters.containsKey(j)) {
 								continue;
 							}
-							if (min_d_[n] > distance[i - 1][j]) {
-								min_d_[n] = distance[i - 1][j];
+							double d = 0;
+							for (int p: clusters.get(i)) {
+								for (int p2: clusters.get(j)) {
+									d += measure.distance(points.get(p), points.get(p2));
+								}
+							}
+							d = d / clusters.get(i).size() / clusters.get(j).size();
+							if (min_d_[n] > d) {
+								min_d_[n] = d;
 								min_i_[n] = i;
 								min_j_[n] = j;
 							}
@@ -112,41 +123,5 @@ public class ThreadedFastBottomupClustering extends FastBottomupClustering {
 		mergedPointId = min_i;
 
 		return true;
-	}
-
-	@Override
-	public void updateDistance() throws InterruptedException {
-		for (int n_ = 0; n_ < numCore; n_++) {
-			final int n = n_;
-			final int min_j__ = mergedPointId;
-			t[n] = new Thread() {
-				public void run() {
-					for (int i = min_j__ + n; i < distance.length; i += numCore) {
-						if (centroids.containsKey(i + 1)) {
-							distance[i][min_j__] = measure.distance(centroids.get(i + 1), centroids.get(min_j__));
-						}
-					}
-				}
-			};
-			t[n].start();
-		}
-		waitAll();
-
-		for (int n_ = 0; n_ < numCore; n_++) {
-			final int n = n_;
-			final int min_j__ = mergedPointId;
-			t[n] = new Thread() {
-				public void run() {
-					for (int j = n; j < min_j__; j += numCore) {
-						if (centroids.containsKey(j)) {
-							distance[min_j__ - 1][j] = measure.distance(centroids.get(min_j__), centroids.get(j));
-						}
-					}
-				}
-			};
-			t[n].start();
-		}
-
-		waitAll();
 	}
 }

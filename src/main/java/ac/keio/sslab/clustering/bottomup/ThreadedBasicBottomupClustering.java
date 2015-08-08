@@ -1,5 +1,6 @@
 package ac.keio.sslab.clustering.bottomup;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.mahout.common.distance.DistanceMeasure;
@@ -30,7 +31,10 @@ public class ThreadedBasicBottomupClustering extends BasicBottomupClustering {
 			t[n] = new Thread() {
 				public void run() {
 					for (int i = n; i < idPoints_.size(); i+= numCore)  {
-						centroids.put(i,  idPoints_.get(i));
+						points.put(i, idPoints_.get(i));
+						List<Integer> clusteredPoints = new ArrayList<Integer>();
+						clusteredPoints.add(i);
+						clusters.put(i, clusteredPoints);
 					}
 				}
 			};
@@ -52,12 +56,18 @@ public class ThreadedBasicBottomupClustering extends BasicBottomupClustering {
 			t[n] = new Thread() {
 				public void run() {
 					min_i_[n] = -1; min_j_[n] = -1;
-					for (int i: centroids.keySet()) {
+					for (int i: clusters.keySet()) {
 						for (int j = n; j < i; j += numCore) {
-							if (!centroids.containsKey(j)) {
+							if (!clusters.containsKey(j)) {
 								continue;
 							}
-							double d = measure.distance(centroids.get(i), centroids.get(j));
+							double d = 0;
+							for (int p: clusters.get(i)) {
+								for (int p2: clusters.get(j)) {
+									d += measure.distance(points.get(p), points.get(p2));
+								}
+							}
+							d = d / clusters.get(i).size() / clusters.get(j).size();
 							if (min_d_[n] > d) {
 								min_d_[n] = d;
 								min_i_[n] = i;

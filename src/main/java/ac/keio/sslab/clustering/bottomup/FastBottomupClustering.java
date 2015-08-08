@@ -14,7 +14,7 @@ public class FastBottomupClustering extends BasicBottomupClustering {
 
 	// can override algorithm
 	public void initDistance(List<Vector> idPoints) throws Exception {
-		for (int i = 0; i < centroids.size() - 1; i++) {
+		for (int i = 0; i < idPoints.size() - 1; i++) {
 			distance[i] = new double[i + 1];
 			for (int j = 0; j <= i; j++) {
 				distance[i][j] = measure.distance(idPoints.get(i + 1), idPoints.get(j));
@@ -24,7 +24,7 @@ public class FastBottomupClustering extends BasicBottomupClustering {
 
 	public FastBottomupClustering(List<Vector> idPoints, DistanceMeasure measure) throws Exception {
 		super(idPoints, measure);
-		distance = new double[centroids.size() - 1][];
+		distance = new double[idPoints.size() - 1][];
 		initDistance(idPoints);
 	}
 
@@ -32,13 +32,20 @@ public class FastBottomupClustering extends BasicBottomupClustering {
 	public boolean next() {
 		double min_d = Double.MAX_VALUE;
 		int min_i = -1, min_j = -1;
-		for (int i: centroids.keySet()) {
+		for (int i: clusters.keySet()) {
 			for (int j = 0; j < i; j++) {
-				if (!centroids.containsKey(j)) {
+				if (!clusters.containsKey(j)) {
 					continue;
 				}
-				if (min_d > distance[i - 1][j]) {
-					min_d = distance[i - 1][j];
+				double d = 0;
+				for (int p: clusters.get(i)) {
+					for (int p2: clusters.get(j)) {
+						d += distance[p][p2];
+					}
+				}
+				d = d / clusters.get(i).size() / clusters.get(j).size();
+				if (min_d > d) {
+					min_d = d;
 					min_i = i;
 					min_j = j;
 				}
@@ -53,33 +60,5 @@ public class FastBottomupClustering extends BasicBottomupClustering {
 		mergedPointId = min_i;
 
 		return true;
-	}
-
-	// can override algorithm
-	public void updateDistance() throws Exception {
-		for (int i = mergingPointId; i < distance.length; i++) {
-			if (centroids.containsKey(i + 1)) {
-				distance[i][mergingPointId] = measure.distance(centroids.get(i + 1), centroids.get(mergingPointId));
-			}
-		}
-		for (int j = 0; j < mergingPointId; j++) {
-			if (centroids.containsKey(j)) {
-				distance[mergingPointId - 1][j] = measure.distance(centroids.get(mergingPointId), centroids.get(j));
-			}
-		}
-	}
-
-	@Override
-	public Vector update() {
-		Vector newVector = super.update();
-
-		try {
-			updateDistance();
-		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
-		}
-
-		return newVector;
 	}
 }
