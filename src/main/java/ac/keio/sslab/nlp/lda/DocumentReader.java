@@ -11,7 +11,6 @@ import java.util.Map.Entry;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.mahout.common.Pair;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
 
@@ -20,20 +19,6 @@ import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
 public class DocumentReader {
 	Map<Integer, String> docIndex;
 	Map<Integer, List<Integer>> docTopicId;
-
-	class FirstReverseSorter implements Comparator<Pair<Double, ?>> {
-		@Override
-		public int compare(Pair<Double, ?> p1, Pair<Double, ?> p2) {
-			double d1 = p1.getFirst();
-			double d2 = p2.getFirst();
-			if (d1 > d2) {
-				return -1;
-			} else if (d1 == d2) {
-				return 0;
-			}
-			return 1;
-		}
-	}
 
 	public DocumentReader(Path docIndex, Path documentDir, FileSystem fs, int maxTopics) throws IOException {
 		loadDocumentIndex(docIndex, fs);
@@ -62,18 +47,24 @@ public class DocumentReader {
 	public void loadDocumentDir(Path documentDir, FileSystem fs, int maxTopics) throws IOException {
 		docTopicId = new HashMap<Integer, List<Integer>>();
 		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(documentDir, fs, Integer.class, Vector.class);
-		FirstReverseSorter sorter = new FirstReverseSorter();
+
+		Comparator<Entry<Integer, Double>> reverser = new Comparator<Entry<Integer, Double>>() {
+			public int compare(Entry<Integer, Double> e1, Entry<Integer, Double> e2) {
+				return e2.getValue().compareTo(e1.getValue());
+			}
+		};
 		while (reader.seekNext()) {
 			int docId = reader.key();
 			Vector vector = reader.val();
-			List<Pair<Double, Integer>> docTopic = new ArrayList<Pair<Double, Integer>>();
+			Map<Integer, Double> docTopic = new HashMap<Integer, Double>();
 			for (Element e: vector.all()) {
-				docTopic.add(new Pair<Double, Integer>(e.get(), e.index()));
+				docTopic.put(e.index(), e.get());
 			}
-			Collections.sort(docTopic, sorter);
+			List<Entry<Integer, Double>> sortedDocTopic = new ArrayList<Entry<Integer, Double>>(docTopic.entrySet());
+			Collections.sort(sortedDocTopic, reverser);
 			List<Integer> topicId = new ArrayList<Integer>();
-			for (int i = 0; i < maxTopics && i < docTopic.size(); i++) {
-				topicId.add(docTopic.get(i).getSecond());
+			for (int i = 0; i < maxTopics && i < sortedDocTopic.size(); i++) {
+				topicId.add(sortedDocTopic.get(i).getKey());
 			}
 			docTopicId.put(docId, topicId);
 		}

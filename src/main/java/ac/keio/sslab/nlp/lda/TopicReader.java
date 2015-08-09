@@ -13,7 +13,6 @@ import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.mahout.common.Pair;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
 
@@ -22,20 +21,6 @@ public class TopicReader {
 
 	Map<Integer, List<Integer>> topicIDTermID;
 	Map<Integer, String> termIDTermString;
-
-	class FirstReverseSorter implements Comparator<Pair<Double, ?>> {
-		@Override
-		public int compare(Pair<Double, ?> p1, Pair<Double, ?> p2) {
-			double d1 = p1.getFirst();
-			double d2 = p2.getFirst();
-			if (d1 > d2) {
-				return -1;
-			} else if (d1 == d2) {
-				return 0;
-			}
-			return 1;
-		}
-	}
 
 	public TopicReader() {
 	}
@@ -75,18 +60,23 @@ public class TopicReader {
 	public void loadTopicTermDir(Path topicTerm, FileSystem fs, int maxTerms) throws IOException {
 		topicIDTermID = new HashMap<Integer, List<Integer>>();
 		SequenceDirectoryReader<Integer, Vector> topicTermReader = new SequenceDirectoryReader<>(topicTerm, fs, Integer.class, Vector.class);
-		FirstReverseSorter sorter = new FirstReverseSorter();
+		Comparator<Entry<Integer, Double>> reverser = new Comparator<Entry<Integer, Double>>() {
+			public int compare(Entry<Integer, Double> e1, Entry<Integer, Double> e2) {
+				return e2.getValue().compareTo(e1.getValue());
+			}
+		};
 		while (topicTermReader.seekNext()) {
 			int topicID = topicTermReader.key();
 			Vector vector = topicTermReader.val();
-			List<Pair<Double, Integer>> termID = new ArrayList<Pair<Double, Integer>>();
+			Map<Integer, Double> termID = new HashMap<Integer, Double>();
 			for (Element e: vector.all()) {
-				termID.add(new Pair<Double, Integer>(e.get(), e.index()));
+				termID.put(e.index(), e.get());
 			}
-			Collections.sort(termID, sorter);
+			List<Entry<Integer, Double>> sortedTermID = new ArrayList<Entry<Integer, Double>>(termID.entrySet());
+			Collections.sort(sortedTermID, reverser);
 			List<Integer> topTermID = new ArrayList<Integer>();
-			for (int i = 0; i < maxTerms && i < termID.size(); i++) {
-				topTermID.add(termID.get(i).getSecond());
+			for (int i = 0; i < maxTerms && i < sortedTermID.size(); i++) {
+				topTermID.add(sortedTermID.get(i).getKey());
 			}
 			topicIDTermID.put(topicID, topTermID);
 		}

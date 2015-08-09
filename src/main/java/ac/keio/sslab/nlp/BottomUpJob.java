@@ -19,7 +19,7 @@ public class BottomUpJob implements NLPJob {
 
 	@Override
 	public String getJobDescription() {
-		return "hierarchical clustering";
+		return "group average hierarchical clustering";
 	}
 
 	@Override
@@ -33,7 +33,6 @@ public class BottomUpJob implements NLPJob {
 
 		Options opt = new Options();
 		opt.addOption("t", "threashold", true, "bytes of threashold to optimize algorithm. K, M, G postfix are available (default: 6.4G)");
-		opt.addOption("m", "multiThreaded", false, "use multi threads");
 		opt.addOptionGroup(required);
 		opt.addOptionGroup(required2);
 		return opt;
@@ -57,18 +56,13 @@ public class BottomUpJob implements NLPJob {
 	@Override
 	public void run(JobManager mgr) {
 		long threashold = parseThreashold(mgr.getArgOrDefault("t", "6.4G", String.class));
-		boolean threaded = mgr.getArgOrDefault("m", false, Boolean.class);
-
 		NLPConf conf = NLPConf.getInstance();
 		LDAHDFSFiles ldaFiles = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
 		File localOutputDir = new File(conf.finalOutputFile, "bottomup/" + mgr.getJobID());
 		Path mergingMergedPath = new Path(localOutputDir.getAbsolutePath(), "mergingToFrom.seq"); //Note: local FS
 
 		try {
-			BottomupClustering bc = new BottomupClustering(ldaFiles.documentPath, conf.hdfs, mgr.getArgStr("d"), threashold, threaded);
-			if (conf.hdfs.exists(mergingMergedPath) && !mgr.doForceWrite()) {
-				bc.restore(mergingMergedPath, conf.hdfs);
-			}
+			BottomupClustering bc = new BottomupClustering(ldaFiles.documentPath, conf.hdfs, mgr.getArgStr("d"), threashold);
 			bc.run(mergingMergedPath, conf.hdfs, mgr.doForceWrite());
 		} catch (Exception e) {
 			e.printStackTrace();
