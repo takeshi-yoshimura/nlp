@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.mahout.common.Pair;
 import org.apache.mahout.math.Vector;
@@ -35,9 +35,9 @@ public class DocumentReader {
 		}
 	}
 
-	public DocumentReader(Path docIndex, Path documentDir, Configuration conf, int maxTopics) throws IOException {
-		loadDocumentIndex(docIndex, conf);
-		loadDocumentDir(documentDir, conf, maxTopics);
+	public DocumentReader(Path docIndex, Path documentDir, FileSystem fs, int maxTopics) throws IOException {
+		loadDocumentIndex(docIndex, fs);
+		loadDocumentDir(documentDir, fs, maxTopics);
 	}
 
 	public Map<String, List<Integer>> getDocuments() {
@@ -48,9 +48,9 @@ public class DocumentReader {
 		return ret;
 	}
 
-	public void loadDocumentIndex(Path docIndexPath, Configuration conf) throws IOException {
+	public void loadDocumentIndex(Path docIndexPath, FileSystem fs) throws IOException {
 		docIndex = new HashMap<Integer, String>();
-		SequenceDirectoryReader<Integer, String> dictionaryReader = new SequenceDirectoryReader<>(docIndexPath, conf, Integer.class, String.class);
+		SequenceDirectoryReader<Integer, String> dictionaryReader = new SequenceDirectoryReader<>(docIndexPath, fs, Integer.class, String.class);
 		while (dictionaryReader.seekNext()) {
 			int documentId = dictionaryReader.key();
 			String documentName = dictionaryReader.val();
@@ -59,9 +59,9 @@ public class DocumentReader {
 		dictionaryReader.close();
 	}
 
-	public void loadDocumentDir(Path documentDir, Configuration conf, int maxTopics) throws IOException {
+	public void loadDocumentDir(Path documentDir, FileSystem fs, int maxTopics) throws IOException {
 		docTopicId = new HashMap<Integer, List<Integer>>();
-		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(documentDir, conf, Integer.class, Vector.class);
+		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(documentDir, fs, Integer.class, Vector.class);
 		FirstReverseSorter sorter = new FirstReverseSorter();
 		while (reader.seekNext()) {
 			int docId = reader.key();

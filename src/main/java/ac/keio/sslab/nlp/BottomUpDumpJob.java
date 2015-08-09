@@ -47,7 +47,7 @@ public class BottomUpDumpJob implements NLPJob {
 		Path mergingMergedPath = new Path(localOutputDir.getAbsolutePath(), "mergingToFrom.seq");
 		try {
 			Map<Integer, String> topics = new HashMap<Integer, String>();
-			for (Entry<Integer, List<String>> e: new TopicReader(ldaFiles.dictionaryPath, ldaFiles.topicPath, conf.hadoopConf, 2).getTopics().entrySet()) {
+			for (Entry<Integer, List<String>> e: new TopicReader(ldaFiles.dictionaryPath, ldaFiles.topicPath, conf.hdfs, 2).getTopics().entrySet()) {
 				topics.put(e.getKey(), "T" + e.getKey() + "-" + e.getValue().get(0) + "-" + e.getValue().get(1));
 			}
 			MergingMergedDumper dumper = new MergingMergedDumper(ldaFiles.documentPath, conf.hdfs, mergingMergedPath, conf.localfs);

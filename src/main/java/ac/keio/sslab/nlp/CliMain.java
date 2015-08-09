@@ -176,8 +176,8 @@ public class CliMain {
 			job.run(manager);
 			manager.unLock();
 		} catch (Exception e) {
+			e.printStackTrace();
 			manager.printHelp();
-			System.err.println(e.getMessage());
 		}
 	}
 

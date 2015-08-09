@@ -3,6 +3,7 @@ package ac.keio.sslab.nlp;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -148,103 +149,95 @@ public class JobManager {
 		return options;
 	}
 
-	public boolean tryLock() {
-		try {
-			File lock = new File(lockFile, jobID);
-			if (lock.exists()) {
-				return false;
-			} else {
-				lock.createNewFile();
-				lock.deleteOnExit(); //Does this work?
-				return true;
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			System.err.println("Trylock failed: " + e.toString());
+	public boolean tryLock() throws IOException {
+		File lock = new File(lockFile, jobID);
+		if (lock.exists()) {
 			return false;
+		} else {
+			lock.createNewFile();
+			lock.deleteOnExit(); //Does this work?
+			return true;
 		}
 	}
 
-	public void unLock() {
-		try {
-			File lock = new File(lockFile, jobID);
-			if (lock.exists()) {
-				//lock.delete();
-			} else {
-				System.err.println("WARNING: Inconsistent unlock");
-			}
-		} catch (Exception e) {
-			System.err.println("Unlock failed: " + e.toString());
+	public void unLock() throws IOException {
+		File lock = new File(lockFile, jobID);
+		if (lock.exists()) {
+			//lock.delete();
+		} else {
+			System.err.println("WARNING: Inconsistent unlock");
 		}
 	}
 
-	public boolean hasPastArgs() {
+	public boolean hasPastArgs() throws IOException {
 		if (!argFile.exists()) {
 			return false;
 		}
 		FileInputStream inputStream = null;
-	    try {
+		inputStream = new FileInputStream(argFile);
+		JSONObject reader = new JSONObject(IOUtils.toString(inputStream));
+		boolean hasJobID = reader.has(jobID);
+        inputStream.close();
+        return hasJobID;
+	}
+
+	public void restoreArgs() throws Exception {
+		Map<String, String> map = new HashMap<String, String>();
+		FileInputStream inputStream = new FileInputStream(argFile);
+		JSONObject jobJson = new JSONObject(IOUtils.toString(inputStream));
+		JSONObject jobIDJson = jobJson.getJSONObject(jobID);
+		for (Object key : jobIDJson.keySet()) {
+			map.put((String) key, jobIDJson.getString((String) key));
+		}
+		inputStream.close();
+		if (args.containsKey("ow")) {
+			map.put("ow", "");
+		}
+		boolean hasArg = true;
+		for (@SuppressWarnings("rawtypes") Iterator i = options.getOptions().iterator(); i.hasNext();) {
+			Option opt = (Option) i.next();
+			OptionGroup g = options.getOptionGroup(opt);
+			if (g == null || !g.isRequired()) {
+				continue;
+			}
+			if (!(map.containsKey(opt.getLongOpt()) || map.containsKey(opt.getOpt()))) {
+				System.err.println("Need to specify --" + opt.getOpt());
+				hasArg = false;
+			}
+		}
+		if (hasArg) {
+			args = map;
+		} else {
+			throw new Exception("Incorrect arguments");
+		}
+	}
+
+	public void saveArgs() throws IOException {
+		FileInputStream inputStream;
+		JSONObject jobJson;
+		if (!argFile.exists()) {
+			jobJson = new JSONObject();
+			argFile.createNewFile();
 			inputStream = new FileInputStream(argFile);
-			JSONObject reader = new JSONObject(IOUtils.toString(inputStream));
-			boolean hasJobID = reader.has(jobID);
-	        inputStream.close();
-	        return hasJobID;
-	    } catch (Exception e) {
-	    	System.err.println("Reading json " + argFile.getAbsolutePath() + " failed: " + e.toString());
-	    	return false;
-	    }
-	}
-
-	public void restoreArgs() {
-	    try {
-			Map<String, String> map = new HashMap<String, String>();
-	    	FileInputStream inputStream = new FileInputStream(argFile);
-			JSONObject jobJson = new JSONObject(IOUtils.toString(inputStream));
-			JSONObject jobIDJson = jobJson.getJSONObject(jobID);
-			for (Object key: jobIDJson.keySet()) {
-				map.put((String)key, jobIDJson.getString((String)key));
+		} else {
+			inputStream = new FileInputStream(argFile);
+			jobJson = new JSONObject(IOUtils.toString(inputStream));
+		}
+		if (jobJson.has(jobID)) {
+			jobJson.remove(jobID);
+		}
+		Map<String, String> newArgs = new HashMap<String, String>();
+		for (Entry<String, String> e: args.entrySet()) {
+			if (e.getKey().equals("ow") || e.getKey().equals("f")) {
+				continue;
 			}
-	        inputStream.close();
-	        if (args.containsKey("ow")) {
-	        	map.put("ow", "");
-	        }
-	        args = map;
-	    } catch (Exception e) {
-	    	System.err.println("Reading json " + argFile.getAbsolutePath() + " failed: " + e.toString());
-	    	args =  null;
-	    }
-	}
-
-	public void saveArgs() {
-	    try {
-			FileInputStream inputStream;
-			JSONObject jobJson;
-			if (!argFile.exists()) {
-				jobJson = new JSONObject();
-				argFile.createNewFile();
-				inputStream = new FileInputStream(argFile);
-			} else {
-				inputStream = new FileInputStream(argFile);
-				jobJson = new JSONObject(IOUtils.toString(inputStream));
-			}
-			if (jobJson.has(jobID)) {
-				jobJson.remove(jobID);
-			}
-			Map<String, String> newArgs = new HashMap<String, String>();
-			for (Entry<String, String> e: args.entrySet()) {
-				if (e.getKey().equals("ow") || e.getKey().equals("f")) {
-					continue;
-				}
-				newArgs.put(e.getKey(), e.getValue());
-			}
-			jobJson.put(jobID, args);
-	        inputStream.close();
-	        FileOutputStream outputStream = new FileOutputStream(argFile);
-	        outputStream.write(jobJson.toString(4).getBytes());
-	        outputStream.close();
-	    } catch (Exception e) {
-	    	System.err.println("Reading or writing json " + argFile.getAbsolutePath() + " failed: " + e.toString());
-	    }
+			newArgs.put(e.getKey(), e.getValue());
+		}
+		jobJson.put(jobID, args);
+        inputStream.close();
+        FileOutputStream outputStream = new FileOutputStream(argFile);
+        outputStream.write(jobJson.toString(4).getBytes());
+        outputStream.close();
 	}
 
 	public NLPConf getNLPConf() {

@@ -13,9 +13,7 @@ import java.util.Map.Entry;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.mahout.clustering.Cluster;
 import org.apache.mahout.math.Vector.Element;
@@ -57,9 +55,8 @@ public class TopDownDumpJob implements NLPJob {
 		Map<Integer, Integer> clusterCount = new HashMap<Integer, Integer>();
 		try {
 			LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
-			Configuration hdfsConf = new Configuration();
 			Map<Integer, String> topicStr = new HashMap<Integer, String>();
-			TopicReader topReader = new TopicReader(hdfs.dictionaryPath, hdfs.topicPath, hdfsConf, 1);
+			TopicReader topReader = new TopicReader(hdfs.dictionaryPath, hdfs.topicPath, conf.hdfs, 1);
 			StringBuilder sb = new StringBuilder();
 			for (Entry<Integer, List<String>> topic: topReader.getTopics().entrySet()) {
 				sb.setLength(0);
@@ -70,7 +67,6 @@ public class TopDownDumpJob implements NLPJob {
 				topicStr.put(topic.getKey(), sb.toString());
 			}
 
-			FileSystem fs = FileSystem.get(hdfsConf);
 			Path topdownPath = mgr.getArgJobIDPath(conf.topdownPath, "t");
 			Comparator<Entry<Integer, Double>> reverser = new Comparator<Entry<Integer, Double>>() {
 				public int compare(Entry<Integer, Double> e1, Entry<Integer, Double> e2) {
@@ -78,22 +74,22 @@ public class TopDownDumpJob implements NLPJob {
 				}
 			};
 
-			for (FileStatus status: fs.listStatus(topdownPath)) {
+			for (FileStatus status: conf.hdfs.listStatus(topdownPath)) {
 				Path dirPath = status.getPath();
 				if (!dirPath.getName().startsWith("topdown-")) {
 					continue;
 				}
 
 				Path clusteredPoints = new Path(dirPath, "clusteredPoints");
-				if (!fs.exists(clusteredPoints)) {
+				if (!conf.hdfs.exists(clusteredPoints)) {
 					continue;
 				}
-				FileStatus [] iterationSeqs = fs.globStatus(new Path(dirPath, "iteration-*-final.seq"));
+				FileStatus [] iterationSeqs = conf.hdfs.globStatus(new Path(dirPath, "iteration-*-final.seq"));
 				if (iterationSeqs.length != 1) {
 					continue;
 				}
 				Path centroidsPath = iterationSeqs[0].getPath();
-				SequenceDirectoryReader<Integer, Cluster> centroidReader = new SequenceDirectoryReader<>(centroidsPath, hdfsConf, Integer.class, Cluster.class);
+				SequenceDirectoryReader<Integer, Cluster> centroidReader = new SequenceDirectoryReader<>(centroidsPath, conf.hdfs, Integer.class, Cluster.class);
 
 				while (centroidReader.seekNext()) {
 					Map<Integer, Double> tmpMap = new HashMap<Integer, Double>();
@@ -108,7 +104,7 @@ public class TopDownDumpJob implements NLPJob {
 					clusterStr.put(centroidReader.key(), sb.toString());
 				}
 
-				SequenceDirectoryReader<Integer, Vector> seq = new SequenceDirectoryReader<>(clusteredPoints, hdfsConf, Integer.class, Vector.class);
+				SequenceDirectoryReader<Integer, Vector> seq = new SequenceDirectoryReader<>(clusteredPoints, conf.hdfs, Integer.class, Vector.class);
 				while (seq.seekNext()) {
 					if (!clusterCount.containsKey(seq.key())) {
 						clusterCount.put(seq.key(), 0);

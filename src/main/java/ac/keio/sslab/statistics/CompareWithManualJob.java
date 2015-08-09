@@ -6,7 +6,6 @@ import java.util.TreeMap;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.conf.Configuration;
 import org.eclipse.jgit.util.FileUtils;
 
 import ac.keio.sslab.nlp.JobManager;
@@ -43,14 +42,13 @@ public class CompareWithManualJob implements NLPJob {
 		NLPConf conf = mgr.getNLPConf();
 		File manualFile = new File(mgr.getArgStr("m"));
 		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
-		Configuration hdfsConf = new Configuration();
 		
 		System.out.println("Load manual classification from " + manualFile.getAbsolutePath());
 		NamedMatrix docTags = NamedMatrix.buildFromCSV(manualFile, "doc", "tag").normalizeRow(); // calculate p(tag|doc) = 1 / N(tag|doc) for each doc as a Matrix row
 		System.out.println("Built Matrix for " + docTags.rowSize() + " documents X " + docTags.colSize() + " tags");
 
 		System.out.println("Load LDA classification from " + hdfs.cvbPath);
-		NamedMatrix docTopics = NamedMatrix.buildFromLDAFiles(hdfs, hdfsConf, "doc", "topic");
+		NamedMatrix docTopics = NamedMatrix.buildFromLDAFiles(hdfs, conf.hdfs, "doc", "topic");
 		System.out.println("Built Matrix for " + docTopics.rowSize() + " documents X " + docTopics.colSize() + " topics");
 
 		if (docTags.rowSize() != docTopics.rowSize()) {

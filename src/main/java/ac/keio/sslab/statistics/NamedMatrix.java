@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
-import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.mahout.math.DenseMatrix;
 import org.apache.mahout.math.Matrix;
 import org.apache.mahout.math.MatrixSlice;
@@ -110,10 +110,10 @@ public class NamedMatrix {
 		return new NamedMatrix(newMatrix, newRowIndex, newColIndex, rowGroupName, colGroupName);
 	}
 
-	static public NamedMatrix buildFromLDAFiles(LDAHDFSFiles hdfs, Configuration hdfsConf, String rowGroupName, String colGroupName) {
+	static public NamedMatrix buildFromLDAFiles(LDAHDFSFiles hdfs, FileSystem fs, String rowGroupName, String colGroupName) {
 		TreeMap<Integer, String> colIndex = new TreeMap<Integer, String>();
 		try {
-			for (Entry<Integer, List<String>> e: new TopicReader(hdfs.dictionaryPath, hdfs.topicPath, hdfsConf, 2).getTopics().entrySet()) {
+			for (Entry<Integer, List<String>> e: new TopicReader(hdfs.dictionaryPath, hdfs.topicPath, fs, 2).getTopics().entrySet()) {
 				colIndex.put(e.getKey(), "T" + e.getKey() + "-" + e.getValue().get(0) + "-" + e.getValue().get(1));
 			}
 		} catch (Exception e) {
@@ -123,7 +123,7 @@ public class NamedMatrix {
 
 		TreeMap<Integer, String> rowIndex = new TreeMap<Integer, String>(colIndex);
 		try {
-			SequenceDirectoryReader<Integer, String> dictionaryReader = new SequenceDirectoryReader<>(hdfs.docIndexPath, hdfsConf, Integer.class, String.class);
+			SequenceDirectoryReader<Integer, String> dictionaryReader = new SequenceDirectoryReader<>(hdfs.docIndexPath, fs, Integer.class, String.class);
 			while (dictionaryReader.seekNext()) {
 				rowIndex.put(dictionaryReader.key(), dictionaryReader.val());
 			}
@@ -135,7 +135,7 @@ public class NamedMatrix {
 
 		Matrix matrix = new DenseMatrix(rowIndex.size(), colIndex.size());
 		try {
-			SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(hdfs.documentPath, hdfsConf, Integer.class, Vector.class);
+			SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(hdfs.documentPath, fs, Integer.class, Vector.class);
 			while (reader.seekNext()) {
 				for (Element p: reader.val().nonZeroes()) {
 					matrix.set(reader.key(), p.index(), p.get());

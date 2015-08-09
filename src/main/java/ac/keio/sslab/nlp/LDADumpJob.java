@@ -8,7 +8,6 @@ import java.util.Map.Entry;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.conf.Configuration;
 
 import ac.keio.sslab.nlp.lda.DocumentReader;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
@@ -48,11 +47,10 @@ public class LDADumpJob implements NLPJob {
 		outputFile.mkdirs();
 
 		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
-		Configuration hdfsConf = new Configuration();
 		try {
 			File topicFile = new File(outputFile, "topics.txt");
 			System.out.println("Extracting top 10 topics: " + topicFile.getAbsolutePath());
-			TopicReader topReader = new TopicReader(hdfs.dictionaryPath, hdfs.topicPath, hdfsConf, 10);
+			TopicReader topReader = new TopicReader(hdfs.dictionaryPath, hdfs.topicPath, conf.hdfs, 10);
 			PrintWriter pw = JobUtils.getPrintWriter(topicFile);
 			StringBuilder sb = new StringBuilder();
 			for (Entry<Integer, List<String>> topic: topReader.getTopics().entrySet()) {
@@ -70,7 +68,7 @@ public class LDADumpJob implements NLPJob {
 			File documentFile = new File(outputFile, "documents.txt");
 			System.out.println("Extracting documents with top 10 topics: " + documentFile.getAbsolutePath());
 			PrintWriter pw2 = JobUtils.getPrintWriter(documentFile);
-			DocumentReader docReader = new DocumentReader(hdfs.docIndexPath, hdfs.documentPath, hdfsConf, 10);
+			DocumentReader docReader = new DocumentReader(hdfs.docIndexPath, hdfs.documentPath, conf.hdfs, 10);
 			for (Entry<String, List<Integer>> document: docReader.getDocuments().entrySet()) {
 				sb.setLength(0);
 				for (int topicId: document.getValue()) {

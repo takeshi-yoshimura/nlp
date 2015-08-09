@@ -14,7 +14,7 @@ import java.util.TreeMap;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
@@ -119,22 +119,21 @@ public class TopicTrendJob implements NLPJob {
 		outputFile.mkdirs();
 
 		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
-		Configuration hdfsConf = new Configuration();
 		try {
 			//get <sha, <ver, dirs>> and num(doc|ver), num(doc|dir) at first
 			Repository repo = new FileRepositoryBuilder().findGitDir(gitFile).build();
 			Map<Integer, String> vers = getVersions(repo); // <version time, version name>
 			Map<Integer, Integer> verDocs = new TreeMap<Integer, Integer>(); //<version time, num(doc)>
 			Map<String, Integer> dirDocs = new HashMap<String, Integer>(); //<dir, num(doc)>
-			Map<Integer, GitMetaInfo> shas = getGitMetaInfo(hdfs.docIndexPath, hdfsConf, repo, vers, verDocs, dirDocs); //<sha ID, version>
+			Map<Integer, GitMetaInfo> shas = getGitMetaInfo(hdfs.docIndexPath, conf.hdfs, repo, vers, verDocs, dirDocs); //<sha ID, version>
 
 			System.out.println("Load topic");
-			Map<Integer, String> topicNames = getTopics(hdfs.dictionaryPath, hdfs.topicPath, hdfsConf);
+			Map<Integer, String> topicNames = getTopics(hdfs.dictionaryPath, hdfs.topicPath, conf.hdfs);
 
 			System.out.println("Load p(topic|document) and calculate p(topic|ver), p(topic|dir)");
 			Map<Integer, Map<Integer, Double>> pTopicVer = new HashMap<Integer, Map<Integer, Double>>(); //<topicID, <ver, p(topic|ver)>>
 			Map<Integer, Map<String, Double>> pTopicDir = new HashMap<Integer, Map<String, Double>>(); //<topicID, <dir, p(topic|dir)>>
-			SequenceDirectoryReader<Integer, Vector> docReader = new SequenceDirectoryReader<>(hdfs.documentPath, hdfsConf, Integer.class, Vector.class);
+			SequenceDirectoryReader<Integer, Vector> docReader = new SequenceDirectoryReader<>(hdfs.documentPath, conf.hdfs, Integer.class, Vector.class);
 			while (docReader.seekNext()) {
 				int sha = docReader.key();
 				if (!shas.containsKey(sha)) {
@@ -209,19 +208,19 @@ public class TopicTrendJob implements NLPJob {
 		}
 	}
 
-	private Map<Integer, String> getTopics(Path dictionaryPath, Path topicPath, Configuration hdfsConf) throws Exception {
+	private Map<Integer, String> getTopics(Path dictionaryPath, Path topicPath, FileSystem fs) throws Exception {
 		Map<Integer, String> topicNames = new HashMap<Integer, String>();
-		for (Entry<Integer, List<String>> e: new TopicReader(dictionaryPath, topicPath, hdfsConf, 1).getTopics().entrySet()) {
+		for (Entry<Integer, List<String>> e: new TopicReader(dictionaryPath, topicPath, fs, 1).getTopics().entrySet()) {
 			topicNames.put(e.getKey(), e.getValue().get(0));
 		}
 		return topicNames;
 	}
 
-	private Map<Integer, GitMetaInfo> getGitMetaInfo(Path docIndexPath, Configuration hdfsConf, 
+	private Map<Integer, GitMetaInfo> getGitMetaInfo(Path docIndexPath, FileSystem fs, 
 			Repository repo, Map<Integer, String> vers, Map<Integer, Integer> verDocs, Map<String, Integer> dirDocs) throws Exception {
 		System.out.println("Load docIndex");
 		Map<String, Integer> revDocIndex = new HashMap<String, Integer>();
-		SequenceDirectoryReader<Integer, String> docIndexReader = new SequenceDirectoryReader<>(docIndexPath, hdfsConf, Integer.class, String.class);
+		SequenceDirectoryReader<Integer, String> docIndexReader = new SequenceDirectoryReader<>(docIndexPath, fs, Integer.class, String.class);
 		while (docIndexReader.seekNext()) {
 			if (docIndexReader.val().indexOf('-') != -1) {
 				revDocIndex.put(docIndexReader.val().substring(0, docIndexReader.val().lastIndexOf('-')), docIndexReader.key());

@@ -11,7 +11,7 @@ import java.util.Map.Entry;
 
 import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
 
-import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.mahout.common.Pair;
 import org.apache.mahout.math.Vector;
@@ -40,9 +40,9 @@ public class TopicReader {
 	public TopicReader() {
 	}
 
-	public TopicReader(Path dictionary, Path topicTerm, Configuration conf, int maxTerms) throws IOException {
-		loadDictionary(dictionary, conf);
-		loadTopicTermDir(topicTerm, conf, maxTerms);
+	public TopicReader(Path dictionary, Path topicTerm, FileSystem fs, int maxTerms) throws IOException {
+		loadDictionary(dictionary, fs);
+		loadTopicTermDir(topicTerm, fs, maxTerms);
 	}
 
 	public Map<Integer, List<String>> getTopics() {
@@ -61,9 +61,9 @@ public class TopicReader {
 		termIDTermString = dictionary;
 	}
 
-	public void loadDictionary(Path dictionary, Configuration conf) throws IOException {
+	public void loadDictionary(Path dictionary, FileSystem fs) throws IOException {
 		termIDTermString = new HashMap<Integer, String>();
-		SequenceDirectoryReader<String, Integer> dictionaryReader = new SequenceDirectoryReader<>(dictionary, conf, String.class, Integer.class);
+		SequenceDirectoryReader<String, Integer> dictionaryReader = new SequenceDirectoryReader<>(dictionary, fs, String.class, Integer.class);
 		while (dictionaryReader.seekNext()) {
 			int termID = dictionaryReader.val();
 			String term = dictionaryReader.key();
@@ -72,9 +72,9 @@ public class TopicReader {
 		dictionaryReader.close();
 	}
 
-	public void loadTopicTermDir(Path topicTerm, Configuration conf, int maxTerms) throws IOException {
+	public void loadTopicTermDir(Path topicTerm, FileSystem fs, int maxTerms) throws IOException {
 		topicIDTermID = new HashMap<Integer, List<Integer>>();
-		SequenceDirectoryReader<Integer, Vector> topicTermReader = new SequenceDirectoryReader<>(topicTerm, conf, Integer.class, Vector.class);
+		SequenceDirectoryReader<Integer, Vector> topicTermReader = new SequenceDirectoryReader<>(topicTerm, fs, Integer.class, Vector.class);
 		FirstReverseSorter sorter = new FirstReverseSorter();
 		while (topicTermReader.seekNext()) {
 			int topicID = topicTermReader.key();
