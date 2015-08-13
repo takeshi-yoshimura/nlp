@@ -5,7 +5,6 @@ import java.io.File;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.fs.Path;
 
 import ac.keio.sslab.clustering.bottomup.BottomupClustering;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
@@ -59,11 +58,11 @@ public class BottomUpJob implements NLPJob {
 		NLPConf conf = NLPConf.getInstance();
 		LDAHDFSFiles ldaFiles = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
 		File localOutputDir = new File(conf.finalOutputFile, "bottomup/" + mgr.getJobID());
-		Path mergingMergedPath = new Path(localOutputDir.getAbsolutePath(), "mergingToFrom.seq"); //Note: local FS
+		File mergingMergedPath = new File(localOutputDir.getAbsolutePath(), "mergingToFrom.seq"); //Note: local FS
 
 		try {
 			BottomupClustering bc = new BottomupClustering(ldaFiles.documentPath, conf.hdfs, mgr.getArgStr("d"), threashold);
-			bc.run(mergingMergedPath, conf.hdfs, mgr.doForceWrite());
+			bc.run(mergingMergedPath, mgr.doForceWrite());
 		} catch (Exception e) {
 			e.printStackTrace();
 			return;

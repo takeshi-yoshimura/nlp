@@ -1,6 +1,8 @@
 package ac.keio.sslab.clustering.bottomup;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,8 +16,7 @@ import org.apache.mahout.common.distance.SquaredEuclideanDistanceMeasure;
 import org.apache.mahout.math.Vector;
 
 import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
-import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
-import ac.keio.sslab.nlp.NLPConf;
+import ac.keio.sslab.nlp.JobUtils;
 
 // select and run the best algorithm of bottom-up clustering
 // try to use as small amounts of memory as possible here because memory may not be able to store all the input data
@@ -54,13 +55,17 @@ public class BottomupClustering {
 		clustering = new CachedBottomupClustering(points, measure, memoryCapacity - numD * numP * Double.SIZE / 8);
 	}
 
-	public void run(Path output, FileSystem fs, boolean doForceWrite) throws IOException {
-		SequenceSwapWriter<Integer, Integer> writer = new SequenceSwapWriter<Integer, Integer>(output, NLPConf.getInstance().tmpPath, fs, doForceWrite, Integer.class, Integer.class);
-		while(clustering.next()) {
-			clustering.update();
-			int merged = pointIndex.get(clustering.mergedClusterId());
-			int merging = pointIndex.get(clustering.mergingClusterId());
-			writer.append(merging, merged);
+	public void run(File output, boolean doForceWrite) throws IOException, InterruptedException {
+		PrintWriter writer = JobUtils.getPrintWriter(output);
+		int i = 0;
+		System.err.print("Iteration #" + i++ + ": ");
+		int [] nextPair = null;
+		while((nextPair = clustering.popMostSimilarClusterPair()) != null) {
+			int merging = pointIndex.get(nextPair[0]);
+			int merged = pointIndex.get(nextPair[1]);
+			System.err.println(merging + "," + merged);
+			writer.println(merging + "," + merged);
+			System.err.println("Iteration #" + i++ + ": ");
 		}
 		writer.close();
 	}
