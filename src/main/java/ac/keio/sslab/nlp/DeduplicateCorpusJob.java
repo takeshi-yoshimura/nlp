@@ -10,8 +10,8 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 
-import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
-import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
+import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
+import ac.keio.sslab.utils.hadoop.SequenceSwapWriter;
 
 public class DeduplicateCorpusJob implements NLPJob {
 

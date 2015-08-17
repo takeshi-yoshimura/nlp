@@ -8,10 +8,10 @@ import org.apache.mahout.clustering.lda.cvb.CVB0Driver;
 import org.apache.mahout.common.AbstractJob;
 import org.apache.mahout.math.Vector;
 
-import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
-import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
 import ac.keio.sslab.nlp.JobUtils;
 import ac.keio.sslab.nlp.NLPConf;
+import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
+import ac.keio.sslab.utils.hadoop.SequenceSwapWriter;
 
 public class CVB0 extends RestartableLDAJob {
 

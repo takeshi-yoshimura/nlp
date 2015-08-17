@@ -12,9 +12,9 @@ import org.apache.mahout.math.Vector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
-import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
 import ac.keio.sslab.nlp.NLPConf;
+import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
+import ac.keio.sslab.utils.hadoop.SequenceSwapWriter;
 
 public class Main extends AbstractJob {
 

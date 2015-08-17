@@ -18,7 +18,7 @@ import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
 
-import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
+import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 
 public class DocumentGroupReader {
 	Map<Integer, String> docIndex;

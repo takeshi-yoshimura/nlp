@@ -1,4 +1,4 @@
-package ac.keio.sslab.hadoop.utils;
+package ac.keio.sslab.utils.hadoop;
 
 import org.apache.hadoop.io.Writable;
 

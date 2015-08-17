@@ -14,12 +14,12 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 
-import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
 import ac.keio.sslab.nlp.corpus.DocumentFilter;
 import ac.keio.sslab.nlp.corpus.GitCorpusReader;
 import ac.keio.sslab.nlp.corpus.GitLogCorpusReader;
 import ac.keio.sslab.nlp.corpus.ShaFileGitCorpusReader;
 import ac.keio.sslab.nlp.corpus.StableLinuxGitCorpusReader;
+import ac.keio.sslab.utils.hadoop.SequenceSwapWriter;
 
 public class GitCorpusJob implements NLPJob {
 

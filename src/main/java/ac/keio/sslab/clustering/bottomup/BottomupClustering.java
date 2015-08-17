@@ -1,7 +1,6 @@
 package ac.keio.sslab.clustering.bottomup;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,8 +14,8 @@ import org.apache.mahout.common.distance.DistanceMeasure;
 import org.apache.mahout.common.distance.SquaredEuclideanDistanceMeasure;
 import org.apache.mahout.math.Vector;
 
-import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
 import ac.keio.sslab.nlp.JobUtils;
+import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 
 // select and run the best algorithm of bottom-up clustering
 // try to use as small amounts of memory as possible here because memory may not be able to store all the input data
@@ -55,7 +54,7 @@ public class BottomupClustering {
 		clustering = new CachedBottomupClustering(points, measure, memoryCapacity - numD * numP * Double.SIZE / 8);
 	}
 
-	public void run(File output, boolean doForceWrite) throws IOException, InterruptedException {
+	public void run(File output, boolean doForceWrite) throws Exception {
 		PrintWriter writer = JobUtils.getPrintWriter(output);
 		int i = 0;
 		System.err.print("Iteration #" + i++ + ": ");
@@ -65,7 +64,7 @@ public class BottomupClustering {
 			int merged = pointIndex.get(nextPair[1]);
 			System.err.println(merging + "," + merged);
 			writer.println(merging + "," + merged);
-			System.err.println("Iteration #" + i++ + ": ");
+			System.err.print("Iteration #" + i++ + ": ");
 		}
 		writer.close();
 	}

@@ -7,9 +7,9 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 
-import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
 import ac.keio.sslab.nlp.corpus.DocumentFilter;
 import ac.keio.sslab.nlp.corpus.SimpleTextCorpusReader;
+import ac.keio.sslab.utils.hadoop.SequenceSwapWriter;
 
 public class TextCorpusJob implements NLPJob {
 

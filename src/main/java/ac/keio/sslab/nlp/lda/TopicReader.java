@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
+import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;

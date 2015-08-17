@@ -23,10 +23,10 @@ import org.apache.mahout.math.SparseMatrix;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
 
-import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
 import ac.keio.sslab.nlp.JobUtils;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
 import ac.keio.sslab.nlp.lda.TopicReader;
+import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 
 public class NamedMatrix {
 	protected Matrix matrix = null;

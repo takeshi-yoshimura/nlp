@@ -14,7 +14,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
 
-import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
+import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 
 public class DocumentReader {
 	Map<Integer, String> docIndex;

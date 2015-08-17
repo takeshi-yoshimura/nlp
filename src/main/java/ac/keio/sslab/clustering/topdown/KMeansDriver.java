@@ -21,9 +21,9 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.mahout.clustering.Cluster;
 import org.apache.mahout.clustering.iterator.ClusterWritable;
 
-import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
-import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
 import ac.keio.sslab.nlp.NLPConf;
+import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
+import ac.keio.sslab.utils.hadoop.SequenceSwapWriter;
 
 public class KMeansDriver {
 

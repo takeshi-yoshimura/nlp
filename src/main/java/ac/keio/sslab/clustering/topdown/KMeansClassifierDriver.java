@@ -18,7 +18,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.mahout.clustering.Cluster;
 import org.apache.mahout.math.VectorWritable;
 
-import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
+import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 
 public class KMeansClassifierDriver {
 	static int numClusterDivision = 2;

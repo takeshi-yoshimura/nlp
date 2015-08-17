@@ -13,8 +13,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.mahout.math.Vector;
 
-import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
 import ac.keio.sslab.nlp.JobUtils;
+import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 
 public class MergingMergedDumper {
 

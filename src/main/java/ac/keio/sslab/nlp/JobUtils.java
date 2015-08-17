@@ -21,9 +21,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.mahout.math.Vector;
 import org.eclipse.jgit.util.FileUtils;
 
-import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
-import ac.keio.sslab.hadoop.utils.SequenceSwapWriter;
 import ac.keio.sslab.nlp.lda.LDAFiles;
+import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
+import ac.keio.sslab.utils.hadoop.SequenceSwapWriter;
 
 public class JobUtils {
 

@@ -20,9 +20,9 @@ import org.apache.mahout.math.Vector.Element;
 import org.apache.mahout.math.Vector;
 import org.eclipse.jgit.util.FileUtils;
 
-import ac.keio.sslab.hadoop.utils.SequenceDirectoryReader;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
 import ac.keio.sslab.nlp.lda.TopicReader;
+import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 
 public class TopDownDumpJob implements NLPJob {
 
