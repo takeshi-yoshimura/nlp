@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -24,7 +25,7 @@ public class BottomupClustering {
 	Path input;
 	FileSystem fs;
 
-	public BottomupClustering(Path input, FileSystem fs, String measureName, long memoryCapacity) throws Exception {
+	public BottomupClustering(Path input, FileSystem fs, String measureName) throws Exception {
 		this.input = input;
 
 		DistanceMeasure measure;
@@ -45,6 +46,9 @@ public class BottomupClustering {
 		}
 		reader.close();
 		clustering = new CachedBottomupClustering(points, measure);
+		for (Entry<Integer, List<Integer>> e: clustering.getClusters().entrySet()) {
+			System.out.println(e.getKey() + ":" + e.getValue().get(0));
+		}
 	}
 
 	public void run(File output, boolean doForceWrite) throws Exception {
@@ -54,7 +58,7 @@ public class BottomupClustering {
 		while((nextPair = clustering.popMostSimilarClusterPair()) != null) {
 			int merging = pointIndex.get(nextPair[0]);
 			int merged = pointIndex.get(nextPair[1]);
-			System.out.print("Iteration #" + i++ + ": " + merging + "," + merged);
+			System.out.println("Iteration #" + i++ + ": " + merging + "," + merged);
 			writer.println(merging + "," + merged);
 		}
 		writer.close();

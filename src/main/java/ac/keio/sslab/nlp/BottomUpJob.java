@@ -31,37 +31,20 @@ public class BottomUpJob implements NLPJob {
 		required2.setRequired(true);
 
 		Options opt = new Options();
-		opt.addOption("t", "threashold", true, "bytes of threashold to optimize algorithm. K, M, G postfix are available (default: 6.4G)");
 		opt.addOptionGroup(required);
 		opt.addOptionGroup(required2);
 		return opt;
 	}
 
-	public long parseThreashold(String str) {
-		long postfix = 1;
-		str = str.toLowerCase();
-		if (str.matches("^.*[mgk]$")) {
-			switch(str.charAt(str.length() - 1)) {
-			case 'k': postfix = 1024; break;
-			case 'm': postfix = 1024 * 1024; break;
-			case 'g': postfix = 1024 * 1024 * 1024; break;
-			}
-			str = str.substring(0, str.length() - 1);
-		}
-		double d = Double.parseDouble(str);
-		return (long)(d * postfix);
-	}
-
 	@Override
 	public void run(JobManager mgr) {
-		long threashold = parseThreashold(mgr.getArgOrDefault("t", "6.4G", String.class));
 		NLPConf conf = NLPConf.getInstance();
 		LDAHDFSFiles ldaFiles = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
 		File localOutputDir = new File(conf.finalOutputFile, "bottomup/" + mgr.getJobID());
 		File mergingMergedPath = new File(localOutputDir.getAbsolutePath(), "mergingToFrom.seq"); //Note: local FS
 
 		try {
-			BottomupClustering bc = new BottomupClustering(ldaFiles.documentPath, conf.hdfs, mgr.getArgStr("d"), threashold);
+			BottomupClustering bc = new BottomupClustering(ldaFiles.documentPath, conf.hdfs, mgr.getArgStr("d"));
 			bc.run(mergingMergedPath, mgr.doForceWrite());
 		} catch (Exception e) {
 			e.printStackTrace();
