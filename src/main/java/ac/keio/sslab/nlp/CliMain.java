@@ -149,11 +149,6 @@ public class CliMain {
 			runInBackground = job.runInBackground();
 		}
 
-		if (runInBackground) {
-			forkProcess(job, newArgs);
-			return;
-		}
-
 		JobManager manager = new JobManager(job);
 		try {
 			manager.parseBasicArgs(newArgs);
@@ -173,7 +168,12 @@ public class CliMain {
 					newArgs = pastArgs;
 				}
 			}
+			if (runInBackground) {
+				forkProcess(job, newArgs);
+				return;
+			}
 			manager.parseOptions(newArgs);
+
 			if (!manager.tryLock()) {
 				System.out.println("Currently the job " + job.getJobName() + " ID = " + jobID + " is running. Aborts");
 				return;

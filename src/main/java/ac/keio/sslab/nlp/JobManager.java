@@ -189,7 +189,7 @@ public class JobManager {
 		JSONObject jobJson = new JSONObject(IOUtils.toString(inputStream));
 		JSONObject jobIDJson = jobJson.getJSONObject(jobID);
 		for (Object key : jobIDJson.keySet()) {
-			args.add((String) key);
+			args.add("-" + (String) key);
 			args.add(jobIDJson.getString((String) key));
 		}
 		inputStream.close();
