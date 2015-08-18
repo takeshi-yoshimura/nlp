@@ -1,5 +1,7 @@
 package ac.keio.sslab.clustering.bottomup;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
@@ -86,13 +88,21 @@ public class OrderCache {
 			}
 
 			// rarely go into here
-			int [] newPair = new int[clusters.length - 2];
-			int c = 0;
+			List<Integer> newArray = new ArrayList<Integer>();
 			for (int j = 0; j < clusters.length; j += 2) {
 				if (cluster != clusters[j] && cluster != clusters[j + 1]) {
-					newPair[c++] = clusters[j];
-					newPair[c++] = clusters[j + 1];
+					newArray.add(clusters[j]);
+					newArray.add(clusters[j + 1]);
 				}
+			}
+			if (newArray.isEmpty()) {
+				i.remove();
+				continue;
+			}
+			int [] newPair = new int[newArray.size()];
+			int l = 0;
+			for (int k: newArray) {
+				newPair[l++] = k;
 			}
 			simOrder.put(e.getKey(), newPair);
 		}

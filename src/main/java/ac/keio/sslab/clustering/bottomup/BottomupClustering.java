@@ -46,9 +46,6 @@ public class BottomupClustering {
 		}
 		reader.close();
 		clustering = new CachedBottomupClustering(points, measure);
-		for (Entry<Integer, List<Integer>> e: clustering.getClusters().entrySet()) {
-			System.out.println(e.getKey() + ":" + e.getValue().get(0));
-		}
 	}
 
 	public void run(File output, boolean doForceWrite) throws Exception {
@@ -59,6 +56,9 @@ public class BottomupClustering {
 			int merging = pointIndex.get(nextPair[0]);
 			int merged = pointIndex.get(nextPair[1]);
 			System.out.println("Iteration #" + i++ + ": " + merging + "," + merged);
+			for (Entry<Integer, List<Integer>> e: clustering.getClusters().entrySet()) {
+				System.out.print(e.getKey() + ":" + e.getValue().get(0) + " ");
+			}
 			writer.println(merging + "," + merged);
 		}
 		writer.close();
