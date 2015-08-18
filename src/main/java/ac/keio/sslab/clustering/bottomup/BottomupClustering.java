@@ -17,8 +17,6 @@ import org.apache.mahout.math.Vector;
 import ac.keio.sslab.nlp.JobUtils;
 import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 
-// select and run the best algorithm of bottom-up clustering
-// try to use as small amounts of memory as possible here because memory may not be able to store all the input data
 public class BottomupClustering {
 
 	CachedBottomupClustering clustering;
@@ -41,30 +39,23 @@ public class BottomupClustering {
 		List<Vector> points = new ArrayList<Vector>();
 		pointIndex = new HashMap<Integer, Integer>();
 		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(input, fs, Integer.class, Vector.class);
-		int numP = 0, numD = 0;
 		while (reader.seekNext()) {
 			pointIndex.put(points.size(), reader.key());
 			points.add(reader.val());
-			if (numP == 0) {
-				numD = reader.val().size();
-			}
-			numP++;
 		}
 		reader.close();
-		clustering = new CachedBottomupClustering(points, measure, memoryCapacity - numD * numP * Double.SIZE / 8);
+		clustering = new CachedBottomupClustering(points, measure);
 	}
 
 	public void run(File output, boolean doForceWrite) throws Exception {
 		PrintWriter writer = JobUtils.getPrintWriter(output);
 		int i = 0;
-		System.err.print("Iteration #" + i++ + ": ");
 		int [] nextPair = null;
 		while((nextPair = clustering.popMostSimilarClusterPair()) != null) {
 			int merging = pointIndex.get(nextPair[0]);
 			int merged = pointIndex.get(nextPair[1]);
-			System.err.println(merging + "," + merged);
+			System.out.print("Iteration #" + i++ + ": " + merging + "," + merged);
 			writer.println(merging + "," + merged);
-			System.err.print("Iteration #" + i++ + ": ");
 		}
 		writer.close();
 	}

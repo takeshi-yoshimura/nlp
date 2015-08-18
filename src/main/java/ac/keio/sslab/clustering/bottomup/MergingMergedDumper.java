@@ -109,4 +109,46 @@ public class MergingMergedDumper {
 		graphW.close();
 		clusterW.close();
 	}
+
+	public void dumpDotFromRoot(File outputDir, Map<Integer, String> topicStr, int numHierarchy) throws IOException {
+		dumpDot(outputDir, topicStr, root.ID, numHierarchy);
+	}
+
+	public void dumpDot(File outputDir, Map<Integer, String> topicStr, int startID, int numHierarchy) throws IOException {
+		String dendName = "dend_" + startID + "_" + numHierarchy;
+		PrintWriter writer = JobUtils.getPrintWriter(new File(outputDir, dendName + ".dot"));
+		writer.println("dirgraph" + dendName + " {");
+		cluster current = null;
+		for (cluster c: clusters) {
+			if (c.ID == startID) {
+				current = c;
+			}
+		}
+		dumpDotTraverse(writer, topicStr, current, numHierarchy);
+		writer.println("}");
+		writer.close();
+	}
+
+	private void dumpDotTraverse(PrintWriter writer, Map<Integer, String> topicStr, cluster current, int numHierarchy) {
+		if (current == null || numHierarchy <= 0) {
+			return;
+		}
+
+		writer.print("\tC" + current.ID + " [shape = record, label=\"{{C" + current.ID + " | N(p) = " + current.size + "}");
+		for (Entry<Integer, Double> e: JobUtils.getTopElements(current.centroid, 3)) {
+			writer.print("|" + (topicStr == null ? e.getKey(): topicStr.get(e.getKey())) + ":" + String.format("%1$3", e.getValue()));
+		}
+		writer.println("}\"];");
+
+		if (current.leftC != null) {
+			writer.println("\tC" + current.ID + " -> " + "C" + current.leftC.ID + ";");
+		}
+		if (current.rightC != null) {
+			writer.println("\tC" + current.ID + " -> " + "C" + current.rightC.ID + ";");
+		}
+		writer.println();
+
+		dumpDotTraverse(writer, topicStr, current.leftC, numHierarchy - 1);
+		dumpDotTraverse(writer, topicStr, current.rightC, numHierarchy - 1);
+	}
 }

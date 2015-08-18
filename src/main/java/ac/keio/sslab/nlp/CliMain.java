@@ -164,15 +164,21 @@ public class CliMain {
 			String jobID = manager.getJobID();
 			if (manager.hasPastArgs()) {
 				System.out.println("Found the past output for job " + job.getJobName() + " ID = " + jobID + ". Use the past arguments");
-				manager.restoreArgs();
-			} else {
-				manager.parseOptions(newArgs);
-				manager.saveArgs();
+				String [] pastArgs = manager.readPastArgs();
+				if (manager.doForceWrite()) {
+					newArgs = new String[pastArgs.length + 1];
+					System.arraycopy(pastArgs, 0, newArgs, 0, pastArgs.length);
+					newArgs[newArgs.length - 1] = "-ow";
+				} else {
+					newArgs = pastArgs;
+				}
 			}
+			manager.parseOptions(newArgs);
 			if (!manager.tryLock()) {
 				System.out.println("Currently the job " + job.getJobName() + " ID = " + jobID + " is running. Aborts");
 				return;
 			}
+			manager.saveArgs();
 			job.run(manager);
 			manager.unLock();
 		} catch (Exception e) {

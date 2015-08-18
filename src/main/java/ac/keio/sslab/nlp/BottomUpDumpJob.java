@@ -24,7 +24,7 @@ public class BottomUpDumpJob implements NLPJob {
 
 	@Override
 	public String getJobDescription() {
-		return "generate .csv files for a dendrogram with a bottomup result";
+		return "generate .csv & .dot files for a bottomup job result";
 	}
 
 	@Override
@@ -35,6 +35,8 @@ public class BottomUpDumpJob implements NLPJob {
 		g.setRequired(true);
 
 		Options opt = new Options();
+		opt.addOption("s", "startID", true, "the root of output dendrogram (default: root)");
+		opt.addOption("h", "numHierarchy", true, "the number of Hierarchy of output dendrogram (default: 5)");
 		opt.addOptionGroup(g);
 		return opt;
 	}
@@ -52,6 +54,7 @@ public class BottomUpDumpJob implements NLPJob {
 			}
 			MergingMergedDumper dumper = new MergingMergedDumper(ldaFiles.documentPath, conf.hdfs, mergingMergedPath, conf.localfs);
 			dumper.dumpCSV(localOutputDir, topics);
+			dumper.dumpDot(localOutputDir, topics, mgr.getArgOrDefault("s", dumper.getRoot().ID, Integer.class), mgr.getArgOrDefault("h", 5, Integer.class));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

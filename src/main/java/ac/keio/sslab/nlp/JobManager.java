@@ -4,9 +4,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -181,35 +183,17 @@ public class JobManager {
         return hasJobID;
 	}
 
-	public void restoreArgs() throws Exception {
-		Map<String, String> map = new HashMap<String, String>();
+	public String [] readPastArgs() throws Exception {
+		List<String> args = new ArrayList<String>();
 		FileInputStream inputStream = new FileInputStream(argFile);
 		JSONObject jobJson = new JSONObject(IOUtils.toString(inputStream));
 		JSONObject jobIDJson = jobJson.getJSONObject(jobID);
 		for (Object key : jobIDJson.keySet()) {
-			map.put((String) key, jobIDJson.getString((String) key));
+			args.add((String) key);
+			args.add(jobIDJson.getString((String) key));
 		}
 		inputStream.close();
-		if (args.containsKey("ow")) {
-			map.put("ow", "");
-		}
-		boolean hasArg = true;
-		for (@SuppressWarnings("rawtypes") Iterator i = options.getOptions().iterator(); i.hasNext();) {
-			Option opt = (Option) i.next();
-			OptionGroup g = options.getOptionGroup(opt);
-			if (g == null || !g.isRequired()) {
-				continue;
-			}
-			if (!(map.containsKey(opt.getLongOpt()) || map.containsKey(opt.getOpt()))) {
-				System.err.println("Need to specify --" + opt.getOpt());
-				hasArg = false;
-			}
-		}
-		if (hasArg) {
-			args = map;
-		} else {
-			throw new Exception("Incorrect arguments");
-		}
+		return args.toArray(new String[args.size()]);
 	}
 
 	public void saveArgs() throws IOException {

@@ -10,17 +10,19 @@ public class OrderCache {
 	TreeMap<Double, int[]> simOrder;
 	int maxSimOrderSize;
 
-	public OrderCache(long memoryCapacity, long numPoints) {
+	public OrderCache(int cacheEntrySize) {
 		this.simOrder = Maps.newTreeMap();
+		maxSimOrderSize = cacheEntrySize;
+	}
 
-		long usedMemory = 0;
-		maxSimOrderSize = 0;
-		long numAllCombinations = numPoints * (numPoints - 1) / 2; // = 1 + 2 + 3 + ,.. + {points.size() - 1}
-		while (maxSimOrderSize < 100 && maxSimOrderSize <= numAllCombinations && usedMemory + (Double.SIZE + Integer.SIZE * 2) / 8 < memoryCapacity) {
-			usedMemory += (Double.SIZE + Integer.SIZE * 2) / 8; // simOrder + revSimOrder
-			++maxSimOrderSize;
+	public OrderCache() {
+		this(100);
+	}
+
+	public void pushIfMoreSimilar(int cluster1, int cluster2, double s) {
+		if (s < simOrder.lastKey()) {
+			push(cluster1, cluster2, s);
 		}
-		System.out.println("maxSimOrderSize: " + maxSimOrderSize);
 	}
 
 	public void push(int cluster1, int cluster2, double s) {
@@ -63,12 +65,7 @@ public class OrderCache {
 	}
 
 	// must be called right after pop()
-	public void invalidate(int cluster1, int cluster2) {
-		__invalidate(cluster1);
-		__invalidate(cluster2);
-	}
-
-	protected void __invalidate(int cluster) {
+	protected void invalidate(int cluster) {
 		for (java.util.Iterator<Entry<Double, int[]>> i = simOrder.entrySet().iterator(); i.hasNext();) {
 			Entry<Double, int[]> e = i.next();
 			int [] clusters = e.getValue();
@@ -109,14 +106,18 @@ public class OrderCache {
 		simOrder.clear();
 	}
 
-	public void dump() {
+	public String dump(boolean displaySimilarity) {
+		StringBuilder sb = new StringBuilder();
 		for (Entry<Double, int[]> e: simOrder.entrySet()) {
-			System.out.print(e.getKey());
 			for (int c: e.getValue()) {
-				System.out.print("," + c);
+				sb.append(c).append(',');
 			}
-			System.out.print(" / ");
+			sb.setLength(sb.length() - 1);
+			if (displaySimilarity) {
+				sb.append('(').append(e.getKey()).append(')');
+			}
+			sb.append(" / ");
 		}
-		System.out.println();
+		return sb.toString();
 	}
 }

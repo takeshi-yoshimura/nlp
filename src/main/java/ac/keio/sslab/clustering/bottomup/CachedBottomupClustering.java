@@ -15,9 +15,8 @@ public class CachedBottomupClustering {
 
 	public final int numCore = Runtime.getRuntime().availableProcessors();
 	double [][] distance;
+
 	// per thread data
-	// Note: elements for same cluster ID belongs to same per thread region key
-	// e.g., stats for cluster ID == 1 appear in order.get(1) and clusters.getKey(1)
 	List<OrderCache> order;
 	ArrayMap<Integer, Integer> clusters; // Multimap cannot be used due to thread-safety
 
@@ -30,29 +29,21 @@ public class CachedBottomupClustering {
 		}
 	}
 
-	public CachedBottomupClustering(List<Vector> points, DistanceMeasure measure, long memoryCapacity) throws Exception {
+	public CachedBottomupClustering(List<Vector> points, DistanceMeasure measure) throws Exception {
 		this.measure = measure;
 		this.points = points;
 
-		long usedMemory = points.size() * Integer.SIZE / 8 * 2; //clusters
-
-		System.out.print("allocate memory for distance...");
 		this.distance = new double[points.size()][];
 		for (int i = 0; i < points.size(); i++) {
 			distance[i] = new double[i + 1];
-			usedMemory += Double.SIZE / 8 * (i + 1);
 		}
-		System.out.println(" finished (used roughly: " + usedMemory + " bytes)");
 
 		this.order = new ArrayList<OrderCache>();
-		int numCore = Runtime.getRuntime().availableProcessors();
 		for (int n = 0; n < numCore; n++) {
-			this.order.add(new OrderCache((memoryCapacity - usedMemory) / numCore, points.size()));
+			this.order.add(new OrderCache());
 		}
 		this.clusters = ArrayMap.newMap(numCore);
-		System.out.print("allocate clusters and order caches initially...");
 		init();
-		System.out.println(" finished");
 	}
 
 	protected void init() throws InterruptedException {
@@ -86,9 +77,6 @@ public class CachedBottomupClustering {
 			Entry<Double, int[]> e = order.get(n).top();
 			if (e == null) {
 				continue; // go into here if iterations for a thread finished
-			}
-			if (!clusters.contains(e.getValue()[0]) || !clusters.contains(e.getValue()[1])) {
-				System.err.println("what?");;
 			}
 			if (minS > e.getKey()) {
 				minS = e.getKey();
@@ -135,7 +123,8 @@ public class CachedBottomupClustering {
 				public void run() {
 					// at most two threads go into O(size of cache) iterations but we cannot balance this because ArrayMap allows thread-safe access only with keys
 					// synchronized Map can avoid the issue but I don't think that will scale. Also, the size of cache is small enough, right?
-					order.get(N).invalidate(cluster1, cluster2);
+					order.get(N).invalidate(cluster1);
+					order.get(N).invalidate(cluster2);
 				}
 			};
 			t[n].start();
@@ -157,14 +146,14 @@ public class CachedBottomupClustering {
 						if (!clusters.contains(N, i)) {
 							continue;
 						}
-						order.get(N).push(i, newCluster, getSimilarity(i, newCluster));
+						order.get(N).pushIfMoreSimilar(i, newCluster, getSimilarity(i, newCluster));
 					}
 					if (newCluster % numCore == N) {
 						for (i = 0; i < newCluster; i++)  {
 							if (!clusters.contains(i)) {
 								continue;
 							}
-							order.get(N).push(newCluster, i, getSimilarity(newCluster, i));
+							order.get(N).pushIfMoreSimilar(newCluster, i, getSimilarity(newCluster, i));
 						}
 					}
 				}
