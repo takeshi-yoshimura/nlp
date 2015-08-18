@@ -67,7 +67,6 @@ public class NLPConf {
 		localRootFile = new File(nlpLocalDirName);
 		localLogFile = new File(localRootFile, logDirName);
 		localLdaFile = new File(localRootFile, LDADirName);
-		localBottomupFile = new File(localRootFile, bottomupDirName);
 		localCorpusFile = new File(localRootFile, corpusDirName);
 		localArgFile = new File(localRootFile, argDirName);
 		localLockFile = new File(localRootFile, lockDirName);
@@ -75,6 +74,7 @@ public class NLPConf {
 
 		finalOutputFile = new File(localRootFile, finalOutputDirName);
 		finalStableCommitStatsFile = new File(finalOutputFile, finalStableCommitStatsFileName);
+		localBottomupFile = new File(finalOutputFile, bottomupDirName);
 	}
 
 	public void loadConfFile(String confFileName) {

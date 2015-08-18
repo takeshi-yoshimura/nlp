@@ -1,6 +1,8 @@
 package ac.keio.sslab.clustering.bottomup;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -42,13 +44,14 @@ public class MergingMergedDumper {
 		}
 	}
 
-	Path input, pointInput;
+	File input;
+	Path pointInput;
 	FileSystem fs, fs2;
 	cluster root;
 	List<cluster> clusters;
 
 	// topicStr can be null
-	public MergingMergedDumper(Path input, FileSystem fs, Path pointInput, FileSystem fs2) throws IOException {
+	public MergingMergedDumper(File input, FileSystem fs, Path pointInput, FileSystem fs2) throws IOException {
 		this.input = input;
 		this.fs = fs;
 		this.pointInput = pointInput;
@@ -58,6 +61,7 @@ public class MergingMergedDumper {
 
 	protected void buildGraph() throws IOException {
 		Map<Integer, cluster> graph = new HashMap<Integer, cluster>();
+		clusters = new ArrayList<cluster>();
 		SequenceDirectoryReader<Integer, Vector> pointReader = new SequenceDirectoryReader<Integer, Vector>(pointInput, fs2, Integer.class, Vector.class);
 		int clusterID = 0;
 		while (pointReader.seekNext()) {
@@ -67,15 +71,19 @@ public class MergingMergedDumper {
 		}
 		pointReader.close();
 
-		SequenceDirectoryReader<Integer, Integer> reader = new SequenceDirectoryReader<Integer, Integer>(input, fs, Integer.class, Integer.class);
+		BufferedReader reader = new BufferedReader(new FileReader(input));
+		String line = null;
 		clusters = new ArrayList<cluster>();
-		while (reader.seekNext()) {
-			cluster leftC = graph.get(reader.key());
-			cluster rightC = graph.get(reader.val());
+		while ((line = reader.readLine()) != null) {
+			String [] clusterIDs = line.split(",");
+			int leftID = Integer.parseInt(clusterIDs[0]);
+			int rightID = Integer.parseInt(clusterIDs[1]);
+			cluster leftC = graph.get(leftID);
+			cluster rightC = graph.get(rightID);
 			cluster newC = new cluster(leftC, rightC, clusterID++);
-			graph.remove(reader.key());
-			graph.remove(reader.val());
-			graph.put(reader.key(), newC);
+			graph.remove(leftID);
+			graph.remove(rightID);
+			graph.put(leftID, newC);
 			clusters.add(newC);
 		}
 		reader.close();
@@ -97,8 +105,12 @@ public class MergingMergedDumper {
 		graphW.println("#clusterID,size,centroid");
 		for (cluster c: clusters) {
 			clusterW.print(c.ID + "," + c.size);
+			int i = 0;
 			for (Entry<Integer, Double> e: JobUtils.getTopElements(c.centroid, 3)) {
-				clusterW.print("," + (topicStr == null ? e.getKey(): topicStr.get(e.getKey())) + ":" + String.format("%1$3", e.getValue()));
+				if (++i > 3) {
+					break;
+				}
+				clusterW.print("," + (topicStr == null ? e.getKey(): topicStr.get(e.getKey())) + ":" + String.format("%1$3f", e.getValue()));
 			}
 			clusterW.println();
 			if (c.leftC != null && c.rightC != null) {
@@ -117,7 +129,7 @@ public class MergingMergedDumper {
 	public void dumpDot(File outputDir, Map<Integer, String> topicStr, int startID, int numHierarchy) throws IOException {
 		String dendName = "dend_" + startID + "_" + numHierarchy;
 		PrintWriter writer = JobUtils.getPrintWriter(new File(outputDir, dendName + ".dot"));
-		writer.println("dirgraph" + dendName + " {");
+		writer.println("digraph " + dendName + " {");
 		cluster current = null;
 		for (cluster c: clusters) {
 			if (c.ID == startID) {
@@ -135,8 +147,12 @@ public class MergingMergedDumper {
 		}
 
 		writer.print("\tC" + current.ID + " [shape = record, label=\"{{C" + current.ID + " | N(p) = " + current.size + "}");
+		int i = 0;
 		for (Entry<Integer, Double> e: JobUtils.getTopElements(current.centroid, 3)) {
-			writer.print("|" + (topicStr == null ? e.getKey(): topicStr.get(e.getKey())) + ":" + String.format("%1$3", e.getValue()));
+			if (++i > 3) {
+				break;
+			}
+			writer.print("|" + (topicStr == null ? e.getKey(): topicStr.get(e.getKey())) + ":" + String.format("%1$3f", e.getValue()));
 		}
 		writer.println("}\"];");
 
