@@ -9,9 +9,7 @@ import java.util.Map;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.mahout.common.distance.CosineDistanceMeasure;
 import org.apache.mahout.common.distance.DistanceMeasure;
-import org.apache.mahout.common.distance.SquaredEuclideanDistanceMeasure;
 import org.apache.mahout.math.Vector;
 
 import ac.keio.sslab.nlp.JobUtils;
@@ -24,18 +22,8 @@ public class BottomupClustering {
 	Path input;
 	FileSystem fs;
 
-	public BottomupClustering(Path input, FileSystem fs, String measureName) throws Exception {
+	public BottomupClustering(Path input, FileSystem fs, DistanceMeasure measure) throws Exception {
 		this.input = input;
-
-		DistanceMeasure measure;
-		if (measureName.toLowerCase().equals("cosine")) {
-			measure = new CosineDistanceMeasure();
-		} else if (measureName.toLowerCase().equals("euclidean")) {
-			measure = new SquaredEuclideanDistanceMeasure();
-		} else {
-			throw new Exception("Specify Cosine or Euclidean ");
-		}
-
 		List<Vector> points = new ArrayList<Vector>();
 		pointIndex = new HashMap<Integer, Integer>();
 		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(input, fs, Integer.class, Vector.class);

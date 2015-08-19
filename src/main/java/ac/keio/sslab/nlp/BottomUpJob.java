@@ -5,6 +5,9 @@ import java.io.File;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.mahout.common.distance.CosineDistanceMeasure;
+import org.apache.mahout.common.distance.DistanceMeasure;
+import org.apache.mahout.common.distance.SquaredEuclideanDistanceMeasure;
 
 import ac.keio.sslab.clustering.bottomup.BottomupClustering;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
@@ -43,8 +46,19 @@ public class BottomUpJob implements NLPJob {
 		File localOutputDir = new File(conf.finalOutputFile, "bottomup/" + mgr.getJobID());
 		File mergingMergedPath = new File(localOutputDir.getAbsolutePath(), "mergingToFrom.seq"); //Note: local FS
 
+		String distance = mgr.getArgStr("d");
+		DistanceMeasure measure;
+		if (distance.toLowerCase().equals("cosine")) {
+			measure = new CosineDistanceMeasure();
+		} else if (distance.toLowerCase().equals("euclidean")) {
+			measure = new SquaredEuclideanDistanceMeasure();
+		} else {
+			System.err.println("Specify Cosine or Euclidean ");
+			return;
+		}
+
 		try {
-			BottomupClustering bc = new BottomupClustering(ldaFiles.documentPath, conf.hdfs, mgr.getArgStr("d"));
+			BottomupClustering bc = new BottomupClustering(ldaFiles.documentPath, conf.hdfs, measure);
 			bc.run(mergingMergedPath, mgr.doForceWrite());
 		} catch (Exception e) {
 			e.printStackTrace();
