@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.mahout.common.distance.DistanceMeasure;
+import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.math.Vector;
 
 import ac.keio.sslab.utils.ArrayMap;
@@ -14,7 +16,7 @@ import ac.keio.sslab.utils.ArrayMap;
 public class CachedBottomupClustering {
 
 	public final int numCore = Runtime.getRuntime().availableProcessors();
-	double [][] dot;
+	double [][] distance;
 
 	// per thread data
 	List<OrderCache> order;
@@ -33,9 +35,9 @@ public class CachedBottomupClustering {
 	public CachedBottomupClustering(List<Vector> points) throws Exception {
 		this.points = points;
 
-		this.dot = new double[points.size()][];
+		this.distance = new double[points.size()][];
 		for (int i = 0; i < points.size(); i++) {
-			dot[i] = new double[i + 1];
+			distance[i] = new double[i + 1];
 		}
 
 		this.order = new ArrayList<OrderCache>();
@@ -58,11 +60,8 @@ public class CachedBottomupClustering {
 							break;
 						}
 						for (int j = 0; j <= i; j++) {
-							dot[i][j] = 0;
-							for (int k = 0; k < points.get(j).size(); k++) {
-								dot[i][j] += points.get(i + 1).get(k) * points.get(j).get(k);
-							}
-							order.get(N).push(i + 1, j, dot[i][j]/2);
+							distance[i][j] = getDistance(points.get(i + 1), points.get(j));
+							order.get(N).push(i + 1, j, getInitialSimilarity(distance[i][j]));
 						}
 					}
 				}
@@ -70,6 +69,35 @@ public class CachedBottomupClustering {
 			t[n].start();
 		}
 		waitAll(t);
+	}
+
+	protected double getDistance(Vector v1, Vector v2) {
+		return getHastiaDistance(v1, v2);
+	}
+
+	protected double getInitialSimilarity(double d) {
+		return getHastiaInitSimilarity(d);
+	}
+
+	DistanceMeasure measure = new EuclideanDistanceMeasure();
+	protected double getHastiaDistance(Vector v1, Vector v2) {
+		return measure.distance(v1, v2);
+	}
+
+	protected double getHastiaInitSimilarity(double d) {
+		return d;
+	}
+
+	protected double getManningDistance(Vector v1, Vector v2) {
+		double d = 0;
+		for (int k = 0; k < v1.size(); k++) {
+			d += v1.get(k) * v2.get(k);
+		}
+		return d;
+	}
+
+	protected double getManningDistance(double d) {
+		return d / 2;
 	}
 
 	public int[] popMostSimilarClusterPair() throws Exception {
@@ -195,8 +223,22 @@ public class CachedBottomupClustering {
 		waitAll(t);
 	}
 
-	// use Group Average as cluster similarity measure
 	protected double getSimilarity(int cluster1, int cluster2) {
+		return getHastieSimilarity(cluster1, cluster2);
+	}
+
+	protected double getHastieSimilarity(int cluster1, int cluster2) {
+		double d = 0;
+		for (int p1: clusters.values(cluster1)) {
+			for (int p2: clusters.values(cluster2)) {
+				d += getPointDistance(p1, p2);
+			}
+		}
+		return d / clusters.values(cluster1).size() / clusters.values(cluster2).size();
+	}
+
+	// use Group Average as cluster similarity measure
+	protected double getManningSimilarity(int cluster1, int cluster2) {
 		double d = 0;
 		for (int p1: clusters.values(cluster1)) {
 			for (int p2: clusters.values(cluster2)) {
@@ -215,7 +257,7 @@ public class CachedBottomupClustering {
 			point1 = tmp;
 		}
 
-		return dot[point1 - 1][point2];
+		return distance[point1 - 1][point2];
 	}
 
 	public Map<Integer, List<Integer>> getClusters() {

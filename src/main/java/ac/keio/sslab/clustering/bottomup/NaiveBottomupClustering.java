@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.mahout.common.distance.DistanceMeasure;
+import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.math.Vector;
 
 public class NaiveBottomupClustering {
@@ -55,8 +57,23 @@ public class NaiveBottomupClustering {
 		return new int [] {min_i, min_j};
 	}
 
-	// use Group Average as cluster similarity measure
 	protected double getSimilarity(int cluster1, int cluster2) {
+		return getHastiaSimilarity(cluster1, cluster2);
+	}
+
+	DistanceMeasure measure = new EuclideanDistanceMeasure();
+	protected double getHastiaSimilarity(int cluster1, int cluster2) {
+		double d = 0;
+		for (int p1: clusters.get(cluster1)) {
+			for (int p2: clusters.get(cluster2)) {
+				d += measure.distance(points.get(p1), points.get(p2));
+			}
+		}
+		return d / clusters.get(cluster1).size() / clusters.get(cluster2).size();
+		
+	}
+	// use Group Average as cluster similarity measure
+	protected double getManningSimilarity(int cluster1, int cluster2) {
 		double d = 0;
 		for (int p1: clusters.get(cluster1)) {
 			for (int p2: clusters.get(cluster2)) {

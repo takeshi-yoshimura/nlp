@@ -22,7 +22,7 @@ public class OrderCache {
 	}
 
 	public void pushIfMoreSimilar(int cluster1, int cluster2, double s) {
-		if (s < simOrder.lastKey()) {
+		if (s <= simOrder.lastKey()) {
 			push(cluster1, cluster2, s);
 		}
 	}
