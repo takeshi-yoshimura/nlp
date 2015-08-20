@@ -1,6 +1,7 @@
 package ac.keio.sslab.clustering.bottomup;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -144,21 +145,18 @@ public class CachedBottomupClustering {
 			final int N = n;
 			t[n] = new Thread() {
 				public void run() {
-					int i = newCluster + 1;
-					while (i % numCore != N) {
-						i++;
-					}
-					for (; i < points.size(); i += numCore)  {
-						if (!clusters.contains(N, i)) {
-							continue;
+					int c = 0;
+					for (int d = 0; d < numCore; d++) {
+						for (int i: clusters.keySet(d)) {
+							if (c++ % numCore != N) {
+								continue;
+							}
+							if (newCluster < i) {
+								order.get(N).pushIfMoreSimilar(i, newCluster, getSimilarity(i, newCluster));
+							} else if (i < newCluster) {
+								order.get(N).pushIfMoreSimilar(newCluster, i, getSimilarity(newCluster, i));
+							}
 						}
-						order.get(N).pushIfMoreSimilar(i, newCluster, getSimilarity(i, newCluster));
-					}
-					for (i = N; i < newCluster; i += numCore) {
-						if (clusters.contains(i)) {
-							order.get(N).pushIfMoreSimilar(newCluster, i, getSimilarity(newCluster, i));
-						}
-						
 					}
 				}
 			};
@@ -168,18 +166,25 @@ public class CachedBottomupClustering {
 	}
 
 	protected void renewOrder() throws InterruptedException {
+		final List<Integer> clusterIDs = new ArrayList<Integer>();
+		for (int d = 0; d < numCore; d++) {
+			clusterIDs.addAll(clusters.keySet(d));
+		}
+		Collections.sort(clusterIDs);
 		Thread [] t = new Thread[numCore];
 		for (int n = 0; n < numCore; n++) {
 			final int N = n;
 			t[n] = new Thread() {
 				public void run() {
 					order.get(N).clear();
-					for (int d = 0; d < numCore; d++) {
-						for (int i: clusters.keySet(d)) {
-							for (int j = N; j < i; j += numCore) {
-								if (clusters.contains(j)) {
-									order.get(N).push(i, j, getSimilarity(i, j));
-								}
+					int c = 0;
+					for (int i: clusterIDs) {
+						for (int j: clusterIDs) {
+							if (i <= j) {
+								break;
+							}
+							if (c++ % numCore == N) {
+								order.get(N).push(i, j, getSimilarity(i, j));
 							}
 						}
 					}
