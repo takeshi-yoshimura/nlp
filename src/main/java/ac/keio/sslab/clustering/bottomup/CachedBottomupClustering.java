@@ -168,6 +168,7 @@ public class CachedBottomupClustering {
 	protected void renewOrder() throws InterruptedException {
 		final List<Integer> clusterIDs = new ArrayList<Integer>();
 		for (int d = 0; d < numCore; d++) {
+			order.get(d).clear();
 			clusterIDs.addAll(clusters.keySet(d));
 		}
 		Collections.sort(clusterIDs);
@@ -176,7 +177,6 @@ public class CachedBottomupClustering {
 			final int N = n;
 			t[n] = new Thread() {
 				public void run() {
-					order.get(N).clear();
 					int c = 0;
 					for (int i: clusterIDs) {
 						for (int j: clusterIDs) {

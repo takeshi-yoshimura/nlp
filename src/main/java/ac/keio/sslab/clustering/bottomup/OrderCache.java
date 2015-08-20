@@ -125,7 +125,7 @@ public class OrderCache {
 	}
 
 	public void clear() {
-		simOrder.clear();
+		simOrder = Maps.newTreeMap();
 	}
 
 	public String dump(boolean displaySimilarity) {
