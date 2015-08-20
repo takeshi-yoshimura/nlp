@@ -21,7 +21,9 @@ public class HierarchicalCluster {
 	public HierarchicalCluster(HierarchicalCluster leftC, HierarchicalCluster rightC, int ID) {
 		this.parentC = null;
 		this.leftC = leftC;
+		this.leftC.parentC = this;
 		this.rightC = rightC;
+		this.rightC.parentC = this;
 		this.points = new ArrayList<Integer>();
 		this.points.addAll(leftC.points);
 		this.points.addAll(rightC.points);
@@ -36,7 +38,7 @@ public class HierarchicalCluster {
 		this.density = 0;
 	}
 
-	protected HierarchicalCluster(int ID) {
+	public HierarchicalCluster(int ID) {
 		this.ID = ID;
 	}
 
@@ -110,7 +112,7 @@ public class HierarchicalCluster {
 	// currently, use the average distance to each other as the density of a HierarchicalCluster
 	public void setDensity(double [][] distance) {
 		if (points.size() == 1) {
-			return;
+			density = 0.0;
 		}
 		double density = 0;
 		for (int i: points) {
@@ -141,11 +143,12 @@ public class HierarchicalCluster {
 		sb.append(leftC != null ? leftC.ID: -1).append(',');
 		sb.append(rightC != null ? rightC.ID: -1).append(',');
 		for (Entry<String, Double> e: getCentroid().entrySet()) {
-			sb.append(e.getKey()).append(',').append(e.getValue());
+			sb.append(e.getKey()).append(',').append(e.getValue()).append(',');
 		}
 		for (int p: points) {
 			sb.append(p).append(',');
 		}
+		sb.setLength(sb.length() - 1);
 		return sb.toString();
 	}
 
@@ -158,9 +161,6 @@ public class HierarchicalCluster {
 		int parentCID = Integer.parseInt(s[i++]);
 		int leftCID = Integer.parseInt(s[i++]);
 		int rightCID = Integer.parseInt(s[i++]);
-		HierarchicalCluster parentC = parentCID != -1 ? new HierarchicalCluster(parentCID): null;
-		HierarchicalCluster leftC = leftCID != -1 ? new HierarchicalCluster(leftCID): null;
-		HierarchicalCluster rightC = rightCID != -1 ? new HierarchicalCluster(rightCID): null;
 
 		Map<String, Double> centroidStr = new HashMap<String, Double>();
 		for (; i < s.length - size; i += 2) {
@@ -172,7 +172,12 @@ public class HierarchicalCluster {
 			points.add(Integer.parseInt(s[i]));
 		}
 
-		HierarchicalCluster c = new HierarchicalCluster(leftC, rightC, ID);
+		HierarchicalCluster parentC = parentCID != -1 ? new HierarchicalCluster(parentCID): null;
+		HierarchicalCluster leftC = leftCID != -1 ? new HierarchicalCluster(leftCID): null;
+		HierarchicalCluster rightC = rightCID != -1 ? new HierarchicalCluster(rightCID): null;
+		HierarchicalCluster c = new HierarchicalCluster(ID);
+		c.setLeft(leftC);
+		c.setRight(rightC);
 		c.setParent(parentC);
 		c.setDensity(density);
 		c.setPoints(points);

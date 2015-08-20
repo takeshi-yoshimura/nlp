@@ -9,7 +9,6 @@ import java.util.Map;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.mahout.common.distance.DistanceMeasure;
 import org.apache.mahout.math.Vector;
 
 import ac.keio.sslab.nlp.JobUtils;
@@ -17,34 +16,46 @@ import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 
 public class BottomupClustering {
 
-	CachedBottomupClustering clustering;
-	Map<Integer, Integer> pointIndex;
-	Path input;
-	FileSystem fs;
-
-	public BottomupClustering(Path input, FileSystem fs, DistanceMeasure measure) throws Exception {
-		this.input = input;
+	public static void run(Path input, FileSystem fs, File output, boolean doForceWrite, Map<Integer, String> topicStr) throws Exception {
 		List<Vector> points = new ArrayList<Vector>();
-		pointIndex = new HashMap<Integer, Integer>();
+		Map<Integer, Integer> pointIndex = new HashMap<Integer, Integer>();
+		Map<Integer, HierarchicalCluster> clusters = new HashMap<Integer, HierarchicalCluster>();
+
 		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(input, fs, Integer.class, Vector.class);
+		int nextClusterID = 0;
 		while (reader.seekNext()) {
 			pointIndex.put(points.size(), reader.key());
+			HierarchicalCluster c = new HierarchicalCluster(points.size(), nextClusterID++);
+			c.setCentroid(points, topicStr);
+			clusters.put(c.getID(), c);
 			points.add(reader.val());
 		}
 		reader.close();
-		clustering = new CachedBottomupClustering(points, measure);
-	}
+		CachedBottomupClustering clustering = new CachedBottomupClustering(points);
 
-	public void run(File output, boolean doForceWrite) throws Exception {
 		PrintWriter writer = JobUtils.getPrintWriter(output);
+		writer.println("#HierarchicalClusterID,size,density,leftCID,rightCID,centroid...,pointIDs...");
 		int i = 0;
 		int [] nextPair = null;
+		HierarchicalCluster newC = null;
 		while((nextPair = clustering.popMostSimilarClusterPair()) != null) {
 			int merging = pointIndex.get(nextPair[0]);
 			int merged = pointIndex.get(nextPair[1]);
+			double similarity = clustering.getMaxSimilarity();
 			System.out.println("Iteration #" + i++ + ": " + merging + "," + merged);
-			writer.println(merging + "," + merged);
+
+			HierarchicalCluster leftC = clusters.get(merging);
+			HierarchicalCluster rightC = clusters.get(merged);
+			newC = new HierarchicalCluster(leftC, rightC, nextClusterID++);
+			newC.setDensity(similarity);
+			newC.setCentroid(points, topicStr);
+			clusters.put(newC.getID(), newC);
+
+			writer.println(leftC.toString());
+			writer.println(rightC.toString());
 		}
+		writer.println(newC.toString());
+
 		writer.close();
 	}
 }

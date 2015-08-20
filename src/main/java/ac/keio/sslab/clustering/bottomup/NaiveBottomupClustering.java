@@ -5,19 +5,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.mahout.common.distance.DistanceMeasure;
 import org.apache.mahout.math.Vector;
 
 public class NaiveBottomupClustering {
 
-	DistanceMeasure measure;
 	TreeMap<Integer, List<Integer>> clusters;
 	List<Vector> points;
 	int mergingPointId, mergedPointId;
 
-	public NaiveBottomupClustering(List<Vector> points, DistanceMeasure measure) {
+	public NaiveBottomupClustering(List<Vector> points) {
 		this.points = points;
-		this.measure = measure;
 		clusters = new TreeMap<Integer, List<Integer>>();
 		for (int i = 0; i < points.size(); i++) {
 			clusters.put(i, new ArrayList<Integer>());
@@ -33,21 +30,17 @@ public class NaiveBottomupClustering {
 				if (!clusters.containsKey(j)) {
 					continue;
 				}
-				double d = 0;
-				for (int p1: clusters.get(i)) {
-					for (int p2: clusters.get(j)) {
-						d += measure.distance(points.get(p1), points.get(p2));
-					}
-				}
-				d = d / clusters.get(i).size() / clusters.get(j).size();
+				double d = getSimilarity(i, j);
 				if (min_d > d) {
 					min_d = d;
 					min_i = i;
 					min_j = j;
-				} else if (min_d == d && min_i < i) {
-					min_d = d;
-					min_i = i;
-					min_j = j;
+				} else if (min_d == d) {
+					if(min_i > i || (min_i == i && min_j > j)) {
+						min_d = d;
+						min_i = i;
+						min_j = j;
+					}
 				}
 			}
 		}
@@ -55,13 +48,29 @@ public class NaiveBottomupClustering {
 		if (min_i == -1) {
 			return null;
 		}
+		currentMinS = min_d;
 
 		clusters.get(min_i).addAll(clusters.remove(min_j));
 
 		return new int [] {min_i, min_j};
 	}
 
+	// use Group Average as cluster similarity measure
+	protected double getSimilarity(int cluster1, int cluster2) {
+		double d = 0;
+		for (int p1: clusters.get(cluster1)) {
+			for (int p2: clusters.get(cluster2)) {
+				d += points.get(p1).dot(points.get(p2));
+			}
+		}
+		int N1 = clusters.get(cluster1).size();
+		int N2 = clusters.get(cluster2).size();
+		return d / (N1 + N2) / (N1 + N2 - 1);
+	}
+
 	public Map<Integer, List<Integer>> getClusters() {
 		return clusters;
 	}
+
+	double currentMinS;
 }

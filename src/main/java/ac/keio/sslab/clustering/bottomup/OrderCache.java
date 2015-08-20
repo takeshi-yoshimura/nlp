@@ -42,9 +42,21 @@ public class OrderCache {
 		if (sameSimClusterPairs != null) {
 			// there might be same distance pairs
 			int [] newPair = new int[sameSimClusterPairs.length + 2];
-			System.arraycopy(sameSimClusterPairs, 0, newPair, 0, sameSimClusterPairs.length);
-			newPair[newPair.length - 2] = cluster1;
-			newPair[newPair.length - 1] = cluster2;
+			int k = 0;
+			// ensure to be ordered. this is necessary for deterministic clustering
+			for (int i = 0; i < sameSimClusterPairs.length; i += 2) {
+				if (cluster1 < sameSimClusterPairs[i] || (cluster1 == sameSimClusterPairs[i] && cluster2 < sameSimClusterPairs[i + 1])) {
+					newPair[k++] = cluster1;
+					newPair[k++] = cluster2;
+					cluster1 = cluster2 = Integer.MAX_VALUE;
+				}
+				newPair[k++] = sameSimClusterPairs[i];
+				newPair[k++] = sameSimClusterPairs[i + 1];
+			}
+			if (k < newPair.length) {
+				newPair[k++] = cluster1;
+				newPair[k++] = cluster2;
+			}
 			simOrder.put(s, newPair);
 		}
 	}

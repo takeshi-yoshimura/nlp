@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.mahout.common.distance.DistanceMeasure;
 import org.apache.mahout.math.Vector;
 
 import ac.keio.sslab.utils.ArrayMap;
@@ -14,14 +13,15 @@ import ac.keio.sslab.utils.ArrayMap;
 public class CachedBottomupClustering {
 
 	public final int numCore = Runtime.getRuntime().availableProcessors();
-	double [][] distance;
+	double [][] dot;
 
 	// per thread data
 	List<OrderCache> order;
 	ArrayMap<Integer, Integer> clusters; // Multimap cannot be used due to thread-safety
 
-	DistanceMeasure measure;
 	List<Vector> points;
+	protected double currentMinS;
+	protected List<Integer> newCluster;
 
 	public void waitAll(Thread [] list) throws InterruptedException {
 		for (Thread t: list) {
@@ -29,13 +29,12 @@ public class CachedBottomupClustering {
 		}
 	}
 
-	public CachedBottomupClustering(List<Vector> points, DistanceMeasure measure) throws Exception {
-		this.measure = measure;
+	public CachedBottomupClustering(List<Vector> points) throws Exception {
 		this.points = points;
 
-		this.distance = new double[points.size()][];
+		this.dot = new double[points.size()][];
 		for (int i = 0; i < points.size(); i++) {
-			distance[i] = new double[i + 1];
+			dot[i] = new double[i + 1];
 		}
 
 		this.order = new ArrayList<OrderCache>();
@@ -58,8 +57,11 @@ public class CachedBottomupClustering {
 							break;
 						}
 						for (int j = 0; j <= i; j++) {
-							distance[i][j] = measure.distance(points.get(i + 1), points.get(j));
-							order.get(N).push(i + 1, j, distance[i][j]);
+							dot[i][j] = 0;
+							for (int k = 0; k < points.get(j).size(); k++) {
+								dot[i][j] += points.get(i + 1).get(k) * points.get(j).get(k);
+							}
+							order.get(N).push(i + 1, j, dot[i][j]/2);
 						}
 					}
 				}
@@ -82,19 +84,23 @@ public class CachedBottomupClustering {
 				minS = e.getKey();
 				minPair = e.getValue();
 				minN = n;
-			} else if (minS == e.getKey() && minPair[0] < e.getValue()[0]) {
-				minS = e.getKey();
-				minPair = e.getValue();
-				minN = n;
+			} else if (minS == e.getKey()) {
+				if (minPair[0] > e.getValue()[0] || (minPair[0] == e.getValue()[0] && minPair[1] > e.getValue()[1])) {
+					minS = e.getKey();
+					minPair = e.getValue();
+					minN = n;
+				}
 			}
 		}
 		if (minPair == null) {
 			return null;
 		}
+		currentMinS = minS;
 
 		// merge the most similar clusters
 		clusters.addAlltoKey(minPair[0], clusters.values(minPair[1]));
 		clusters.removeKey(minPair[1]);
+		newCluster = clusters.values(minPair[0]);
 
 		// update cache in inconsistent manners: remove most similar clusters' order caches, & update order for the new cluster
 		order.get(minN).pop();
@@ -196,7 +202,9 @@ public class CachedBottomupClustering {
 				d += getPointDistance(p1, p2);
 			}
 		}
-		return d / clusters.values(cluster1).size() / clusters.values(cluster2).size();
+		int N1 = clusters.values(cluster1).size();
+		int N2 = clusters.values(cluster2).size();
+		return d / (N1 + N2) / (N1 + N2 - 1);
 	}
 
 	protected double getPointDistance(int point1, int point2) {
@@ -206,7 +214,7 @@ public class CachedBottomupClustering {
 			point1 = tmp;
 		}
 
-		return distance[point1 - 1][point2];
+		return dot[point1 - 1][point2];
 	}
 
 	public Map<Integer, List<Integer>> getClusters() {
@@ -217,5 +225,13 @@ public class CachedBottomupClustering {
 			}
 		}
 		return ret;
+	}
+
+	public double getMaxSimilarity() {
+		return currentMinS;
+	}
+
+	public List<Integer> getNewClusteredPoints() {
+		return newCluster;
 	}
 }

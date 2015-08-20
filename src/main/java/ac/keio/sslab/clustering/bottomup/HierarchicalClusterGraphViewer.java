@@ -15,9 +15,13 @@ public class HierarchicalClusterGraphViewer {
 	List<HierarchicalCluster> clusters;
 
 	public HierarchicalClusterGraphViewer(File outputFile) throws IOException {
-		HierarchicalClusterGraph graph = HierarchicalClusterGraph.parseDump(outputFile);
+		HierarchicalClusterGraph graph = HierarchicalClusterGraph.parseResult(outputFile);
 		root = graph.getRoot();
 		clusters = graph.getClusters();
+	}
+
+	public int getRootID() {
+		return root.getID();
 	}
 
 	public void dumpDotFromRoot(File outputDir, int numHierarchy) throws IOException {
