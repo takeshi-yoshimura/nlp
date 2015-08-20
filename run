@@ -24,4 +24,4 @@ CLASSPATH=`hadoop classpath`
 #done
 
 CLASSPATH=${CLASSPATH}:${NLPBIN}
-java -cp ${CLASSPATH} ac.keio.sslab.nlp.CliMain ${@} NLPCONF=${CONF}
+java -Xmx6g -cp ${CLASSPATH} ac.keio.sslab.nlp.CliMain ${@} NLPCONF=${CONF}

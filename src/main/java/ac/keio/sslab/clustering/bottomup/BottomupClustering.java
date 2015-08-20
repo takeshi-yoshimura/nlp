@@ -50,7 +50,8 @@ public class BottomupClustering {
 			newC = new HierarchicalCluster(leftC, rightC, nextClusterID++);
 			newC.setDensity(similarity);
 			newC.setCentroid(points, topicStr);
-			clusters.put(newC.getID(), newC);
+			clusters.put(merging, newC);
+			clusters.remove(merged);
 
 			writer.println(leftC.toString());
 			writer.println(rightC.toString());
