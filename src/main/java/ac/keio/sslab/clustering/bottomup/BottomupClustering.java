@@ -26,9 +26,10 @@ public class BottomupClustering {
 		while (reader.seekNext()) {
 			pointIndex.put(points.size(), reader.key());
 			HierarchicalCluster c = new HierarchicalCluster(points.size(), nextClusterID++);
-			c.setCentroid(points, topicStr);
 			clusters.put(c.getID(), c);
 			points.add(reader.val());
+			c.setCentroid(points, topicStr);
+			c.setDensity(1.0);
 		}
 		reader.close();
 		CachedBottomupClustering clustering = new CachedBottomupClustering(points);
@@ -53,6 +54,7 @@ public class BottomupClustering {
 
 			writer.println(leftC.toString());
 			writer.println(rightC.toString());
+			writer.flush();
 		}
 		writer.println(newC.toString());
 

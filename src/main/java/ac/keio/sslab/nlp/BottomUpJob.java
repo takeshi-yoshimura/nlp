@@ -43,10 +43,10 @@ public class BottomUpJob implements NLPJob {
 		NLPConf conf = NLPConf.getInstance();
 		LDAHDFSFiles ldaFiles = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
 		File localOutputDir = new File(conf.finalOutputFile, "bottomup/" + mgr.getJobID());
-		File mergingMergedPath = new File(localOutputDir.getAbsolutePath(), "mergingToFrom.seq"); //Note: local FS
+		File clustersFile = new File(localOutputDir.getAbsolutePath(), "clusters.csv");
 
 		try {
-			BottomupClustering.run(ldaFiles.documentPath, conf.hdfs, mergingMergedPath, mgr.doForceWrite(), getTopicStr(ldaFiles, conf));
+			BottomupClustering.run(ldaFiles.documentPath, conf.hdfs, clustersFile, mgr.doForceWrite(), getTopicStr(ldaFiles, conf));
 		} catch (Exception e) {
 			e.printStackTrace();
 			return;

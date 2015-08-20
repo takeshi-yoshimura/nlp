@@ -18,7 +18,7 @@ public class OrderCache {
 	}
 
 	public OrderCache() {
-		this(100);
+		this(1000);
 	}
 
 	public void pushIfMoreSimilar(int cluster1, int cluster2, double s) {
