@@ -32,7 +32,7 @@ public class OrderCache {
 			// push only if the similarity is bigger than the last cached entry
 			if (s < simOrder.lastKey()) {
 				simOrder.remove(simOrder.lastKey()); // there might be more than two clusters but we ignore!
-			} else {
+			} else if (s > simOrder.lastKey()){
 				return;
 			}
 		}
