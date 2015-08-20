@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 
 import ac.keio.sslab.nlp.JobUtils;
 
@@ -77,14 +78,8 @@ public class HierarchicalClusterGraphViewer {
 
 		writer.print("\tC" + current.getID() + " [shape = record, label=\"{{C" + current.getID() + " | N(p) = " + current.points.size() + "}");
 		writer.print("| density = " + String.format("%1$3f", current.density));
-		for (String s: current.getCentroidString().split(",")) {
-			if (s.startsWith("\"")) {
-				s = s.substring(1);
-			}
-			if (s.endsWith("\"")) {
-				s = s.substring(0, s.length() - 1);
-			}
-			writer.print("|" + s);
+		for (Entry<String, Double> e: current.getCentroid().entrySet()) {
+			writer.print("|" + e.getKey() + ": " + String.format("%1$3f", e.getValue()));
 		}
 		writer.println("}\"];");
 

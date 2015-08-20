@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
@@ -209,13 +208,6 @@ public class JobManager {
 		}
 		if (jobJson.has(jobID)) {
 			jobJson.remove(jobID);
-		}
-		Map<String, String> newArgs = new HashMap<String, String>();
-		for (Entry<String, String> e: args.entrySet()) {
-			if (e.getKey().equals("ow") || e.getKey().equals("f")) {
-				continue;
-			}
-			newArgs.put(e.getKey(), e.getValue());
 		}
 		jobJson.put(jobID, args);
         inputStream.close();

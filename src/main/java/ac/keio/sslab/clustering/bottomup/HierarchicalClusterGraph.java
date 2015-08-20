@@ -137,7 +137,7 @@ public class HierarchicalClusterGraph {
 
 	public void setCentroidString(Map<Integer, String> topicStr) {
 		for (HierarchicalCluster c: HierarchicalClusters) {
-			c.setCentroidString(pointVectors, topicStr);
+			c.setCentroid(pointVectors, topicStr);
 		}
 	}
 

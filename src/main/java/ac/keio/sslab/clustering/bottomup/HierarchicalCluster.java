@@ -1,6 +1,7 @@
 package ac.keio.sslab.clustering.bottomup;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -15,7 +16,7 @@ public class HierarchicalCluster {
 	int ID;
 	List<Integer> points;
 	double density;
-	String centroidString;
+	Map<String, Double> centroid;
 
 	public HierarchicalCluster(HierarchicalCluster leftC, HierarchicalCluster rightC, int ID) {
 		this.parentC = null;
@@ -87,27 +88,23 @@ public class HierarchicalCluster {
 		return centroid.divide(points.size());			
 	}
 
-	public void setCentroidString(List<Vector> pointVectors, Map<Integer, String> topicStr) {
-		StringBuilder sb = new StringBuilder();
+	public void setCentroid(List<Vector> pointVectors, Map<Integer, String> topicStr) {
 		int i = 0;
-		sb.append('"');
+		centroid = new HashMap<String, Double>();
 		for (Entry<Integer, Double> e: JobUtils.getTopElements(getCentroid(pointVectors), 3)) {
 			if (++i > 3) {
 				break;
 			}
-			sb.append((topicStr == null ? e.getKey(): topicStr.get(e.getKey()))).append(':').append(String.format("%1$3f", e.getValue())).append(',');
+			centroid.put((topicStr == null ? Integer.toString(e.getKey()): topicStr.get(e.getKey())), e.getValue());
 		}
-		sb.setLength(sb.length() - 1);
-		sb.append('"');
-		centroidString = sb.toString();
 	}
 
-	public void setCentroidString(String str) {
-		centroidString = str;
+	public void setCentroid(Map<String, Double> str) {
+		centroid = str;
 	}
 
-	public String getCentroidString() {
-		return centroidString;
+	public Map<String, Double> getCentroid() {
+		return centroid;
 	}
 
 	// currently, use the average distance to each other as the density of a HierarchicalCluster
@@ -143,7 +140,9 @@ public class HierarchicalCluster {
 		sb.append(parentC != null ? parentC.ID: -1).append(',');
 		sb.append(leftC != null ? leftC.ID: -1).append(',');
 		sb.append(rightC != null ? rightC.ID: -1).append(',');
-		sb.append(getCentroidString());
+		for (Entry<String, Double> e: getCentroid().entrySet()) {
+			sb.append(e.getKey()).append(',').append(e.getValue());
+		}
 		for (int p: points) {
 			sb.append(p).append(',');
 		}
@@ -152,25 +151,24 @@ public class HierarchicalCluster {
 
 	public static HierarchicalCluster parseString(String str) {
 		String [] s = str.split(",");
-		int ID = Integer.parseInt(s[0]);
-		int size = Integer.parseInt(s[2]);
-		double density = Double.parseDouble(s[4]);
-		int parentCID = Integer.parseInt(s[6]);
-		int leftCID = Integer.parseInt(s[8]);
-		int rightCID = Integer.parseInt(s[10]);
+		int i = 0;
+		int ID = Integer.parseInt(s[i++]);
+		int size = Integer.parseInt(s[i++]);
+		double density = Double.parseDouble(s[i++]);
+		int parentCID = Integer.parseInt(s[i++]);
+		int leftCID = Integer.parseInt(s[i++]);
+		int rightCID = Integer.parseInt(s[i++]);
 		HierarchicalCluster parentC = parentCID != -1 ? new HierarchicalCluster(parentCID): null;
 		HierarchicalCluster leftC = leftCID != -1 ? new HierarchicalCluster(leftCID): null;
 		HierarchicalCluster rightC = rightCID != -1 ? new HierarchicalCluster(rightCID): null;
 
-		StringBuilder sb = new StringBuilder();
-		int i = 12;
-		for (; i < s.length - size * 2; i++) {
-			sb.append(s[i]);
+		Map<String, Double> centroidStr = new HashMap<String, Double>();
+		for (; i < s.length - size; i += 2) {
+			centroidStr.put(s[i], Double.parseDouble(s[i + 1]));
 		}
-		String centroidString = sb.toString();
 
 		List<Integer> points = new ArrayList<Integer>();
-		for (; i < s.length; i += 2) {
+		for (; i < s.length; i++) {
 			points.add(Integer.parseInt(s[i]));
 		}
 
@@ -178,7 +176,7 @@ public class HierarchicalCluster {
 		c.setParent(parentC);
 		c.setDensity(density);
 		c.setPoints(points);
-		c.setCentroidString(centroidString);
+		c.setCentroid(centroidStr);
 		return c;
 	}
 }
