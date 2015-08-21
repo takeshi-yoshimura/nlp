@@ -9,13 +9,13 @@ import java.util.Map.Entry;
 
 import ac.keio.sslab.nlp.JobUtils;
 
-public class HierarchicalClusterGraphViewer {
+public class ClusterGraphDumper {
 
 	HierarchicalCluster root;
 	List<HierarchicalCluster> clusters;
 
-	public HierarchicalClusterGraphViewer(File outputFile) throws IOException {
-		HierarchicalClusterGraph graph = HierarchicalClusterGraph.parseResult(outputFile);
+	public ClusterGraphDumper(File outputFile) throws IOException {
+		ClusterGraph graph = ClusterGraph.parseResult(outputFile);
 		root = graph.getRoot();
 		clusters = graph.getClusters();
 	}

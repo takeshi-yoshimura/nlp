@@ -6,14 +6,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.TreeMap;
 
-public class HierarchicalClusterPrioritizer {
+public class ClusterScore {
 
 	List<HierarchicalCluster> clusters;
 	TreeMap<Double, HierarchicalCluster> order;
 	int maxSize;
 
-	public HierarchicalClusterPrioritizer(File outputFile) throws IOException {
-		clusters = HierarchicalClusterGraph.parseResult(outputFile).getClusters();
+	public ClusterScore(File outputFile) throws IOException {
+		clusters = ClusterGraph.parseResult(outputFile).getClusters();
 		order = new TreeMap<Double, HierarchicalCluster>(Collections.reverseOrder());
 		maxSize = Integer.MIN_VALUE;
 		for (HierarchicalCluster c: clusters) {

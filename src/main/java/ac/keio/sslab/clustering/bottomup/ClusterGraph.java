@@ -11,17 +11,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class HierarchicalClusterGraph {
+public class ClusterGraph {
 
 	List<HierarchicalCluster> clusters;
 	HierarchicalCluster root;
 
-	protected HierarchicalClusterGraph(List<HierarchicalCluster> clusters, HierarchicalCluster root) {
+	protected ClusterGraph(List<HierarchicalCluster> clusters, HierarchicalCluster root) {
 		this.clusters = clusters;
 		this.root = root;
 	}
 
-	public static HierarchicalClusterGraph parseResult(File outputFile) throws IOException {
+	public static ClusterGraph parseResult(File outputFile) throws IOException {
 		BufferedReader reader = new BufferedReader(new FileReader(outputFile));
 		String line = null;
 		Map<Integer, HierarchicalCluster> graph = new HashMap<Integer, HierarchicalCluster>();
@@ -49,7 +49,7 @@ public class HierarchicalClusterGraph {
 		}
 		HierarchicalCluster root = graph.get(HierarchicalClusterIDs.iterator().next());
 
-		return new HierarchicalClusterGraph(clusters, root);
+		return new ClusterGraph(clusters, root);
 	}
 
 	public HierarchicalCluster getRoot() {

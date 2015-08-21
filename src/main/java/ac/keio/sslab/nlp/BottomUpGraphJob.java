@@ -6,7 +6,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
-import ac.keio.sslab.clustering.bottomup.HierarchicalClusterGraphViewer;
+import ac.keio.sslab.clustering.bottomup.ClusterGraphDumper;
 
 public class BottomUpGraphJob implements NLPJob {
 
@@ -40,7 +40,7 @@ public class BottomUpGraphJob implements NLPJob {
 		File clustersFile = new File(conf.localBottomupFile + "/" + mgr.getArgStr("b"), "clusters.csv");
 
 		try {
-			HierarchicalClusterGraphViewer v= new HierarchicalClusterGraphViewer(clustersFile);
+			ClusterGraphDumper v= new ClusterGraphDumper(clustersFile);
 			v.dumpDot(localOutputDir, mgr.getArgOrDefault("s", v.getRootID(), Integer.class), mgr.getArgOrDefault("n", 5, Integer.class));
 		} catch (Exception e) {
 			e.printStackTrace();

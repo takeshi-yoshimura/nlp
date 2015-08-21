@@ -20,8 +20,8 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import ac.keio.sslab.clustering.bottomup.ClusterScore;
 import ac.keio.sslab.clustering.bottomup.HierarchicalCluster;
-import ac.keio.sslab.clustering.bottomup.HierarchicalClusterPrioritizer;
 import ac.keio.sslab.utils.OrderedJson;
 
 public class ClusteringResultJob implements NLPJob {
@@ -65,7 +65,7 @@ public class ClusteringResultJob implements NLPJob {
 		File summaryFile = new File(localOutputDir, "summary.json");
 
 		try {
-	        HierarchicalClusterPrioritizer p = new HierarchicalClusterPrioritizer(clustersFile);
+	        ClusterScore p = new ClusterScore(clustersFile);
 			Map<Integer, List<String>> realId = getRealID(idIndexFile);
 	        FileOutputStream outputStream = new FileOutputStream(summaryFile);
 	        outputStream.write(createJson(p, realId, gitDir).toString(4).getBytes());
@@ -97,7 +97,7 @@ public class ClusteringResultJob implements NLPJob {
 		return ret;
 	}
 
-	public JSONObject createJson(HierarchicalClusterPrioritizer p, Map<Integer, List<String>> realId, File gitDir) throws IOException {
+	public JSONObject createJson(ClusterScore p, Map<Integer, List<String>> realId, File gitDir) throws IOException {
 		Repository repo = new FileRepositoryBuilder().findGitDir(gitDir).build();
 		RevWalk walk = new RevWalk(repo);
 		JSONObject json = new OrderedJson();
