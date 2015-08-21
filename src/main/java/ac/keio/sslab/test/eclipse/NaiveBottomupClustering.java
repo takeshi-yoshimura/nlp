@@ -1,4 +1,4 @@
-package ac.keio.sslab.clustering.bottomup;
+package ac.keio.sslab.test.eclipse;
 
 import java.util.ArrayList;
 import java.util.List;
