@@ -31,6 +31,17 @@ public class HierarchicalClusterPrioritizer {
 	}
 
 	public double score(HierarchicalCluster c, HierarchicalCluster child) {
+		return scoreHastie(c, child);
+	}
+
+	public double scoreHastie(HierarchicalCluster c, HierarchicalCluster child) {
+		if (child.getDensity() == 0.0) {
+			return Double.MIN_VALUE;
+		}
+		return (child.getDensity() - c.getDensity()) / child.getDensity();
+	}
+
+	public double scoreManning(HierarchicalCluster c, HierarchicalCluster child) {
 		if (child.getDensity() == 0.0) {
 			return Double.MIN_VALUE;
 		}

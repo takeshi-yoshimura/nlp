@@ -32,7 +32,7 @@ public class BottomupClustering {
 			c.setDensity(1.0);
 		}
 		reader.close();
-		CachedBottomupClustering clustering = new CachedBottomupClustering(points);
+		CachedBottomupClustering clustering = new CachedBottomupClustering(points, 5L * 1024 * 1024 * 1024);
 
 		PrintWriter writer = JobUtils.getPrintWriter(output);
 		writer.println("#HierarchicalClusterID,size,density,leftCID,rightCID,centroid...,pointIDs...");

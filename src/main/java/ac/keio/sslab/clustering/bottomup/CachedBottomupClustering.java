@@ -32,11 +32,12 @@ public class CachedBottomupClustering {
 		}
 	}
 
-	public CachedBottomupClustering(List<Vector> points) throws Exception {
+	public CachedBottomupClustering(List<Vector> points, long memoryCapacity) throws Exception {
 		this.points = points;
 
-		this.distance = new double[points.size()][];
-		for (int i = 0; i < points.size(); i++) {
+		long maxDistanceLength = (long) (Math.sqrt(memoryCapacity)) / (Double.SIZE / 8);
+		this.distance = new double[(int) Math.min(points.size(), maxDistanceLength)][];
+		for (int i = 0; i < points.size() && i < maxDistanceLength; i++) {
 			distance[i] = new double[i + 1];
 		}
 
@@ -60,8 +61,11 @@ public class CachedBottomupClustering {
 							break;
 						}
 						for (int j = 0; j <= i; j++) {
-							distance[i][j] = getDistance(points.get(i + 1), points.get(j));
-							order.get(N).push(i + 1, j, getInitialSimilarity(distance[i][j]));
+							double d = getDistance(points.get(i + 1), points.get(j));
+							if (i < distance.length) {
+								distance[i][j] = d;
+							}
+							order.get(N).push(i + 1, j, getInitialSimilarity(d));
 						}
 					}
 				}
@@ -69,35 +73,6 @@ public class CachedBottomupClustering {
 			t[n].start();
 		}
 		waitAll(t);
-	}
-
-	protected double getDistance(Vector v1, Vector v2) {
-		return getHastiaDistance(v1, v2);
-	}
-
-	protected double getInitialSimilarity(double d) {
-		return getHastiaInitSimilarity(d);
-	}
-
-	DistanceMeasure measure = new EuclideanDistanceMeasure();
-	protected double getHastiaDistance(Vector v1, Vector v2) {
-		return measure.distance(v1, v2);
-	}
-
-	protected double getHastiaInitSimilarity(double d) {
-		return d;
-	}
-
-	protected double getManningDistance(Vector v1, Vector v2) {
-		double d = 0;
-		for (int k = 0; k < v1.size(); k++) {
-			d += v1.get(k) * v2.get(k);
-		}
-		return d;
-	}
-
-	protected double getManningDistance(double d) {
-		return d / 2;
 	}
 
 	public int[] popMostSimilarClusterPair() throws Exception {
@@ -257,7 +232,36 @@ public class CachedBottomupClustering {
 			point1 = tmp;
 		}
 
-		return distance[point1 - 1][point2];
+		return point1 - 1 < distance.length ? distance[point1 - 1][point2]: getDistance(points.get(point1), points.get(point2));
+	}
+
+	protected double getDistance(Vector v1, Vector v2) {
+		return getHastieDistance(v1, v2);
+	}
+
+	protected double getInitialSimilarity(double d) {
+		return getHastieInitSimilarity(d);
+	}
+
+	DistanceMeasure measure = new EuclideanDistanceMeasure();
+	protected double getHastieDistance(Vector v1, Vector v2) {
+		return measure.distance(v1, v2);
+	}
+
+	protected double getHastieInitSimilarity(double d) {
+		return d;
+	}
+
+	protected double getManningDistance(Vector v1, Vector v2) {
+		double d = 0;
+		for (int k = 0; k < v1.size(); k++) {
+			d += v1.get(k) * v2.get(k);
+		}
+		return d;
+	}
+
+	protected double getManningDistance(double d) {
+		return d / 2;
 	}
 
 	public Map<Integer, List<Integer>> getClusters() {
