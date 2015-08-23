@@ -2,7 +2,6 @@ package ac.keio.sslab.nlp;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -14,15 +13,16 @@ import java.util.Map.Entry;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.codehaus.jackson.JsonEncoding;
+import org.codehaus.jackson.JsonGenerator;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.SerializationConfig;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import ac.keio.sslab.clustering.bottomup.ClusterScore;
 import ac.keio.sslab.clustering.bottomup.HierarchicalCluster;
-import ac.keio.sslab.utils.OrderedJson;
 
 public class ClusteringResultJob implements NLPJob {
 
@@ -67,9 +67,7 @@ public class ClusteringResultJob implements NLPJob {
 		try {
 	        ClusterScore p = new ClusterScore(clustersFile);
 			Map<Integer, List<String>> realId = getRealID(idIndexFile);
-	        FileOutputStream outputStream = new FileOutputStream(summaryFile);
-	        outputStream.write(createJson(p, realId, gitDir).toString(4).getBytes());
-	        outputStream.close();
+			createJson(p, realId, summaryFile, gitDir);
 	        System.out.println("Results: " + summaryFile.getAbsolutePath());
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -97,41 +95,54 @@ public class ClusteringResultJob implements NLPJob {
 		return ret;
 	}
 
-	public JSONObject createJson(ClusterScore p, Map<Integer, List<String>> realId, File gitDir) throws IOException {
+	public void createJson(ClusterScore p, Map<Integer, List<String>> realId, File output, File gitDir) throws IOException {
 		Repository repo = new FileRepositoryBuilder().findGitDir(gitDir).build();
 		RevWalk walk = new RevWalk(repo);
-		JSONObject json = new OrderedJson();
+		ObjectMapper mapper = new ObjectMapper().configure(SerializationConfig.Feature.INDENT_OUTPUT, true);
+		JsonGenerator json = mapper.getJsonFactory().createJsonGenerator(output, JsonEncoding.UTF8);
+		json.writeStartObject();
 		int i = 1;
 		for (Entry<Double, HierarchicalCluster> e: p.getOrder().entrySet()) {
 			HierarchicalCluster c = e.getValue();
-			JSONObject cJson = new JSONObject();
-			json.put("no. " + i++, cJson);
-			cJson.put("cluster ID", c.getID());
-			cJson.put("parent ID", (c.getParent() != null ? c.getParent().getID(): "root"));
-
-			JSONArray cArray = new JSONArray();
-			cJson.put("child ID", cArray);
-			cArray.put(c.getLeft() != null ? c.getLeft().getID(): "leaf");
-			cArray.put(c.getRight() != null ? c.getRight().getID(): "leaf");
-
-			cJson.put("size", c.size());
-
-			JSONObject tJson = new JSONObject();
-			cJson.put("centroid topic", tJson);
-			for (Entry<String, Double> e2: c.getCentroid().entrySet()) {
-				tJson.put(e2.getKey(), e2.getValue());
+			json.writeFieldName("No. " + i++);
+			json.writeStartObject();
+			json.writeNumberField("cluster ID", c.getID());
+			if (c.getParent() != null) {
+				json.writeNumberField("parent ID", c.getParent().getID());
 			}
-			cJson.put("density", c.getDensity());
-			cJson.put("score", e.getKey());
 
-			JSONObject pJson = new JSONObject();
-			cJson.put("points", pJson);
+			if (c.getLeft() != null) {
+				json.writeFieldName("child ID");
+				json.writeStartArray();
+				json.writeNumber(c.getLeft().getID());
+				json.writeNumber(c.getRight().getID());
+				json.writeEndArray();
+			}
+
+			json.writeNumberField("size", c.size());
+			json.writeFieldName("centroid topic");
+			json.writeStartObject();
+			for (Entry<String, Double> e2: c.getCentroid().entrySet()) {
+				json.writeNumberField(e2.getKey(), e2.getValue());
+			}
+			json.writeEndObject();
+			json.writeNumberField("density", c.getDensity());
+			json.writeNumberField("score", e.getKey());
+
+			json.writeFieldName("points");
+			json.writeStartObject();
 			for (int pointID: c.getPoints()) {
 				List<String> l = realId.get(pointID);
-				pJson.put(getSubject(repo, walk, l.get(0)), l);
+				json.writeFieldName(getSubject(repo, walk, l.get(0)));
+				json.writeStartArray();
+				for (String s: l) {
+					json.writeString(s);
+				}
+				json.writeEndArray();
 			}
+			json.writeEndObject();
+			json.writeEndObject();
 		}
-		return json;
 	}
 
 	public String getSubject(Repository repo, RevWalk walk, String sha) throws IOException {
