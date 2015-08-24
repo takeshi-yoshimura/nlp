@@ -17,6 +17,7 @@ import org.codehaus.jackson.JsonEncoding;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
+import org.codehaus.jackson.util.DefaultPrettyPrinter;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
@@ -100,6 +101,7 @@ public class ClusteringResultJob implements NLPJob {
 		RevWalk walk = new RevWalk(repo);
 		ObjectMapper mapper = new ObjectMapper().configure(SerializationConfig.Feature.INDENT_OUTPUT, true);
 		JsonGenerator json = mapper.getJsonFactory().createJsonGenerator(output, JsonEncoding.UTF8);
+		json.setPrettyPrinter(new DefaultPrettyPrinter());
 		json.writeStartObject();
 		int i = 1;
 		for (Entry<Double, HierarchicalCluster> e: p.getOrder().entrySet()) {
