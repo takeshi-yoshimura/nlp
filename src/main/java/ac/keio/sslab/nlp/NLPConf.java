@@ -25,6 +25,7 @@ public class NLPConf {
 	public File localLogFile;
 	public File localLdaFile;
 	public File localBottomupFile;
+	public File localBottomupGraphFile;
 	public File localCorpusFile;
 	public File localArgFile;
 	public File localLockFile;
@@ -41,6 +42,7 @@ public class NLPConf {
 	public static final String LDADirName = "lda";
 	public static final String tpdownDirName = "topdown";
 	public static final String bottomupDirName = "bottomup";
+	public static final String bottomupGraphDirName = "bottomupGraph";
 	public static final String corpusDirName = "corpus";
 
 	public static final String finalOutputDirName = "final";
@@ -75,6 +77,7 @@ public class NLPConf {
 		finalOutputFile = new File(localRootFile, finalOutputDirName);
 		finalStableCommitStatsFile = new File(finalOutputFile, finalStableCommitStatsFileName);
 		localBottomupFile = new File(finalOutputFile, bottomupDirName);
+		localBottomupGraphFile = new File(finalOutputFile, bottomupGraphDirName);
 	}
 
 	public void loadConfFile(String confFileName) {

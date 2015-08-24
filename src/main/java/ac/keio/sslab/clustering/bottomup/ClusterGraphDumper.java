@@ -53,12 +53,11 @@ public class ClusterGraphDumper {
 		cmd.add("-Tpdf");
 		cmd.add(dotFile.getAbsolutePath());
 		cmd.add("-o");
-		cmd.add(new File(outputDir, dotFile.getName().split(".")[0] + ".pdf").getAbsolutePath());
+		cmd.add(new File(outputDir, dotFile.getName().split("\\.")[0] + ".pdf").getAbsolutePath());
 		pb.command(cmd);
 		try {
-			pb.start();
-			pb.wait();
-			if (removeDotFile) {
+			int ret = pb.start().waitFor();
+			if (ret == 0 && removeDotFile) {
 				dotFile.delete();
 			}
 		} catch (Exception e) {

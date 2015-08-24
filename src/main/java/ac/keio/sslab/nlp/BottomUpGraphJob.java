@@ -36,12 +36,12 @@ public class BottomUpGraphJob implements NLPJob {
 	@Override
 	public void run(JobManager mgr) {
 		NLPConf conf = NLPConf.getInstance();
-		File localOutputDir = mgr.getLocalArgFile(conf.localBottomupFile, "j");
+		File localOutputDir = mgr.getLocalArgFile(conf.localBottomupGraphFile, "j");
 		File clustersFile = new File(conf.localBottomupFile + "/" + mgr.getArgStr("b"), "clusters.csv");
 
 		try {
 			ClusterGraphDumper v= new ClusterGraphDumper(clustersFile);
-			v.dumpDot(localOutputDir, mgr.getArgOrDefault("s", v.getRootID(), Integer.class), mgr.getArgOrDefault("n", 5, Integer.class));
+			v.dumpPDF(localOutputDir, mgr.getArgOrDefault("s", v.getRootID(), Integer.class), mgr.getArgOrDefault("n", 5, Integer.class), true);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
