@@ -29,7 +29,7 @@ public class BottomupClustering {
 			clusters.put(c.getID(), c);
 			points.add(reader.val());
 			c.setCentroid(points, topicStr);
-			c.setDensity(1.0);
+			c.setDensity(0.0);
 		}
 		reader.close();
 		CachedBottomupClustering clustering = new CachedBottomupClustering(points, 5L * 1024 * 1024 * 1024);
