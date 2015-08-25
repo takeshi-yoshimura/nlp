@@ -31,7 +31,11 @@ public class ClusterScore {
 	}
 
 	public double score(HierarchicalCluster c, HierarchicalCluster child) {
-		return scoreHastie(c, child);
+		return scoreSimple(c, child);
+	}
+
+	public double scoreSimple(HierarchicalCluster c, HierarchicalCluster child) {
+		return (c.getDensity() - child.getDensity());
 	}
 
 	public double scoreHastie(HierarchicalCluster c, HierarchicalCluster child) {

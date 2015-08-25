@@ -14,10 +14,12 @@ import java.util.Set;
 public class ClusterGraph {
 
 	List<HierarchicalCluster> clusters;
+	List<HierarchicalCluster> singletons;
 	HierarchicalCluster root;
 
-	protected ClusterGraph(List<HierarchicalCluster> clusters, HierarchicalCluster root) {
+	protected ClusterGraph(List<HierarchicalCluster> clusters, List<HierarchicalCluster> singletons,  HierarchicalCluster root) {
 		this.clusters = clusters;
+		this.singletons = singletons;
 		this.root = root;
 	}
 
@@ -26,12 +28,16 @@ public class ClusterGraph {
 		String line = null;
 		Map<Integer, HierarchicalCluster> graph = new HashMap<Integer, HierarchicalCluster>();
 		List<HierarchicalCluster> clusters = new ArrayList<HierarchicalCluster>();
+		List<HierarchicalCluster> singletons = new ArrayList<HierarchicalCluster>();
 		Set<Integer> HierarchicalClusterIDs = new HashSet<Integer>();
 		while ((line = reader.readLine()) != null) {
 			if (line.startsWith("#")) {
 				continue;
 			}
 			HierarchicalCluster c = HierarchicalCluster.parseString(line);
+			if (c.size() == 1) {
+				singletons.add(c);
+			}
 			clusters.add(c);
 			graph.put(c.getID(), c);
 			HierarchicalClusterIDs.add(c.getID());
@@ -49,7 +55,7 @@ public class ClusterGraph {
 		}
 		HierarchicalCluster root = graph.get(HierarchicalClusterIDs.iterator().next());
 
-		return new ClusterGraph(clusters, root);
+		return new ClusterGraph(clusters, singletons, root);
 	}
 
 	public HierarchicalCluster getRoot() {
@@ -58,5 +64,9 @@ public class ClusterGraph {
 
 	public List<HierarchicalCluster> getClusters() {
 		return clusters;
+	}
+
+	public List<HierarchicalCluster> getSingletons() {
+		return singletons;
 	}
 }
