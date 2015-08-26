@@ -85,6 +85,15 @@ public class SimpleJsonWriter {
 		json.writeStringField(fieldName, sdf.format(date));
 	}
 
+	public void writeDateCollection(String fieldName, List<Date> dates) throws Exception {
+		json.writeFieldName(fieldName);
+		json.writeStartArray();
+		for (Date date: dates) {
+			json.writeString(sdf.format(date));
+		}
+		json.writeEndArray();
+	}
+
 	public void close() throws IOException {
 		json.writeEndObject();
 		json.close();

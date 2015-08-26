@@ -75,17 +75,19 @@ public class PointCentricClusterWriter {
 			int pointID = singleton.getKey();
 			String pointIDStr = Integer.toString(pointID);
 			String subject = git.getSubject(realIDs.get(pointID).get(0));
-			Date date = git.getCommitDate(realIDs.get(pointID).get(0));
-			String version = git.getLatestTag(realIDs.get(pointID).get(0));
 			List<String> shas = realIDs.get(pointID);
 			Set<String> fileSet = new HashSet<String>();
+			List<Date> dates = new ArrayList<Date>();
+			List<String> versions = new ArrayList<String>();
 			for (String sha: shas) {
+				dates.add(git.getCommitDate(sha));
+				versions.add(git.getLatestTag(sha));
 				fileSet.addAll(git.getFiles(sha));
 			}
 			List<String> files = new ArrayList<String>(fileSet);
 			Map<String, Double> topic = singleton.getValue().getCentroid();
 			ClusterMetrics c = new ClusterMetrics(getBestCluster(pointID), realIDs, git);
-			new PointMetrics(pointIDStr, subject, date, version, shas, files, topic, c).writeJson(writer);
+			new PointMetrics(pointIDStr, subject, dates, versions, shas, files, topic, c).writeJson(writer);
 		}
 		writer.close();
 	}

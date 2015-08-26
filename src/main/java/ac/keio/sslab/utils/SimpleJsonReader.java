@@ -130,6 +130,16 @@ public class SimpleJsonReader {
 		return sdf.parse(readStringField(fieldName));
 	}
 
+	public List<Date> readDateCollection(String fieldName) throws Exception {
+		readStartArray(fieldName);
+		List<Date> dates = new ArrayList<Date>();
+		while (json.nextToken() != JsonToken.END_ARRAY) {
+			String val = json.getCurrentName();
+			dates.add(sdf.parse(val));
+		}
+		return dates;
+	}
+
 	public void skipChildren() throws IOException {
 		json.skipChildren();
 	}

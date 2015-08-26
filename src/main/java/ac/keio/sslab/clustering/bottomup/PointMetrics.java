@@ -1,6 +1,5 @@
 package ac.keio.sslab.clustering.bottomup;
 
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -14,29 +13,29 @@ import ac.keio.sslab.utils.SimpleJsonWriter;
 public class PointMetrics {
 	String pointID;
 	String subject;
-	Date date;
-	String version;
+	List<Date> dates;
+	List<String> versions;
 	List<String> shas;
 	List<String> files;
 	Map<String, Double> topic;
 	ClusterMetrics c;
 
-	public PointMetrics(String pointID, String subject, Date date, String version, List<String> shas, List<String> files, Map<String, Double> topic, ClusterMetrics c) {
+	public PointMetrics(String pointID, String subject, List<Date> dates, List<String> versions, List<String> shas, List<String> files, Map<String, Double> topic, ClusterMetrics c) {
 		this.pointID = pointID;
 		this.subject = subject;
-		this.date = date;
-		this.version = version;
+		this.dates = dates;
+		this.versions = versions;
 		this.shas = shas;
 		this.files = files;
 		this.topic = topic;
 		this.c = c;
 	}
 
-	public void writeJson(SimpleJsonWriter json) throws IOException {
+	public void writeJson(SimpleJsonWriter json) throws Exception {
 		json.writeStartObject(pointID);
 		json.writeStringField("subject", subject);
-		json.writeDateField("date", date);
-		json.writeStringField("version", version);
+		json.writeDateCollection("date", dates);
+		json.writeStringCollection("version", versions);
 		json.writeStringCollection("commit shas", shas);
 		json.writeStringCollection("files", files);
 		json.writeStringDoubleMap("topics", topic);
@@ -48,9 +47,16 @@ public class PointMetrics {
 		StringBuilder sb = new StringBuilder();
 		sb.append("ID: ").append(pointID).append('\n');
 		sb.append("subject: ").append(subject).append('\n');
-		sb.append("date: ").append(new SimpleDateFormat("yyyy/MM/dd").format(date)).append('\n');
-		sb.append("version: ").append(version).append('\n');
-		sb.append("commit shas:");
+		sb.append("date:");
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
+		for (Date date: dates) {
+			sb.append(' ').append(sdf.format(date));
+		}
+		sb.append("version:");
+		for (String version: versions) {
+			sb.append(' ').append(version);
+		}
+		sb.append("\ncommit shas:");
 		for (String sha: shas) {
 			sb.append(' ').append(sha);
 		}
@@ -69,14 +75,14 @@ public class PointMetrics {
 		String pointID = json.getCurrentFieldName();
 		json.readStartObject(pointID);
 		String subject = json.readStringField("subject");
-		Date date = json.readDateValue("date");
-		String version = json.readStringField("version");
+		List<Date> dates = json.readDateCollection("date");
+		List<String> versions = json.readStringCollection("version");
 		List<String> shas = json.readStringCollection("commit shas");
 		List<String> files = json.readStringCollection("files");
 		Map<String, Double> topic = json.readStringDoubleMap("topics");
 		ClusterMetrics c = ClusterMetrics.readJson(json);
 		json.readEndObject();
-		return new PointMetrics(pointID, subject, date, version, shas, files, topic, c);
+		return new PointMetrics(pointID, subject, dates, versions, shas, files, topic, c);
 	}
 
 	public static PointMetrics readIfMatchingPointID(SimpleJsonReader json, String pointID) throws Exception {
