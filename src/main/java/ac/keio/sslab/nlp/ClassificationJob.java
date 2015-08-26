@@ -6,13 +6,13 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
-import ac.keio.sslab.clustering.bottomup.PointCentoricCluster;
+import ac.keio.sslab.clustering.bottomup.PointCentricClusterWriter;
 
-public class ExtractSimlarPatchJob implements NLPJob {
+public class ClassificationJob implements NLPJob {
 
 	@Override
 	public String getJobName() {
-		return "extractSimilarPatch";
+		return "classification";
 	}
 
 	@Override
@@ -42,7 +42,7 @@ public class ExtractSimlarPatchJob implements NLPJob {
 	@Override
 	public void run(JobManager mgr) {
 		NLPConf conf = NLPConf.getInstance();
-		File localOutputDir = new File(conf.finalOutputFile, "summary/" + mgr.getArgStr("j"));
+		File localOutputDir = new File(conf.finalOutputFile, "class/" + mgr.getArgStr("j"));
 		File gitDir = new File(mgr.getArgStr("g"));
 		File idIndexFile = new File(conf.localCorpusFile + "/" + mgr.getArgStr("c"), "idIndex.txt");
 		File clustersFile = new File(conf.localBottomupFile + "/" + mgr.getArgStr("b"), "clusters.csv");
@@ -50,7 +50,8 @@ public class ExtractSimlarPatchJob implements NLPJob {
 		File densityFile = new File(localOutputDir, "density.csv");
 
 		try {
-			PointCentoricCluster c = new PointCentoricCluster(clustersFile);
+			localOutputDir.mkdirs();
+			PointCentricClusterWriter c = new PointCentricClusterWriter(clustersFile);
 			c.writeAllBestClustersJson(summaryFile, idIndexFile, gitDir);
 			c.writeAllDensityTrendCSV(densityFile);
 	        System.out.println("Results: " + summaryFile.getAbsolutePath());

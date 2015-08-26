@@ -13,6 +13,7 @@ import java.util.TreeMap;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -20,6 +21,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevObject;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 
 public class SimpleGitReader {
@@ -58,11 +60,11 @@ public class SimpleGitReader {
 	}
 
 	public String getCommitDateString(String sha) throws IOException {
-		return new SimpleDateFormat("yyyy-MM-dd").format(getCommitDate(sha));
+		return new SimpleDateFormat("yyyy/MM/dd").format(getCommitDate(sha));
 	}
 
 	public Date getCommitDate(String sha) throws IOException {
-		return new Date(getCommit(sha).getCommitTime() * 1000);
+		return new Date(1000L * getCommit(sha).getCommitTime());
 	}
 
 	public String getLatestTag(String sha) throws IOException {
@@ -82,13 +84,32 @@ public class SimpleGitReader {
 		return files;
 	}
 
-	public List<DiffEntry> getDiffs(String sha) throws IOException,
-			GitAPIException {
-		ObjectReader reader = repo.newObjectReader();
-		CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
-		oldTreeIter.reset(reader, getCommit(sha + "^"));
-		CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
-		newTreeIter.reset(reader, getCommit(sha));
-		return git.diff().setNewTree(newTreeIter).setOldTree(oldTreeIter).call();
+	public List<DiffEntry> getDiffs(String sha) throws IOException,	GitAPIException {
+		return git.diff().setNewTree(getTreeIterator(sha)).setOldTree(getTreeIterator(sha + "^")).call();
+	}
+
+	// from jGit test code
+	public AbstractTreeIterator getTreeIterator(String name) throws IOException {
+		final ObjectId id = repo.resolve(name);
+		if (id == null)
+			throw new IllegalArgumentException(name);
+		final CanonicalTreeParser p = new CanonicalTreeParser();
+		try (ObjectReader or = repo.newObjectReader()) {
+			p.reset(or, walk.parseTree(id));
+			return p;
+		}
+	}
+
+	public String showCommit(String sha) throws Exception {
+		StringBuilder sb = new StringBuilder();
+		RevCommit commit = getCommit(sha);
+		sb.append("commit ").append(commit.getId().getName()).append('\n');
+		sb.append("Author: ").append(commit.getAuthorIdent()).append('\n');
+		sb.append("Date: ").append(new Date(1000L * commit.getCommitTime())).append('\n');
+		sb.append(commit.getFullMessage()).append('\n');
+		for (DiffEntry entry: getDiffs(sha)) {
+			sb.append(entry).append('\n');
+		}
+		return sb.toString();
 	}
 }

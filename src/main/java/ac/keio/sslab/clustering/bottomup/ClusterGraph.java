@@ -50,6 +50,8 @@ public class ClusterGraph {
 			}
 			c.setLeft(graph.get(c.getLeft().getID()));
 			c.setRight(graph.get(c.getRight().getID()));
+			graph.get(c.getLeft().getID()).setParent(c);
+			graph.get(c.getRight().getID()).setParent(c);
 			HierarchicalClusterIDs.remove(c.getLeft().getID());
 			HierarchicalClusterIDs.remove(c.getRight().getID());
 		}
