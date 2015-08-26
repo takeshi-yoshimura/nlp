@@ -11,7 +11,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.LogCommand;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
@@ -55,20 +55,36 @@ public class SimpleGitReader {
 		return walk.parseCommit(repo.resolve(sha));
 	}
 
+	public String getFullMessage(String sha) throws IOException {
+		return getCommit(sha).getFullMessage();
+	}
+
 	public String getSubject(String sha) throws IOException {
 		return getCommit(sha).getShortMessage();
 	}
 
+	SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
 	public String getCommitDateString(String sha) throws IOException {
-		return new SimpleDateFormat("yyyy/MM/dd").format(getCommitDate(sha));
+		return sdf.format(getCommitDate(sha));
+	}
+
+	public String getCommitDateString(RevCommit commit) throws IOException {
+		return sdf.format(getCommitDate(commit));
 	}
 
 	public Date getCommitDate(String sha) throws IOException {
 		return new Date(1000L * getCommit(sha).getCommitTime());
 	}
 
+	public Date getCommitDate(RevCommit commit) throws IOException {
+		return new Date(1000L * commit.getCommitTime());
+	}
+
 	public String getLatestTag(String sha) throws IOException {
 		Date d = getCommitDate(sha);
+		if (tags.containsKey(d)) {
+			return tags.get(d);
+		}
 		Date latest = tags.lowerKey(d);
 		if (latest == null) {
 			return "unkown";
@@ -76,7 +92,19 @@ public class SimpleGitReader {
 		return tags.get(latest);
 	}
 
-	public Set<String> getFiles(String sha) throws IOException, GitAPIException {
+	public String getLatestTag(RevCommit commit) throws IOException {
+		Date d = getCommitDate(commit);
+		if (tags.containsKey(d)) {
+			return tags.get(d);
+		}
+		Date latest = tags.lowerKey(d);
+		if (latest == null) {
+			return "unkown";
+		}
+		return tags.get(latest);
+	}
+
+	public Set<String> getFiles(String sha) throws Exception {
 		Set<String> files = new HashSet<String>();
 		for (DiffEntry entry : getDiffs(sha)) {
 			files.add(entry.getNewPath());
@@ -84,7 +112,7 @@ public class SimpleGitReader {
 		return files;
 	}
 
-	public List<DiffEntry> getDiffs(String sha) throws IOException,	GitAPIException {
+	public List<DiffEntry> getDiffs(String sha) throws Exception {
 		return git.diff().setNewTree(getTreeIterator(sha)).setOldTree(getTreeIterator(sha + "^")).call();
 	}
 
@@ -111,5 +139,14 @@ public class SimpleGitReader {
 			sb.append(entry).append('\n');
 		}
 		return sb.toString();
+	}
+
+	public LogCommand log() {
+		return git.log();
+	}
+
+	public void close() {
+		git.close();
+		repo.close();
 	}
 }

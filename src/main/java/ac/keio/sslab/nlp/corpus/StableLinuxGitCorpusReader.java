@@ -9,20 +9,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
 
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevObject;
-import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import ac.keio.sslab.utils.SimpleGitReader;
 
 public class StableLinuxGitCorpusReader implements GitCorpusReader {
 
-	Repository repo;
-	Git git;
 	List<GitCorpusReaderArguments> arguments;
 	int readerIndex;
 	Map<String, String> lts;
@@ -44,60 +37,49 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 	public StableLinuxGitCorpusReader(File input, String fileStr) throws Exception {
 		arguments = new ArrayList<GitCorpusReaderArguments>();
 		this.fileStr = fileStr;
-		repo = new FileRepositoryBuilder().findGitDir(input).build();
-		git = new Git(repo);
-		RevWalk walk = new RevWalk(repo);
-		Map<String, String> rangeMap = new HashMap<String, String>();
-		for (Entry<String, Ref> e: repo.getTags().entrySet()) {
-			String tag = e.getKey();
+		SimpleGitReader g = new SimpleGitReader(input);
+		TreeMap<Date, String> tags = g.getTagAndDates();
+		Map<String, String> r = new HashMap<String, String>();
+		for (Entry<Date, String> e: tags.entrySet()) {
+			String tag = e.getValue();
 			if (tag.lastIndexOf("rc") != -1 || tag.lastIndexOf('-') != -1) { //ignore rc versions
 				continue;
 			} else if (!tag.startsWith("v")) {
 				continue;
 			}
 			String majorStr = tag.substring(0, tag.lastIndexOf('.'));
-			RevObject c = walk.peel(walk.parseAny(repo.resolve(tag)));
-			if (!(c instanceof RevCommit)) {
-				continue;
-			}
-			int time =  walk.parseCommit(repo.resolve(tag)).getCommitTime();
-			if (!rangeMap.containsKey(majorStr)) {
-				if (majorStr.equals("v4") || majorStr.equals("v3") || majorStr.equals("v2.6")) {
-					rangeMap.put(tag, tag);
-				} else {
-					rangeMap.put(majorStr, tag);
-				}
+
+			if (majorStr.equals("v4") || majorStr.equals("v3") || majorStr.equals("v2.6")) {
+				r.put(tag, tag);
 			} else {
-				String last = rangeMap.get(majorStr);
-				int prevUntil = walk.parseCommit(repo.resolve(last)).getCommitTime();
-				if (prevUntil < time) {
-					rangeMap.put(majorStr, tag);
-				}
+				r.put(majorStr, tag);
 			}
 		}
+		g.close();
 
-		lts = new HashMap<String, String>();
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
-		for (Entry<String, String> e2: rangeMap.entrySet()) {
+		lts = new HashMap<String, String>();
+		for (Entry<String, String> e2: r.entrySet()) {
 			System.out.println("Extract: " + e2.getKey() + " -- " + e2.getValue());
-			ObjectId sinceRef = repo.resolve(e2.getKey());
-			ObjectId untilRef = repo.resolve(e2.getValue());
-			if (sinceRef == null || untilRef == null) {
-				continue;
+			Date sinceD = null, untilD = null;
+			for (Entry<Date, String> e: tags.entrySet()) {
+				if (e.getValue().equals(e2.getKey())) {
+					sinceD = e.getKey();
+				}
+				if (e.getValue().equals(e2.getValue())) {
+					untilD = e.getKey();
+				}
 			}
-			long since = walk.parseCommit(sinceRef).getCommitTime();
-			long until = walk.parseCommit(untilRef).getCommitTime();
-			lts.put(e2.getKey() + " - " + e2.getValue(), sdf.format(new Date(since * 1000)) + " - " + sdf.format(new Date(until * 1000)));
+			lts.put(e2.getKey() + " - " + e2.getValue(), sdf.format(sinceD) + " - " + sdf.format(untilD));
 			arguments.add(new GitCorpusReaderArguments(input, e2.getKey(), e2.getValue(), fileStr));
 		}
-		walk.close();
 		readerIndex = 0;
 		GitCorpusReaderArguments arg = arguments.get(0);
 		reader = new GitLogCorpusReader(arg.input, arg.sinceStr, arg.untilStr, arg.fileStr);
 	}
 
 	@Override
-	public boolean seekNext() throws IOException {
+	public boolean seekNext() throws Exception {
 		boolean got = reader.seekNext();
 		while (!got) {
 			if (++readerIndex == arguments.size())
@@ -125,10 +107,8 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() throws Exception {
 		reader.close();
-		git.close();
-		repo.close();
 	}
 
 	@Override
@@ -140,5 +120,20 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 		}
 		sb.append("directory: ").append(fileStr);
 		return sb.toString();
+	}
+
+	@Override
+	public String getDate() {
+		return reader.getDate();
+	}
+
+	@Override
+	public String getVersion() {
+		return reader.getVersion();
+	}
+
+	@Override
+	public Set<String> getFiles() {
+		return reader.getFiles();
 	}
 }

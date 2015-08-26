@@ -3,30 +3,27 @@ package ac.keio.sslab.nlp.corpus;
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Set;
 
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+
+import ac.keio.sslab.utils.SimpleGitReader;
 
 public class GitLogCorpusReader implements GitCorpusReader {
-	Repository repo;
-	Git git;
+	SimpleGitReader git;
 	Iterator<RevCommit> logs;
-	String sha, doc;
+	String sha, doc, date, ver;
+	Set<String> files;
 	String sinceStr, untilStr, fileStr;
 
 	public GitLogCorpusReader(File input, String sinceStr, String untilStr, String fileStr) throws Exception {
 		this.sinceStr = sinceStr;
 		this.untilStr = untilStr;
 		this.fileStr = fileStr;
-		repo = new FileRepositoryBuilder().findGitDir(input).build();
-		git = new Git(repo);
-		RevWalk walk = new RevWalk(repo);
-		RevCommit untilRef = walk.parseCommit(repo.resolve(untilStr));
+		git = new SimpleGitReader(input);
+		RevCommit untilRef = git.getCommit(untilStr);
 		if (!sinceStr.equals("")) {
-			RevCommit sinceRef = walk.parseCommit(repo.resolve(sinceStr));
+			RevCommit sinceRef = git.getCommit(sinceStr);
 			if (fileStr == null) {
 				logs = git.log().addRange(sinceRef, untilRef).call().iterator();
 			} else {
@@ -39,11 +36,10 @@ public class GitLogCorpusReader implements GitCorpusReader {
 				logs = git.log().add(untilRef).addPath(fileStr).call().iterator();
 			}
 		}
-		walk.close();
 	}
 
 	@Override
-	public boolean seekNext() throws IOException {
+	public boolean seekNext() throws Exception {
 		if (!logs.hasNext()) {
 			return false;
 		}
@@ -56,6 +52,9 @@ public class GitLogCorpusReader implements GitCorpusReader {
 
 		sha = rev.getId().getName();
 		doc = rev.getFullMessage();
+		date = git.getCommitDateString(rev);
+		ver = git.getLatestTag(rev);
+		files = git.getFiles(sha);
 		return true;
 	}
 
@@ -72,7 +71,6 @@ public class GitLogCorpusReader implements GitCorpusReader {
 	@Override
 	public void close() throws IOException {
 		git.close();
-		repo.close();
 	}
 
 	@Override
@@ -81,5 +79,20 @@ public class GitLogCorpusReader implements GitCorpusReader {
 		sb.append("Extracted: ").append(sinceStr).append(" - ").append(untilStr).append('\n');
 		sb.append("directory: ").append(fileStr);
 		return sb.toString();
+	}
+
+	@Override
+	public String getDate() {
+		return date;
+	}
+
+	@Override
+	public String getVersion() {
+		return ver;
+	}
+
+	@Override
+	public Set<String> getFiles() {
+		return files;
 	}
 }

@@ -8,27 +8,22 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+
+import ac.keio.sslab.utils.SimpleGitReader;
 
 public class ShaFileGitCorpusReader implements GitCorpusReader {
 
-	Repository repo;
-	Git git;
+	SimpleGitReader git;
 	Set<String> shas;
 	Iterator<String> sha_iterator;
-	RevWalk walk;
-	String sha, doc;
+	String sha, doc, date, ver;
+	Set<String> files;
 	File input;
 
 	public ShaFileGitCorpusReader(File input, File gitDir) throws Exception {
 		this.input = input;
-		repo = new FileRepositoryBuilder().findGitDir(gitDir).build();
-		git = new Git(repo);
-		walk = new RevWalk(repo);
+		git = new SimpleGitReader(gitDir);
 
 		shas = new HashSet<String>();
 		BufferedReader br = new BufferedReader(new FileReader(input));
@@ -43,12 +38,15 @@ public class ShaFileGitCorpusReader implements GitCorpusReader {
 	}
 
 	@Override
-	public boolean seekNext() throws IOException {
+	public boolean seekNext() throws Exception {
 		if (!sha_iterator.hasNext())
 			return false;
-		RevCommit rev = walk.parseCommit(repo.resolve(sha_iterator.next()));
+		RevCommit rev = git.getCommit(sha_iterator.next());
 		sha = rev.getId().getName();
 		doc = rev.getFullMessage();
+		date = git.getCommitDateString(rev);
+		ver = git.getLatestTag(rev);
+		files = git.getFiles(sha);
 		return true;
 	}
 
@@ -64,14 +62,27 @@ public class ShaFileGitCorpusReader implements GitCorpusReader {
 
 	@Override
 	public void close() throws IOException {
-		walk.close();
 		git.close();
-		repo.close();
 	}
 
 	@Override
 	public String getStats() {
 		return new String("Extracted: " + input.getAbsolutePath());
+	}
+
+	@Override
+	public String getDate() {
+		return date;
+	}
+
+	@Override
+	public String getVersion() {
+		return ver;
+	}
+
+	@Override
+	public Set<String> getFiles() {
+		return files;
 	}
 
 }

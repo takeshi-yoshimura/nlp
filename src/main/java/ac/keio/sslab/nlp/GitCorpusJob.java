@@ -98,7 +98,15 @@ public class GitCorpusJob implements NLPJob {
 					sb.setLength(0);
 					System.out.println("commit " + reader.getSha());
 					totalCommits++;
-					commitsWriter.println(reader.getSha());
+					commitsWriter.print(reader.getSha());
+					commitsWriter.print(',');
+					commitsWriter.print(reader.getDate());
+					commitsWriter.print(',');
+					commitsWriter.print(reader.getVersion());
+					for (String version: reader.getFiles()) {
+						commitsWriter.print(',');
+						commitsWriter.print(version);
+					}
 					for (String para: filter.filterDocument(reader.getDoc())) {
 						sb.append(para).append(' ');
 					}
