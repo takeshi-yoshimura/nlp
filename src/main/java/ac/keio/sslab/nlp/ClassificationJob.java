@@ -33,6 +33,7 @@ public class ClassificationJob implements NLPJob {
 		g5.setRequired(true);
 
 		Options opt = new Options();
+		opt.addOption("d", "density", false, "record density.csv for debugging purpose");
 		opt.addOptionGroup(g);
 		opt.addOptionGroup(g4);
 		opt.addOptionGroup(g5);
@@ -47,12 +48,17 @@ public class ClassificationJob implements NLPJob {
 		File idIndexFile = new File(conf.localCorpusFile + "/" + mgr.getArgStr("c"), "idIndex.txt");
 		File clustersFile = new File(conf.localBottomupFile + "/" + mgr.getArgStr("b"), "clusters.csv");
 		File summaryFile = new File(localOutputDir, "summary.json");
+		File densityFile = new File(localOutputDir, "density.csv");
 
 		try {
 			localOutputDir.mkdirs();
 			PointCentricClusterWriter c = new PointCentricClusterWriter(clustersFile);
 			c.writeAllBestClustersJson(summaryFile, idIndexFile, gitDir);
 	        System.out.println("Results: " + summaryFile.getAbsolutePath());
+			if (mgr.hasArg("d")) {
+				c.writeAllDensityTrendCSV(densityFile);
+		        System.out.println("Results: " + densityFile.getAbsolutePath());
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
