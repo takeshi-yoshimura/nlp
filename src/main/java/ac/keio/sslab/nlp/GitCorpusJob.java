@@ -107,6 +107,7 @@ public class GitCorpusJob implements NLPJob {
 						commitsWriter.print(',');
 						commitsWriter.print(version);
 					}
+					commitsWriter.println();
 					for (String para: filter.filterDocument(reader.getDoc())) {
 						sb.append(para).append(' ');
 					}

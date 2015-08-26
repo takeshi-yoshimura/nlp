@@ -78,9 +78,18 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 		reader = new GitLogCorpusReader(arg.input, arg.sinceStr, arg.untilStr, arg.fileStr);
 	}
 
+	public boolean seekNextStable() throws Exception {
+		boolean result = false;
+		do {
+			result = reader.seekNext();
+		} while (result && reader.getVersion().contains("rc"));
+
+		return result;
+	}
+
 	@Override
 	public boolean seekNext() throws Exception {
-		boolean got = reader.seekNext();
+		boolean got = seekNextStable();
 		while (!got) {
 			if (++readerIndex == arguments.size())
 				return false;
@@ -91,7 +100,7 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 			} catch (Exception e) {
 				throw new IOException(e);
 			}
-			got = reader.seekNext();
+			got = seekNextStable();
 		}
 		return true;
 	}
