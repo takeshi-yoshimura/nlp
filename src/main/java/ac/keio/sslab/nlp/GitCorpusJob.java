@@ -83,7 +83,7 @@ public class GitCorpusJob implements NLPJob {
 			File stats = new File(conf.localCorpusFile, mgr.getJobID() + "/stats.txt");
 			File commits = new File(stats.getParent(), "commits.txt");
 			File idIndexFile = new File(stats.getParent(), "idIndex.txt");
-			File originalCorpus = new File(stats.getParent(), "originalCorpus.txt");
+			File originalCorpus = new File(stats.getParent(), "beforesStopWordsCorpus.txt");
 			File dfFile = new File(stats.getParent(), "df.txt");
 			if (stats.exists()) {
 				stats.delete();
@@ -92,7 +92,6 @@ public class GitCorpusJob implements NLPJob {
 			}
 			PrintWriter commitsWriter = JobUtils.getPrintWriter(commits);
 			PrintWriter originalCorpusWriter = JobUtils.getPrintWriter(originalCorpus);
-			PrintWriter dfWriter = JobUtils.getPrintWriter(dfFile);
 
 			DocumentFilter filter = new DocumentFilter(tokenizeAtUnderline, useNLTKStopwords);
 			// <content sha, id for content sha>
@@ -108,6 +107,18 @@ public class GitCorpusJob implements NLPJob {
 					sb.setLength(0);
 					System.out.println("commit " + reader.getSha());
 					totalCommits++;
+
+					for (String para: filter.filterDocument(reader.getDoc())) {
+						sb.append(para).append(' ');
+					}
+					if (sb.length() == 0) {
+						continue;
+					}
+					sb.setLength(sb.length() - 1);
+					if (!sb.toString().contains(" ")) {
+						continue;
+					}
+
 					commitsWriter.print(reader.getSha());
 					commitsWriter.print(',');
 					commitsWriter.print(reader.getDate());
@@ -118,19 +129,7 @@ public class GitCorpusJob implements NLPJob {
 						commitsWriter.print(version);
 					}
 					commitsWriter.println();
-					Set<String> words = new HashSet<String>();
-					for (String para: filter.filterDocument(reader.getDoc())) {
-						sb.append(para).append(' ');
-						for (String word: para.split(" ")) {
-							words.add(word);
-						}
-					}
-					for (String word: words) {
-						if (!df.containsKey(word)) {
-							df.put(word, 0);
-						}
-						df.put(word, df.get(word) + 1);
-					}
+
 					String contentSha = JobUtils.getSha(sb.toString());
 					if (!contentShas.containsKey(contentSha)) {
 						idIndex.put(i, new ArrayList<String>());
@@ -138,6 +137,17 @@ public class GitCorpusJob implements NLPJob {
 						originalCorpusWriter.print(Integer.toString(i++));
 						originalCorpusWriter.print(' ');
 						originalCorpusWriter.println(sb.toString());
+
+						Set<String> words = new HashSet<String>();
+						for (String word: sb.toString().split(" ")) {
+							words.add(word);
+						}
+						for (String word: words) {
+							if (!df.containsKey(word)) {
+								df.put(word, 0);
+							}
+							df.put(word, df.get(word) + 1);
+						}
 					}
 					idIndex.get(contentShas.get(contentSha)).add(reader.getSha());
 					totalDocuments++;
@@ -146,6 +156,40 @@ public class GitCorpusJob implements NLPJob {
 				while (reader.seekNext()) {
 					int pId = 0;
 					System.out.println("commit " + reader.getSha());
+					boolean hasParagraph = false;
+					for (String para: filter.filterDocument(reader.getDoc())) {
+						if (!para.contains(" ")) {
+							continue;
+						}
+
+						if (!para.isEmpty()) {
+							hasParagraph = true;
+						}
+						String contentSha = JobUtils.getSha(para);
+						if (!contentShas.containsKey(contentSha)) {
+							idIndex.put(i, new ArrayList<String>());
+							contentShas.put(contentSha, i);
+							originalCorpusWriter.print(Integer.toString(i++));
+							originalCorpusWriter.print(' ');
+							originalCorpusWriter.println(para);
+
+							Set<String> words = new HashSet<String>();
+							for (String word: para.split(" ")) {
+								words.add(word);
+							}
+							for (String word: words) {
+								if (!df.containsKey(word)) {
+									df.put(word, 0);
+								}
+								df.put(word, df.get(word) + 1);
+							}
+						}
+						idIndex.get(contentShas.get(contentSha)).add(reader.getSha() + "-" + pId++);
+						totalDocuments++;
+					}
+					if (!hasParagraph) {
+						continue;
+					}
 					totalCommits++;
 					commitsWriter.print(reader.getSha());
 					commitsWriter.print(',');
@@ -157,30 +201,9 @@ public class GitCorpusJob implements NLPJob {
 						commitsWriter.print(version);
 					}
 					commitsWriter.println();
-					Set<String> words = new HashSet<String>();
-					for (String para: filter.filterDocument(reader.getDoc())) {
-						String contentSha = JobUtils.getSha(para);
-						if (!contentShas.containsKey(contentSha)) {
-							idIndex.put(i, new ArrayList<String>());
-							contentShas.put(contentSha, i);
-							originalCorpusWriter.print(Integer.toString(i++));
-							originalCorpusWriter.print(' ');
-							originalCorpusWriter.println(para);
-						}
-						for (String word: para.split(" ")) {
-							words.add(word);
-						}
-						idIndex.get(contentShas.get(contentSha)).add(reader.getSha() + "-" + pId++);
-						totalDocuments++;
-					}
-					for (String word: words) {
-						if (!df.containsKey(word)) {
-							df.put(word, 0);
-						}
-						df.put(word, df.get(word) + 1);
-					}
 				}
 			}
+			commitsWriter.close();
 
 			Comparator<Entry<String, Integer>> reverser = new Comparator<Entry<String, Integer>>() {
 				public int compare(Entry<String, Integer> e1, Entry<String, Integer> e2) {
@@ -190,8 +213,9 @@ public class GitCorpusJob implements NLPJob {
 			List<Entry<String, Integer>> orderedDf = new ArrayList<Entry<String, Integer>>(df.entrySet());
 			Set<String> stopWord = new HashSet<String>();
 			Collections.sort(orderedDf, reverser);
+			PrintWriter dfWriter = JobUtils.getPrintWriter(dfFile);
 			for (Entry<String, Integer> e: orderedDf) {
-				if (e.getValue() > totalDocuments / 3) {
+				if (e.getValue() > idIndex.size() / 5) {
 					stopWord.add(e.getKey());
 					dfWriter.print("[stop word] ");
 				}
@@ -199,6 +223,8 @@ public class GitCorpusJob implements NLPJob {
 				dfWriter.print(',');
 				dfWriter.println(e.getValue());
 			}
+			dfWriter.close();
+
 			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, conf.hdfs, mgr.doForceWrite(), String.class, String.class);
 			BufferedReader br = new BufferedReader(new FileReader(originalCorpus));
 			String line = null;
@@ -233,19 +259,17 @@ public class GitCorpusJob implements NLPJob {
 			statsWriter.print("split paragraph?: ");
 			statsWriter.println(splitParagraph);
 			statsWriter.close();
-			writer.close();
 			reader.close();
-			commitsWriter.close();
 
 			PrintWriter idIndexWriter = JobUtils.getPrintWriter(idIndexFile);
 			for (Entry<Integer, List<String>> id: idIndex.entrySet()) {
-				idIndexWriter.print(id.getKey());
-				idIndexWriter.print("\t\t");
+				sb.setLength(0);
+				sb.append(id.getKey()).append('\t').append('\t');
 				for (String sha: id.getValue()) {
-					idIndexWriter.print(sha);
-					idIndexWriter.print(',');
+					sb.append(sha).append(',');
 				}
-				idIndexWriter.println();
+				sb.setLength(sb.length() - 1);
+				idIndexWriter.println(sb.toString());
 			}
 			idIndexWriter.close();
 		} catch (Exception e) {
