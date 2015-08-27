@@ -67,13 +67,14 @@ public class PointCentricClusterWriter {
 		return trend;
 	}
 
-	public void writeAllBestClustersJson(File output, File idIndexFile, File gitDir) throws Exception {
+	public void writeAllBestClustersJson(File outputDir, File idIndexFile, File gitDir) throws Exception {
 		Map<Integer, List<String>> realIDs = getRealIDs(idIndexFile);
 		SimpleGitReader git = new SimpleGitReader(gitDir);
-		SimpleJsonWriter writer = new SimpleJsonWriter(output);
 		for (Entry<Integer, HierarchicalCluster> singleton: singletons.entrySet()) {
 			int pointID = singleton.getKey();
-			String pointIDStr = Integer.toString(pointID);
+			File f = new File(outputDir, (pointID / 10000) + "/" + pointID + ".json");
+			f.getParentFile().mkdirs();
+			SimpleJsonWriter writer = new SimpleJsonWriter(f);
 			String subject = git.getSubject(realIDs.get(pointID).get(0));
 			List<String> shas = realIDs.get(pointID);
 			Set<String> fileSet = new HashSet<String>();
@@ -87,9 +88,9 @@ public class PointCentricClusterWriter {
 			List<String> files = new ArrayList<String>(fileSet);
 			Map<String, Double> topic = singleton.getValue().getCentroid();
 			ClusterMetrics c = new ClusterMetrics(getBestCluster(pointID), realIDs, git);
-			new PointMetrics(pointIDStr, subject, dates, versions, shas, files, topic, c).writeJson(writer);
+			new PointMetrics(pointID, subject, dates, versions, shas, files, topic, c).writeJson(writer);
+			writer.close();
 		}
-		writer.close();
 	}
 
 	public Map<Integer, List<String>> getRealIDs(File idIndexFile) throws IOException {

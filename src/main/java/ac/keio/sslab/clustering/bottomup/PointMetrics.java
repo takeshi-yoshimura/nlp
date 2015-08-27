@@ -1,5 +1,6 @@
 package ac.keio.sslab.clustering.bottomup;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -11,7 +12,7 @@ import ac.keio.sslab.utils.SimpleJsonReader;
 import ac.keio.sslab.utils.SimpleJsonWriter;
 
 public class PointMetrics {
-	String pointID;
+	int pointID;
 	String subject;
 	List<Date> dates;
 	List<String> versions;
@@ -20,7 +21,7 @@ public class PointMetrics {
 	Map<String, Double> topic;
 	ClusterMetrics c;
 
-	public PointMetrics(String pointID, String subject, List<Date> dates, List<String> versions, List<String> shas, List<String> files, Map<String, Double> topic, ClusterMetrics c) {
+	public PointMetrics(int pointID, String subject, List<Date> dates, List<String> versions, List<String> shas, List<String> files, Map<String, Double> topic, ClusterMetrics c) {
 		this.pointID = pointID;
 		this.subject = subject;
 		this.dates = dates;
@@ -32,7 +33,7 @@ public class PointMetrics {
 	}
 
 	public void writeJson(SimpleJsonWriter json) throws Exception {
-		json.writeStartObject(pointID);
+		json.writeNumberField("ID", pointID);
 		json.writeStringField("subject", subject);
 		json.writeDateCollection("date", dates);
 		json.writeStringCollection("version", versions);
@@ -71,9 +72,9 @@ public class PointMetrics {
 		return sb.toString();
 	}
 
-	public static PointMetrics readJson(SimpleJsonReader json) throws Exception {
-		String pointID = json.getCurrentFieldName();
-		json.readStartObject(pointID);
+	public static PointMetrics readJson(File input) throws Exception {
+		SimpleJsonReader json = new SimpleJsonReader(input);
+		int pointID = json.readIntValue("pointID");
 		String subject = json.readStringField("subject");
 		List<Date> dates = json.readDateCollection("date");
 		List<String> versions = json.readStringCollection("version");
@@ -81,24 +82,15 @@ public class PointMetrics {
 		List<String> files = json.readStringCollection("files");
 		Map<String, Double> topic = json.readStringDoubleMap("topics");
 		ClusterMetrics c = ClusterMetrics.readJson(json);
-		json.readEndObject();
+		json.close();
 		return new PointMetrics(pointID, subject, dates, versions, shas, files, topic, c);
-	}
-
-	public static PointMetrics readIfMatchingPointID(SimpleJsonReader json, String pointID) throws Exception {
-		String p = json.getCurrentFieldName();
-		if (!p.equals(pointID)) {
-			json.skipChildren();
-			return null;
-		}
-		return readJson(json);
 	}
 
 	public ClusterMetrics getClusterMetrics() {
 		return c;
 	}
 
-	public String getPointID() {
+	public int getPointID() {
 		return pointID;
 	}
 

@@ -43,11 +43,11 @@ public class PatchMetricsJob implements NLPJob {
 	public void run(JobManager mgr) {
 		NLPConf conf = NLPConf.getInstance();
 		File gitDir = new File(mgr.getArgStr("g"));
-		File summaryFile = new File(conf.finalOutputFile, "class/" + mgr.getArgStr("cls") + "/summary.json");
+		File summaryFile = new File(conf.finalOutputFile, "class/" + mgr.getArgStr("cls"));
 
 		try {
 			PointCentricClusterReader c = new PointCentricClusterReader(summaryFile, gitDir);
-			c.getFullInfo(mgr.getArgStr("p"), System.out);
+			c.getFullInfo(Integer.parseInt(mgr.getArgStr("p")), System.out);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

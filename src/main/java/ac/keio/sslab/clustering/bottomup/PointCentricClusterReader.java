@@ -3,34 +3,21 @@ package ac.keio.sslab.clustering.bottomup;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 import ac.keio.sslab.utils.SimpleGitReader;
-import ac.keio.sslab.utils.SimpleJsonReader;
 
 public class PointCentricClusterReader {
 
-	File summaryFile;
+	File classDir;
 	SimpleGitReader git;
 
-	public PointCentricClusterReader(File summaryFile, File gitDir) throws IOException {
-		this.summaryFile = summaryFile;
+	public PointCentricClusterReader(File classDir, File gitDir) throws IOException {
+		this.classDir = classDir;
 		git = new SimpleGitReader(gitDir);
 	}
 
-	public void getFullInfo(String pointID, OutputStream writer) throws Exception {
-		SimpleJsonReader reader = new SimpleJsonReader(summaryFile);
-		PointMetrics p = null;
-		while (p == null && !reader.isCurrentTokenEndObject()) {
-			p = PointMetrics.readIfMatchingPointID(reader, pointID);
-		}
-		reader.close();
-		if (p == null) {
-			return;
-		}
-
+	public void getFullInfo(int pointID, OutputStream writer) throws Exception {
+		PointMetrics p = PointMetrics.readJson(new File(classDir, (pointID / 10000) + "/" + pointID + ".json"));
 		StringBuilder sb = new StringBuilder();
 		sb.append("Detail of similar patches for point ID = ").append(p.getPointID());
 		sb.append("\n=========================Cluster info=========================\n");
@@ -38,19 +25,8 @@ public class PointCentricClusterReader {
 		writer.write(sb.toString().getBytes());
 		writer.flush();
 
-		Set<Integer> points = p.getClusteredPoints();
-
-		reader = new SimpleJsonReader(summaryFile);
-		List<PointMetrics> pointMetrics = new ArrayList<PointMetrics>();
-		while (!reader.isCurrentTokenEndObject()) {
-			p = PointMetrics.readJson(reader);
-			if (points.contains(p.getPointID())) {
-				pointMetrics.add(p);
-			}
-		}
-		reader.close();
-
-		for (PointMetrics pm: pointMetrics) {
+		for (int pID: p.getClusteredPoints()) {
+			PointMetrics pm = PointMetrics.readJson(new File(classDir, (pID / 10000) + "/" + pID + ".json"));
 			sb.setLength(0);
 			sb.append("======================Clustered point info======================\n");
 			sb.append(pm.toPlainText());
