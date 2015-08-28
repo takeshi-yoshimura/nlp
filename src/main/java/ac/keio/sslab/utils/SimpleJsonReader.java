@@ -24,6 +24,7 @@ public class SimpleJsonReader {
 		ObjectMapper mapper = new ObjectMapper();
 		json = mapper.getJsonFactory().createJsonParser(reader);
 		json.nextToken();
+		json.nextToken();
 	}
 
 	public SimpleJsonReader(File f) throws IOException {
@@ -65,6 +66,7 @@ public class SimpleJsonReader {
 			Double val = json.getDoubleValue();
 			map.put(key, val);
 		}
+		json.nextToken();
 		return map;
 	}
 
@@ -75,6 +77,7 @@ public class SimpleJsonReader {
 			String val = json.getCurrentName();
 			col.add(val);
 		}
+		json.nextToken();
 		return col;
 	}
 
@@ -93,6 +96,7 @@ public class SimpleJsonReader {
 			}
 			map.put(key, col);
 		}
+		json.nextToken();
 		return map;
 	}
 
@@ -100,7 +104,10 @@ public class SimpleJsonReader {
 		if (!fieldName.equals(json.getCurrentName())) {
 			throw new IOException("Parse error: line " + json.getCurrentLocation().getLineNr() + " is not '" + fieldName + "'");
 		}
-		return json.nextTextValue();
+		json.nextToken();
+		String next = json.nextTextValue();
+		json.nextToken();
+		return next;
 	}
 
 	public void readEndObject() throws IOException {
@@ -114,7 +121,9 @@ public class SimpleJsonReader {
 			throw new IOException("Parse error: line " + json.getCurrentLocation().getLineNr() + " is not '" + fieldName + "'");
 		}
 		json.nextToken();
-		return json.getIntValue();
+		int next = json.getIntValue();
+		json.nextToken();
+		return next;
 	}
 
 	public double readDoubleValue(String fieldName) throws IOException {
@@ -122,7 +131,9 @@ public class SimpleJsonReader {
 			throw new IOException("Parse error: line " + json.getCurrentLocation().getLineNr() + " is not '" + fieldName + "'");
 		}
 		json.nextToken();
-		return json.getDoubleValue();
+		double next = json.getDoubleValue();
+		json.nextToken();
+		return next;
 	}
 
 	SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
@@ -137,6 +148,7 @@ public class SimpleJsonReader {
 			String val = json.getCurrentName();
 			dates.add(sdf.parse(val));
 		}
+		json.nextToken();
 		return dates;
 	}
 

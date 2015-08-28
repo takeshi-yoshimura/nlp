@@ -13,7 +13,7 @@ public class PatchMetricsJob implements NLPJob {
 
 	@Override
 	public String getJobName() {
-		return "classFullInfo";
+		return "patchMetrics";
 	}
 
 	@Override

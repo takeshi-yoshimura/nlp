@@ -43,22 +43,21 @@ public class ClassificationJob implements NLPJob {
 	@Override
 	public void run(JobManager mgr) {
 		NLPConf conf = NLPConf.getInstance();
-		File localOutputDir = new File(conf.finalOutputFile, "class/" + mgr.getArgStr("j"));
+		File outputDir = new File(conf.finalOutputFile, "class/" + mgr.getArgStr("j"));
 		File gitDir = new File(mgr.getArgStr("g"));
 		File idIndexFile = new File(conf.localCorpusFile + "/" + mgr.getArgStr("c"), "idIndex.txt");
 		File clustersFile = new File(conf.localBottomupFile + "/" + mgr.getArgStr("b"), "clusters.csv");
-		File summaryDir = new File(localOutputDir, "summary");
-		File densityFile = new File(localOutputDir, "density.csv");
+		File densityFile = new File(outputDir, "density.csv");
 
 		try {
-			localOutputDir.mkdirs();
+			outputDir.getParentFile().mkdirs();
 			System.out.println("loading " + clustersFile.getAbsolutePath());
 			PointCentricClusterWriter c = new PointCentricClusterWriter(clustersFile, idIndexFile, gitDir);
 			for (int pointID: c.getPointIDs()) {
 				System.out.println("writing point ID = " + pointID);
-				c.writeBestClusterJson(summaryDir, pointID);
+				c.writeBestClusterJson(outputDir, pointID);
 			}
-	        System.out.println("Results: " + summaryDir.getAbsolutePath());
+	        System.out.println("Results: " + outputDir.getAbsolutePath());
 			if (mgr.hasArg("d")) {
 				c.writeAllDensityTrendCSV(densityFile);
 		        System.out.println("Results: " + densityFile.getAbsolutePath());
