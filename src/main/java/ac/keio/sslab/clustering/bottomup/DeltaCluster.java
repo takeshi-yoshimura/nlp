@@ -39,7 +39,6 @@ public class DeltaCluster {
 			json.writeStringDoubleMap("topic", pointTopics.get(pointID));
 			json.writeEndObject();
 		}
-		json.writeEndObject();
 	}
 
 	public static DeltaCluster readJson(SimpleJsonReader json) throws IOException {
@@ -60,7 +59,6 @@ public class DeltaCluster {
 			pointTopics.put(pointID, json.readStringDoubleMap("topic"));
 			json.readEndObject();
 		}
-		json.readEndObject();
 		return new DeltaCluster(ID, size, groupAverage, pointTopics, pointSubjects, pointShas);
 	}
 
