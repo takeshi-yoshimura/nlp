@@ -137,7 +137,7 @@ public class JobUtils {
 		List<Entry<Integer, Double>> sorted = new ArrayList<Entry<Integer, Double>>(points.entrySet());
 		Collections.sort(sorted, reverser);
 		List<Entry<Integer, Double>> ret = new ArrayList<Entry<Integer, Double>>();
-		for (int i = 0; i < sorted.size() || i < num; i++) {
+		for (int i = 0; i < sorted.size() && i < num; i++) {
 			ret.add(sorted.get(i));
 		}
 		return ret;

@@ -91,12 +91,8 @@ public class HierarchicalCluster {
 	}
 
 	public void setCentroid(List<Vector> pointVectors, Map<Integer, String> topicStr) {
-		int i = 0;
 		centroid = new HashMap<String, Double>();
-		for (Entry<Integer, Double> e: JobUtils.getTopElements(getCentroid(pointVectors), 3)) {
-			if (++i > 3) {
-				break;
-			}
+		for (Entry<Integer, Double> e: JobUtils.getTopElements(getCentroid(pointVectors), 10)) {
 			centroid.put((topicStr == null ? Integer.toString(e.getKey()): topicStr.get(e.getKey())), e.getValue());
 		}
 	}

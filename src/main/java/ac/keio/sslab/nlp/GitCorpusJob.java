@@ -204,6 +204,7 @@ public class GitCorpusJob implements NLPJob {
 				}
 			}
 			commitsWriter.close();
+			originalCorpusWriter.close();
 
 			Comparator<Entry<String, Integer>> reverser = new Comparator<Entry<String, Integer>>() {
 				public int compare(Entry<String, Integer> e1, Entry<String, Integer> e2) {
