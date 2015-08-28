@@ -52,8 +52,12 @@ public class ClassificationJob implements NLPJob {
 
 		try {
 			localOutputDir.mkdirs();
-			PointCentricClusterWriter c = new PointCentricClusterWriter(clustersFile);
-			c.writeAllBestClustersJson(summaryDir, idIndexFile, gitDir);
+			System.out.println("loading " + clustersFile.getAbsolutePath());
+			PointCentricClusterWriter c = new PointCentricClusterWriter(clustersFile, idIndexFile, gitDir);
+			for (int pointID: c.getPointIDs()) {
+				System.out.println("writing point ID = " + pointID);
+				c.writeBestClusterJson(summaryDir, pointID);
+			}
 	        System.out.println("Results: " + summaryDir.getAbsolutePath());
 			if (mgr.hasArg("d")) {
 				c.writeAllDensityTrendCSV(densityFile);

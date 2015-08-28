@@ -22,8 +22,10 @@ public class PointCentricClusterWriter {
 
 	Map<Integer, HierarchicalCluster> singletons;
 	Map<Integer, Map<String, Double>> pointTopics;
+	SimpleGitReader git;
+	Map<Integer, List<String>> realIDs;
 
-	public PointCentricClusterWriter(File clustersFile) throws IOException {
+	public PointCentricClusterWriter(File clustersFile, File idIndexFile, File gitDir) throws IOException {
 		List<HierarchicalCluster> singletons = ClusterGraph.parseResult(clustersFile).getSingletons();
 		this.pointTopics = new HashMap<Integer, Map<String, Double>>();
 		this.singletons = new HashMap<Integer, HierarchicalCluster>();
@@ -31,6 +33,8 @@ public class PointCentricClusterWriter {
 			this.singletons.put(singleton.getPoints().get(0), singleton);
 			this.pointTopics.put(singleton.getPoints().get(0), singleton.getCentroid());
 		}
+		realIDs = getRealIDs(idIndexFile);
+		git = new SimpleGitReader(gitDir);
 	}
 
 	public Set<Integer> getPointIDs() {
@@ -69,27 +73,22 @@ public class PointCentricClusterWriter {
 		return trend;
 	}
 
-	public void writeAllBestClustersJson(File outputDir, File idIndexFile, File gitDir) throws Exception {
-		Map<Integer, List<String>> realIDs = getRealIDs(idIndexFile);
-		SimpleGitReader git = new SimpleGitReader(gitDir);
-		for (Entry<Integer, HierarchicalCluster> singleton: singletons.entrySet()) {
-			int pointID = singleton.getKey();
-			String subject = git.getSubject(realIDs.get(pointID).get(0));
-			List<String> shas = realIDs.get(pointID);
-			Set<String> fileSet = new HashSet<String>();
-			List<Date> dates = new ArrayList<Date>();
-			List<String> versions = new ArrayList<String>();
-			for (String sha: shas) {
-				dates.add(git.getCommitDate(sha));
-				versions.add(git.getLatestTag(sha));
-				fileSet.addAll(git.getFiles(sha));
-			}
-			List<String> files = new ArrayList<String>(fileSet);
-			Map<String, Double> topic = singleton.getValue().getCentroid();
-			List<HierarchicalCluster> all = getBestCluster(pointID);
-			ClusterMetrics c = new ClusterMetrics(all, pointTopics, realIDs, git);
-			new PointMetrics(pointID, subject, dates, versions, shas, files, topic, c).writeJson(outputDir);
+	public void writeBestClusterJson(File outputDir, int pointID) throws Exception {
+		String subject = git.getSubject(realIDs.get(pointID).get(0));
+		List<String> shas = realIDs.get(pointID);
+		Set<String> fileSet = new HashSet<String>();
+		List<Date> dates = new ArrayList<Date>();
+		List<String> versions = new ArrayList<String>();
+		for (String sha: shas) {
+			dates.add(git.getCommitDate(sha));
+			versions.add(git.getLatestTag(sha));
+			fileSet.addAll(git.getFiles(sha));
 		}
+		List<String> files = new ArrayList<String>(fileSet);
+		Map<String, Double> topic = singletons.get(pointID).getCentroid();
+		List<HierarchicalCluster> all = getBestCluster(pointID);
+		ClusterMetrics c = new ClusterMetrics(all, pointTopics, realIDs, git);
+		new PointMetrics(pointID, subject, dates, versions, shas, files, topic, c).writeJson(outputDir);
 	}
 
 	public Map<Integer, List<String>> getRealIDs(File idIndexFile) throws IOException {
