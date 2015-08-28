@@ -1,19 +1,22 @@
 package ac.keio.sslab.nlp;
 
 import java.io.File;
-import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.mahout.math.Vector;
 
-import ac.keio.sslab.clustering.bottomup.BottomupClustering;
+import ac.keio.sslab.clustering.bottomup.CachedBottomupClustering;
+import ac.keio.sslab.clustering.bottomup.HierarchicalCluster;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
-import ac.keio.sslab.nlp.lda.TopicReader;
+import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
+import ac.keio.sslab.utils.mahout.SimpleLDAReader;
 
 public class BottomUpJob implements NLPJob {
 
@@ -42,23 +45,62 @@ public class BottomUpJob implements NLPJob {
 	public void run(JobManager mgr) {
 		NLPConf conf = NLPConf.getInstance();
 		LDAHDFSFiles ldaFiles = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
-		File localOutputDir = new File(conf.finalOutputFile, "bottomup/" + mgr.getJobID());
-		File clustersFile = new File(localOutputDir.getAbsolutePath(), "clusters.csv");
+		File localOutputDir = new File(conf.localBottomupFile, mgr.getJobID());
+		File clustersFile = new File(localOutputDir, "clusters.csv");
+		File corpusIDIndexFile = new File(localOutputDir, "corpusIDIndex.csv");
+		localOutputDir.mkdirs();
 
 		try {
-			BottomupClustering.run(ldaFiles.documentPath, conf.hdfs, clustersFile, mgr.doForceWrite(), getTopicStr(ldaFiles, conf));
+			Map<Integer, String> topicStr = SimpleLDAReader.getTopicTerm(conf.hdfs, ldaFiles.dictionaryPath, ldaFiles.topicPath);
+			List<Vector> points = new ArrayList<Vector>();
+			Map<Integer, String> docIndex = SimpleLDAReader.getDocIndex(conf.hdfs, ldaFiles.docIndexPath);
+			Map<Integer, HierarchicalCluster> clusters = new HashMap<Integer, HierarchicalCluster>();
+
+			SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(ldaFiles.documentPath, conf.hdfs, Integer.class, Vector.class);
+			int nextClusterID = 0;
+			PrintWriter corpusIndexW = JobUtils.getPrintWriter(corpusIDIndexFile);
+			while (reader.seekNext()) {
+				corpusIndexW.println(nextClusterID + "," + docIndex.get(reader.key()));
+				HierarchicalCluster c = new HierarchicalCluster(nextClusterID, nextClusterID);
+				clusters.put(nextClusterID, c);
+				points.add(reader.val());
+				c.setCentroid(points, topicStr);
+				c.setDensity(0.0);
+				nextClusterID++;
+			}
+			reader.close();
+			corpusIndexW.close();
+
+			CachedBottomupClustering clustering = new CachedBottomupClustering(points, 5L * 1024 * 1024 * 1024);
+
+			PrintWriter writer = JobUtils.getPrintWriter(clustersFile);
+			writer.println("#HierarchicalClusterID,size,density,parentID,leftCID,rightCID,centroid...,pointIDs...");
+			int i = 0;
+			int [] nextPair = null;
+			HierarchicalCluster newC = null;
+			while((nextPair = clustering.popMostSimilarClusterPair()) != null) {
+				double similarity = clustering.getMaxSimilarity();
+				System.out.println("Iteration #" + i++ + ": " + nextPair[0] + "," + nextPair[1]);
+
+				HierarchicalCluster leftC = clusters.get(nextPair[0]);
+				HierarchicalCluster rightC = clusters.get(nextPair[1]);
+				newC = new HierarchicalCluster(leftC, rightC, nextClusterID++);
+				newC.setDensity(similarity);
+				newC.setCentroid(points, topicStr);
+				clusters.put(nextPair[0], newC);
+				clusters.remove(nextPair[1]);
+
+				writer.println(leftC.toString());
+				writer.println(rightC.toString());
+				writer.flush();
+			}
+			writer.println(newC.toString());
+
+			writer.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 			return;
 		}
-	}
-
-	public Map<Integer, String> getTopicStr(LDAHDFSFiles ldaFiles, NLPConf conf) throws IOException {
-		Map<Integer, String> topics = new HashMap<Integer, String>();
-		for (Entry<Integer, List<String>> e: new TopicReader(ldaFiles.dictionaryPath, ldaFiles.topicPath, conf.hdfs, 2).getTopics().entrySet()) {
-			topics.put(e.getKey(), "T" + e.getKey() + "-" + e.getValue().get(0) + "-" + e.getValue().get(1));
-		}
-		return topics;
 	}
 
 	@Override

@@ -21,8 +21,8 @@ import org.apache.mahout.math.Vector;
 import org.eclipse.jgit.util.FileUtils;
 
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
-import ac.keio.sslab.nlp.lda.TopicReader;
 import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
+import ac.keio.sslab.utils.mahout.LDATopicReader;
 
 public class TopDownDumpJob implements NLPJob {
 
@@ -56,7 +56,7 @@ public class TopDownDumpJob implements NLPJob {
 		try {
 			LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
 			Map<Integer, String> topicStr = new HashMap<Integer, String>();
-			TopicReader topReader = new TopicReader(hdfs.dictionaryPath, hdfs.topicPath, conf.hdfs, 1);
+			LDATopicReader topReader = new LDATopicReader(hdfs.dictionaryPath, hdfs.topicPath, conf.hdfs, 1);
 			StringBuilder sb = new StringBuilder();
 			for (Entry<Integer, List<String>> topic: topReader.getTopics().entrySet()) {
 				sb.setLength(0);

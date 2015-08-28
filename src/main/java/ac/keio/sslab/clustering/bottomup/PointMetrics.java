@@ -76,6 +76,9 @@ public class PointMetrics {
 
 	public static PointMetrics readJson(File inputDir, int pointID) throws Exception {
 		File f = new File(inputDir, (pointID / 10000) + "/" + pointID + ".json");
+		if (!f.exists()) {
+			return null;
+		}
 		SimpleJsonReader json = new SimpleJsonReader(f);
 		json.readIntValue("ID");
 		String subject = json.readStringField("subject");

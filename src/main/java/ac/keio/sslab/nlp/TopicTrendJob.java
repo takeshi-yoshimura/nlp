@@ -31,8 +31,8 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.util.FileUtils;
 
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
-import ac.keio.sslab.nlp.lda.TopicReader;
 import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
+import ac.keio.sslab.utils.mahout.LDATopicReader;
 
 public class TopicTrendJob implements NLPJob {
 
@@ -210,7 +210,7 @@ public class TopicTrendJob implements NLPJob {
 
 	private Map<Integer, String> getTopics(Path dictionaryPath, Path topicPath, FileSystem fs) throws Exception {
 		Map<Integer, String> topicNames = new HashMap<Integer, String>();
-		for (Entry<Integer, List<String>> e: new TopicReader(dictionaryPath, topicPath, fs, 1).getTopics().entrySet()) {
+		for (Entry<Integer, List<String>> e: new LDATopicReader(dictionaryPath, topicPath, fs, 1).getTopics().entrySet()) {
 			topicNames.put(e.getKey(), e.getValue().get(0));
 		}
 		return topicNames;

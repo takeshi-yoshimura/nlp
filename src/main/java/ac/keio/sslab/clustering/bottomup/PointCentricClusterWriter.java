@@ -25,7 +25,7 @@ public class PointCentricClusterWriter {
 	SimpleGitReader git;
 	Map<Integer, List<String>> realIDs;
 
-	public PointCentricClusterWriter(File clustersFile, File idIndexFile, File gitDir) throws IOException {
+	public PointCentricClusterWriter(File clustersFile, File corpusIDIndexFile, File idIndexFile, File gitDir) throws IOException {
 		List<HierarchicalCluster> singletons = ClusterGraph.parseResult(clustersFile).getSingletons();
 		this.pointTopics = new HashMap<Integer, Map<String, Double>>();
 		this.singletons = new HashMap<Integer, HierarchicalCluster>();
@@ -33,7 +33,7 @@ public class PointCentricClusterWriter {
 			this.singletons.put(singleton.getPoints().get(0), singleton);
 			this.pointTopics.put(singleton.getPoints().get(0), singleton.getCentroid());
 		}
-		realIDs = getRealIDs(idIndexFile);
+		realIDs = getRealIDs(idIndexFile, corpusIDIndexFile);
 		git = new SimpleGitReader(gitDir);
 	}
 
@@ -91,10 +91,18 @@ public class PointCentricClusterWriter {
 		new PointMetrics(pointID, subject, dates, versions, shas, files, topic, c).writeJson(outputDir);
 	}
 
-	public Map<Integer, List<String>> getRealIDs(File idIndexFile) throws IOException {
+	public Map<Integer, List<String>> getRealIDs(File idIndexFile, File corpusIDIndexFile) throws IOException {
+		Map<String, Integer> corpusIDMap = new HashMap<String, Integer>();
+		BufferedReader br = new BufferedReader(new FileReader(corpusIDIndexFile));
+		String line = null;
+		while((line = br.readLine()) != null) {
+			String [] s = line.split(",");
+			corpusIDMap.put(s[1], Integer.parseInt(s[0]));
+		}
+		br.close();
+
 		Map<Integer, List<String>> ret = new HashMap<Integer, List<String>>();
 		BufferedReader reader = new BufferedReader(new FileReader(idIndexFile));
-		String line = null;
 		while ((line = reader.readLine()) != null) {
 			String [] s = line.split("\t\t");
 			String [] s2 = s[1].split(",");
@@ -105,7 +113,7 @@ public class PointCentricClusterWriter {
 				}
 				a.add(s2[i]);
 			}
-			ret.put(Integer.parseInt(s[0]), a);
+			ret.put(corpusIDMap.get(s[0]), a);
 		}
 		reader.close();
 

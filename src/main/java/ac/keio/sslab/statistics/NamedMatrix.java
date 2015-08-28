@@ -25,8 +25,8 @@ import org.apache.mahout.math.Vector.Element;
 
 import ac.keio.sslab.nlp.JobUtils;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
-import ac.keio.sslab.nlp.lda.TopicReader;
 import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
+import ac.keio.sslab.utils.mahout.LDATopicReader;
 
 public class NamedMatrix {
 	protected Matrix matrix = null;
@@ -113,7 +113,7 @@ public class NamedMatrix {
 	static public NamedMatrix buildFromLDAFiles(LDAHDFSFiles hdfs, FileSystem fs, String rowGroupName, String colGroupName) {
 		TreeMap<Integer, String> colIndex = new TreeMap<Integer, String>();
 		try {
-			for (Entry<Integer, List<String>> e: new TopicReader(hdfs.dictionaryPath, hdfs.topicPath, fs, 2).getTopics().entrySet()) {
+			for (Entry<Integer, List<String>> e: new LDATopicReader(hdfs.dictionaryPath, hdfs.topicPath, fs, 2).getTopics().entrySet()) {
 				colIndex.put(e.getKey(), "T" + e.getKey() + "-" + e.getValue().get(0) + "-" + e.getValue().get(1));
 			}
 		} catch (Exception e) {

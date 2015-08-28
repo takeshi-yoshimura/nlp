@@ -1,4 +1,4 @@
-package ac.keio.sslab.nlp.lda;
+package ac.keio.sslab.utils.mahout;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -17,15 +17,15 @@ import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
 
 //Read "maxTerms" words for each topic from HDFS
-public class TopicReader {
+public class LDATopicReader {
 
 	Map<Integer, List<Integer>> topicIDTermID;
 	Map<Integer, String> termIDTermString;
 
-	public TopicReader() {
+	public LDATopicReader() {
 	}
 
-	public TopicReader(Path dictionary, Path topicTerm, FileSystem fs, int maxTerms) throws IOException {
+	public LDATopicReader(Path dictionary, Path topicTerm, FileSystem fs, int maxTerms) throws IOException {
 		loadDictionary(dictionary, fs);
 		loadTopicTermDir(topicTerm, fs, maxTerms);
 	}

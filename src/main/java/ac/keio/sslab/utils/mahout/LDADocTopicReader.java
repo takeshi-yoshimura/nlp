@@ -1,4 +1,4 @@
-package ac.keio.sslab.nlp.lda;
+package ac.keio.sslab.utils.mahout;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -16,11 +16,11 @@ import org.apache.mahout.math.Vector.Element;
 
 import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 
-public class DocumentReader {
+public class LDADocTopicReader {
 	Map<Integer, String> docIndex;
 	Map<Integer, List<Integer>> docTopicId;
 
-	public DocumentReader(Path docIndex, Path documentDir, FileSystem fs, int maxTopics) throws IOException {
+	public LDADocTopicReader(Path docIndex, Path documentDir, FileSystem fs, int maxTopics) throws IOException {
 		loadDocumentIndex(docIndex, fs);
 		loadDocumentDir(documentDir, fs, maxTopics);
 	}

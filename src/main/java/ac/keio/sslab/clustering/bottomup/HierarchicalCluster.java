@@ -135,8 +135,12 @@ public class HierarchicalCluster {
 
 	@Override
 	public String toString() {
+		return toString(Integer.toString(ID));
+	}
+
+	public String toString(String realID) {
 		StringBuilder sb = new StringBuilder();
-		sb.append(ID).append(',');
+		sb.append(realID).append(',');
 		sb.append(size()).append(',');
 		sb.append(getDensity()).append(',');
 		sb.append(parentC != null ? parentC.ID: -1).append(',');

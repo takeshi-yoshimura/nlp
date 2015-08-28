@@ -15,6 +15,7 @@ public class BottomupClusteringTest {
 
 	public static void main(String [] args) throws Exception {
 		/* put and run testing function here */
+		testBottomupClusteringSimple();
 	}
 
 	public static void testBottomupClusteringCache(long memoryCapacity) throws Exception {
@@ -114,5 +115,31 @@ public class BottomupClusteringTest {
 			}
 			System.err.println();
 		}
+	}
+
+	public static void testBottomupClusteringSimple() throws Exception {
+		List<Vector> vecs = new ArrayList<Vector>();
+		vecs.add(new DenseVector(new double[] {0}));
+		vecs.add(new DenseVector(new double[] {2}));
+		vecs.add(new DenseVector(new double[] {4}));
+		vecs.add(new DenseVector(new double[] {6}));
+		vecs.add(new DenseVector(new double[] {8}));
+		vecs.add(new DenseVector(new double[] {10}));
+
+		CachedBottomupClustering clustering = new CachedBottomupClustering(vecs, 1024 * 1024);
+		NaiveBottomupClustering basic = new NaiveBottomupClustering(vecs);
+		int i = 0;
+		while (true) {
+			int [] nextPair1 = clustering.popMostSimilarClusterPair();
+			int [] nextPair2 = basic.next();
+			if (nextPair1 == null && nextPair2 == null) {
+				break;
+			}
+			boolean ok = (nextPair1[0] == nextPair2[0]) && (nextPair1[1] == nextPair2[1]);
+			System.out.println("Iteration #" + i + ": " + nextPair1[0] + ", " + nextPair1[1] + " = " + clustering.getMaxSimilarity() + ", " 
+								+ nextPair2[0] + ", " + nextPair2[1] + " = " + basic.currentMinS + " (" + ok + ")");
+			++i;
+		}
+		
 	}
 }

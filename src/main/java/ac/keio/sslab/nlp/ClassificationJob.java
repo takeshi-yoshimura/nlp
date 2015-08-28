@@ -47,12 +47,13 @@ public class ClassificationJob implements NLPJob {
 		File gitDir = new File(mgr.getArgStr("g"));
 		File idIndexFile = new File(conf.localCorpusFile + "/" + mgr.getArgStr("c"), "idIndex.txt");
 		File clustersFile = new File(conf.localBottomupFile + "/" + mgr.getArgStr("b"), "clusters.csv");
+		File corpusIDIndexFile = new File(conf.localBottomupFile + "/" + mgr.getArgStr("b"), "corpusIDIndex.csv");
 		File densityFile = new File(outputDir, "density.csv");
 
 		try {
 			outputDir.getParentFile().mkdirs();
 			System.out.println("loading " + clustersFile.getAbsolutePath());
-			PointCentricClusterWriter c = new PointCentricClusterWriter(clustersFile, idIndexFile, gitDir);
+			PointCentricClusterWriter c = new PointCentricClusterWriter(clustersFile, corpusIDIndexFile, idIndexFile, gitDir);
 			for (int pointID: c.getPointIDs()) {
 				System.out.println("writing point ID = " + pointID);
 				c.writeBestClusterJson(outputDir, pointID);
