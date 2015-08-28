@@ -1,5 +1,6 @@
 package ac.keio.sslab.utils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -13,8 +14,10 @@ import java.util.TreeMap;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.LogCommand;
 import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
+import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -130,14 +133,20 @@ public class SimpleGitReader {
 
 	public String showCommit(String sha) throws Exception {
 		StringBuilder sb = new StringBuilder();
+		ByteArrayOutputStream ba = new ByteArrayOutputStream();
+		DiffFormatter diff = new DiffFormatter(ba);
+		diff.setRepository(repo);
 		RevCommit commit = getCommit(sha);
+		PersonIdent p = commit.getAuthorIdent();
 		sb.append("commit ").append(commit.getId().getName()).append('\n');
-		sb.append("Author: ").append(commit.getAuthorIdent()).append('\n');
-		sb.append("Date: ").append(new Date(1000L * commit.getCommitTime())).append('\n');
-		sb.append(commit.getFullMessage()).append('\n');
+		sb.append("Author: ").append(p.getName()).append(" <").append(p.getEmailAddress()).append(">\n");
+		sb.append("Date: ").append(new Date(1000L * commit.getCommitTime())).append("\n\n");
+		sb.append(commit.getFullMessage());
 		for (DiffEntry entry: getDiffs(sha)) {
-			sb.append(entry).append('\n');
+			diff.format(entry);
+			sb.append(ba.toString());
 		}
+		diff.close();
 		return sb.toString();
 	}
 

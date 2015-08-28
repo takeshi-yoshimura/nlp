@@ -68,7 +68,8 @@ public class DeltaCluster {
 		StringBuilder sb = new StringBuilder();
 		sb.append("cluster ID: ").append(ID).append(", current size: ").append(size).append(", current group average").append(groupAverage).append('\n');
 		for (int pointID: pointShas.keySet()) {
-			sb.append("point ID: ").append(pointID).append(", commit shas:");
+			sb.append("-------------------------------------------------------------\n");
+			sb.append("point ID: ").append(pointID).append(", topics:");
 			for (Entry<String, Double> e: pointTopics.get(pointID).entrySet()) {
 				sb.append(' ').append(e.getKey()).append(':').append(e.getValue());
 			}
@@ -76,7 +77,7 @@ public class DeltaCluster {
 			for (String sha: pointShas.get(pointID)) {
 				sb.append(' ').append(sha);
 			}
-			sb.append(git.showCommit(pointShas.get(pointID).get(0))).append('\n');
+			sb.append("\n\n").append(git.showCommit(pointShas.get(pointID).get(0))).append('\n');
 		}
 		return sb.toString();
 	}

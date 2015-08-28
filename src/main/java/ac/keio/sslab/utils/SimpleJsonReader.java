@@ -46,6 +46,7 @@ public class SimpleJsonReader {
 		if (json.nextToken() != JsonToken.START_OBJECT) {
 			throw new IOException("Json parse error: should begin with '{' for Map<?, ?> at line " + json.getCurrentLocation().getLineNr());
 		}
+		json.nextToken();
 	}
 
 	public void readStartArray(String fieldName) throws IOException {
@@ -55,17 +56,18 @@ public class SimpleJsonReader {
 		if (json.nextToken() != JsonToken.START_ARRAY) {
 			throw new IOException("Json parse error: should begin with '[' for Collection<?> at line " + json.getCurrentLocation().getLineNr());
 		}
+		json.nextToken();
 	}
 
 	public Map<String, Double> readStringDoubleMap(String fieldName) throws IOException {
 		readStartObject(fieldName);
 		Map<String, Double> map = new HashMap<String, Double>();
-		while (json.nextToken() != JsonToken.END_OBJECT) {
+		do {
 			String key = json.getCurrentName();
 			json.nextToken();
 			Double val = json.getDoubleValue();
 			map.put(key, val);
-		}
+		} while (json.nextToken() != JsonToken.END_OBJECT);
 		json.nextToken();
 		return map;
 	}
@@ -73,10 +75,9 @@ public class SimpleJsonReader {
 	public List<String> readStringCollection(String fieldName) throws IOException {
 		readStartArray(fieldName);
 		List<String> col = new ArrayList<String>();
-		while (json.nextToken() != JsonToken.END_ARRAY) {
-			String val = json.getCurrentName();
-			col.add(val);
-		}
+		do {
+			col.add(json.getText());
+		} while (json.nextToken() != JsonToken.END_ARRAY);
 		json.nextToken();
 		return col;
 	}
@@ -84,18 +85,17 @@ public class SimpleJsonReader {
 	public Map<String, List<String>> readStringListStringCollection(String fieldName) throws IOException {
 		readStartObject(fieldName);
 		Map<String, List<String>> map = new HashMap<String, List<String>>();
-		while (json.nextToken() != JsonToken.END_OBJECT) {
+		do {
 			String key = json.getCurrentName();
 			if (json.nextToken() != JsonToken.START_ARRAY) {
 				throw new IOException("Parse error: should be here with '{' for Map<String, List<String>> at line " + json.getCurrentLocation().getLineNr());
 			}
 			List<String> col = new ArrayList<String>();
 			while (json.nextToken() != JsonToken.END_ARRAY) {
-				String val = json.getCurrentName();
-				col.add(val);
+				col.add(json.getText());
 			}
 			map.put(key, col);
-		}
+		} while (json.nextToken() != JsonToken.END_OBJECT);
 		json.nextToken();
 		return map;
 	}
@@ -105,15 +105,16 @@ public class SimpleJsonReader {
 			throw new IOException("Parse error: line " + json.getCurrentLocation().getLineNr() + " is not '" + fieldName + "'");
 		}
 		json.nextToken();
-		String next = json.nextTextValue();
+		String next = json.getText();
 		json.nextToken();
 		return next;
 	}
 
 	public void readEndObject() throws IOException {
-		if (json.nextToken() != JsonToken.END_OBJECT) {
+		if (json.getCurrentToken() != JsonToken.END_OBJECT) {
 			throw new IOException("Parse error: should be '}' at line " + json.getCurrentLocation().getLineNr());
 		}
+		json.nextToken();
 	}
 
 	public int readIntValue(String fieldName) throws IOException {
@@ -144,10 +145,9 @@ public class SimpleJsonReader {
 	public List<Date> readDateCollection(String fieldName) throws Exception {
 		readStartArray(fieldName);
 		List<Date> dates = new ArrayList<Date>();
-		while (json.nextToken() != JsonToken.END_ARRAY) {
-			String val = json.getCurrentName();
-			dates.add(sdf.parse(val));
-		}
+		do {
+			dates.add(sdf.parse(json.getText()));
+		} while (json.nextToken() != JsonToken.END_ARRAY);
 		json.nextToken();
 		return dates;
 	}

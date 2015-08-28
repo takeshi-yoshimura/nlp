@@ -86,9 +86,9 @@ public class ClusterMetrics {
 	public String toPlainText(SimpleGitReader git) throws Exception {
 		StringBuilder sb = new StringBuilder();
 		int i = 0;
-		sb.append("final cluster ID: ").append(getFinalID());
-		sb.append(", final size: ").append(getFinalSize());
-		sb.append(", final group average: ").append(getFinalGroupAverage()).append('\n');
+		sb.append("final cluster ID: ").append(getFinalID()).append('\n');
+		sb.append("final size: ").append(getFinalSize()).append('\n');
+		sb.append("final group average: ").append(getFinalGroupAverage()).append('\n');
 		for (DeltaCluster cluster: clusters) {
 			sb.append("===================iteration-" + i++ + "===================\n");
 			sb.append(cluster.toPlainText(git));

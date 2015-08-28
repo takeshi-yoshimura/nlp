@@ -55,7 +55,7 @@ public class PointMetrics {
 		for (Date date: dates) {
 			sb.append(' ').append(sdf.format(date));
 		}
-		sb.append("version:");
+		sb.append("\nversion:");
 		for (String version: versions) {
 			sb.append(' ').append(version);
 		}
