@@ -130,6 +130,8 @@ public class PointCentricClusterWriter {
 		parent = current.getParent();
 		while (current != null && parent != null && current != best) {
 			all.add(current);
+			current = parent;
+			parent = parent.getParent();
 		}
 		all.add(best);
 
