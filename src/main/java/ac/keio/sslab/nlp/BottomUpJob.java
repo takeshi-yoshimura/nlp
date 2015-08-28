@@ -95,11 +95,10 @@ public class BottomUpJob implements NLPJob {
 				writer.flush();
 			}
 			writer.println(newC.toString());
-
 			writer.close();
+			System.out.println("Finished!");
 		} catch (Exception e) {
 			e.printStackTrace();
-			return;
 		}
 	}
 
