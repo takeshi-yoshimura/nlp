@@ -41,7 +41,6 @@ public class PointMetrics {
 		json.writeStringCollection("files", files);
 		json.writeStringDoubleMap("topics", topic);
 		c.writeJson(json);
-		json.writeEndObject();
 	}
 
 	public String toPlainText() {
