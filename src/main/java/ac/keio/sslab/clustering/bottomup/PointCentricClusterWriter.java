@@ -17,17 +17,19 @@ import java.util.TreeMap;
 
 import ac.keio.sslab.nlp.JobUtils;
 import ac.keio.sslab.utils.SimpleGitReader;
-import ac.keio.sslab.utils.SimpleJsonWriter;
 
 public class PointCentricClusterWriter {
 
 	Map<Integer, HierarchicalCluster> singletons;
+	Map<Integer, Map<String, Double>> pointTopics;
 
 	public PointCentricClusterWriter(File clustersFile) throws IOException {
 		List<HierarchicalCluster> singletons = ClusterGraph.parseResult(clustersFile).getSingletons();
+		this.pointTopics = new HashMap<Integer, Map<String, Double>>();
 		this.singletons = new HashMap<Integer, HierarchicalCluster>();
 		for (HierarchicalCluster singleton: singletons) {
 			this.singletons.put(singleton.getPoints().get(0), singleton);
+			this.pointTopics.put(singleton.getPoints().get(0), singleton.getCentroid());
 		}
 	}
 
@@ -72,9 +74,6 @@ public class PointCentricClusterWriter {
 		SimpleGitReader git = new SimpleGitReader(gitDir);
 		for (Entry<Integer, HierarchicalCluster> singleton: singletons.entrySet()) {
 			int pointID = singleton.getKey();
-			File f = new File(outputDir, (pointID / 10000) + "/" + pointID + ".json");
-			f.getParentFile().mkdirs();
-			SimpleJsonWriter writer = new SimpleJsonWriter(f);
 			String subject = git.getSubject(realIDs.get(pointID).get(0));
 			List<String> shas = realIDs.get(pointID);
 			Set<String> fileSet = new HashSet<String>();
@@ -87,9 +86,9 @@ public class PointCentricClusterWriter {
 			}
 			List<String> files = new ArrayList<String>(fileSet);
 			Map<String, Double> topic = singleton.getValue().getCentroid();
-			ClusterMetrics c = new ClusterMetrics(getBestCluster(pointID), realIDs, git);
-			new PointMetrics(pointID, subject, dates, versions, shas, files, topic, c).writeJson(writer);
-			writer.close();
+			List<HierarchicalCluster> all = getBestCluster(pointID);
+			ClusterMetrics c = new ClusterMetrics(all, pointTopics, realIDs, git);
+			new PointMetrics(pointID, subject, dates, versions, shas, files, topic, c).writeJson(outputDir);
 		}
 	}
 
@@ -114,7 +113,7 @@ public class PointCentricClusterWriter {
 		return ret;
 	}
 
-	public HierarchicalCluster getBestCluster(int pointID) {
+	public List<HierarchicalCluster> getBestCluster(int pointID) {
 		TreeMap<Integer, HierarchicalCluster> scores = new TreeMap<Integer, HierarchicalCluster>();
 		HierarchicalCluster current = singletons.get(pointID);
 		HierarchicalCluster parent = current.getParent();
@@ -124,7 +123,16 @@ public class PointCentricClusterWriter {
 			current = parent;
 			parent = parent.getParent();
 		}
+		HierarchicalCluster best = scores.lastEntry().getValue();
 
-		return scores.lastEntry().getValue();
+		List<HierarchicalCluster> all = new ArrayList<HierarchicalCluster>();
+		current = singletons.get(pointID);
+		parent = current.getParent();
+		while (current != null && parent != null && current != best) {
+			all.add(current);
+		}
+		all.add(best);
+
+		return all;
 	}
 }

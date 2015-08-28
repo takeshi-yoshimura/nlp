@@ -6,7 +6,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import ac.keio.sslab.utils.SimpleJsonReader;
 import ac.keio.sslab.utils.SimpleJsonWriter;
@@ -32,7 +31,10 @@ public class PointMetrics {
 		this.c = c;
 	}
 
-	public void writeJson(SimpleJsonWriter json) throws Exception {
+	public void writeJson(File outputDir) throws Exception {
+		File f = new File(outputDir, (pointID / 10000) + "/" + pointID + ".json");
+		f.getParentFile().mkdirs();
+		SimpleJsonWriter json = new SimpleJsonWriter(f);
 		json.writeNumberField("ID", pointID);
 		json.writeStringField("subject", subject);
 		json.writeDateCollection("date", dates);
@@ -41,6 +43,7 @@ public class PointMetrics {
 		json.writeStringCollection("files", files);
 		json.writeStringDoubleMap("topics", topic);
 		c.writeJson(json);
+		json.close();
 	}
 
 	public String toPlainText() {
@@ -71,9 +74,10 @@ public class PointMetrics {
 		return sb.toString();
 	}
 
-	public static PointMetrics readJson(File input) throws Exception {
-		SimpleJsonReader json = new SimpleJsonReader(input);
-		int pointID = json.readIntValue("pointID");
+	public static PointMetrics readJson(File inputDir, int pointID) throws Exception {
+		File f = new File(inputDir, (pointID / 10000) + "/" + pointID + ".json");
+		SimpleJsonReader json = new SimpleJsonReader(f);
+		json.readIntValue("pointID");
 		String subject = json.readStringField("subject");
 		List<Date> dates = json.readDateCollection("date");
 		List<String> versions = json.readStringCollection("version");
@@ -91,10 +95,6 @@ public class PointMetrics {
 
 	public int getPointID() {
 		return pointID;
-	}
-
-	public Set<Integer> getClusteredPoints() {
-		return c.getPointShas().keySet();
 	}
 
 	public List<String> getShas() {

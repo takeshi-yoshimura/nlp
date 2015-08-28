@@ -6,7 +6,8 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
-import ac.keio.sslab.clustering.bottomup.PointCentricClusterReader;
+import ac.keio.sslab.clustering.bottomup.PointMetrics;
+import ac.keio.sslab.utils.SimpleGitReader;
 
 public class PatchMetricsJob implements NLPJob {
 
@@ -43,11 +44,13 @@ public class PatchMetricsJob implements NLPJob {
 	public void run(JobManager mgr) {
 		NLPConf conf = NLPConf.getInstance();
 		File gitDir = new File(mgr.getArgStr("g"));
-		File summaryFile = new File(conf.finalOutputFile, "class/" + mgr.getArgStr("cls"));
+		File classDir = new File(conf.finalOutputFile, "class/" + mgr.getArgStr("cls"));
 
 		try {
-			PointCentricClusterReader c = new PointCentricClusterReader(summaryFile, gitDir);
-			c.getFullInfo(Integer.parseInt(mgr.getArgStr("p")), System.out);
+			SimpleGitReader git = new SimpleGitReader(gitDir);
+			PointMetrics p = PointMetrics.readJson(classDir, Integer.parseInt(mgr.getArgStr("p")));
+			System.out.println(p.toPlainText());
+			System.out.println(p.getClusterMetrics().toPlainText(git));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
