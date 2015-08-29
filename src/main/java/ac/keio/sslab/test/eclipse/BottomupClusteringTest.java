@@ -10,12 +10,12 @@ import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
 
 import ac.keio.sslab.clustering.bottomup.CachedBottomupClustering;
+import ac.keio.sslab.clustering.bottomup.IndexBottomupClustering;
 
 public class BottomupClusteringTest {
 
 	public static void main(String [] args) throws Exception {
 		/* put and run testing function here */
-		testBottomupClusteringSimple();
 	}
 
 	public static void testBottomupClusteringCache(long memoryCapacity) throws Exception {
@@ -140,6 +140,114 @@ public class BottomupClusteringTest {
 								+ nextPair2[0] + ", " + nextPair2[1] + " = " + basic.currentMinS + " (" + ok + ")");
 			++i;
 		}
-		
+	}
+
+	public static void testIndexBottomupClusteringSimple() throws Exception {
+		List<Vector> vecs = new ArrayList<Vector>();
+		vecs.add(new DenseVector(new double[] {0.0}));
+		vecs.add(new DenseVector(new double[] {2.0}));
+		vecs.add(new DenseVector(new double[] {4.0}));
+		vecs.add(new DenseVector(new double[] {6.0}));
+		vecs.add(new DenseVector(new double[] {8.0}));
+		vecs.add(new DenseVector(new double[] {10.0}));
+
+		IndexBottomupClustering clustering = new IndexBottomupClustering(vecs, 0, null, null);
+		NaiveBottomupClustering basic = new NaiveBottomupClustering(vecs);
+		int i = 0;
+		while (true) {
+			int [] nextPair1 = clustering.popMostSimilarClusterPair();
+			int [] nextPair2 = basic.next();
+			if (nextPair1 == null && nextPair2 == null) {
+				break;
+			}
+			boolean ok = (nextPair1[0] == nextPair2[0]) && (nextPair1[1] == nextPair2[1]);
+			System.out.println("Iteration #" + i + ": " + nextPair1[0] + ", " + nextPair1[1] + " = " + clustering.getMaxSimilarity() + ", " 
+								+ nextPair2[0] + ", " + nextPair2[1] + " = " + basic.currentMinS + " (" + ok + ")");
+			++i;
+		}
+	}
+
+	public static void testIndexBottomupClustering() throws Exception {
+		List<Vector> vecs = new ArrayList<Vector>();
+		int nump = 300;
+
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < nump; i++) {
+			double d = Math.random();
+			Vector vec = new DenseVector(new double[] {d});
+			vecs.add(vec);
+			sb.append("vecs.add(new DenseVector(new double[] {").append(d).append("}));\n");
+		}
+
+		IndexBottomupClustering clustering = new IndexBottomupClustering(vecs, 0, null, null);
+		NaiveBottomupClustering basic = new NaiveBottomupClustering(vecs);
+		int i = 0;
+		while (true) {
+			int [] nextPair1 = clustering.popMostSimilarClusterPair();
+			int [] nextPair2 = basic.next();
+			if (nextPair1 == null && nextPair2 == null) {
+				break;
+			}
+			boolean ok = (nextPair1[0] == nextPair2[0]) && (nextPair1[1] == nextPair2[1]);
+			System.out.println("Iteration #" + i + ": " + nextPair1[0] + ", " + nextPair1[1] + " = " + clustering.getMaxSimilarity() + ", " 
+								+ nextPair2[0] + ", " + nextPair2[1] + " = " + basic.currentMinS + " (" + ok + ")");
+			++i;
+		}
+	}
+
+	public static void testIndexBottomupClusteringMany(boolean showIterations) throws Exception {
+		for (int j = 0; j < 100; j++) {
+			System.out.println("iteration #" + j);
+			List<Vector> vecs = new ArrayList<Vector>();
+			int nump = 300;
+	
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < nump; i++) {
+				double d = Math.random();
+				Vector vec = new DenseVector(new double[] {d});
+				vecs.add(vec);
+				sb.append("vecs.add(new DenseVector(new double[] {").append(d).append("}));\n");
+			}
+	
+			IndexBottomupClustering clustering = new IndexBottomupClustering(vecs, 0, null, null);
+			NaiveBottomupClustering basic = new NaiveBottomupClustering(vecs);
+			int i = 0;
+			List<Integer> badAt = new ArrayList<Integer>();
+			while (true) {
+				int [] nextPair1 = clustering.popMostSimilarClusterPair();
+				int [] nextPair2 = basic.next();
+				if (nextPair1 == null && nextPair2 == null) {
+					break;
+				}
+				boolean ok = (nextPair1[0] == nextPair2[0]) && (nextPair1[1] == nextPair2[1]);
+				if (showIterations) {
+					System.out.println("Iteration #" + i + ": " + nextPair1[0] + ", " + nextPair1[1] + " =" + clustering.getMaxSimilarity() + ", " 
+										+ nextPair2[0] + ", " + nextPair2[1] + " = " + basic + " (" + ok + ")");
+				}
+				if (!ok) {
+					badAt.add(i);
+				}
+				++i;
+			}
+			if (!badAt.isEmpty()) {
+				Map<Integer, List<Integer>> clusters1 = clustering.getClusters();
+				Map<Integer, List<Integer>> clusters2 = basic.getClusters();
+				boolean unko = false;
+				for (Entry<Integer, List<Integer>> e: clusters1.entrySet()) {
+					if (!(clusters2.containsKey(e.getKey()) && clusters2.get(e.getKey()).contains(e.getValue()))) {
+						unko = true;
+						break;
+					}
+				}
+				if (!unko)
+					return;
+				System.err.println(sb.toString());
+				System.err.print("Unko:");
+				for (int bad: badAt) {
+					System.err.print(" " + bad);
+				}
+				System.err.println();
+			}
+		}
 	}
 }

@@ -14,6 +14,7 @@ import org.apache.mahout.math.Vector;
 
 import ac.keio.sslab.clustering.bottomup.CachedBottomupClustering;
 import ac.keio.sslab.clustering.bottomup.HierarchicalCluster;
+import ac.keio.sslab.clustering.bottomup.IndexBottomupClustering;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
 import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 import ac.keio.sslab.utils.mahout.SimpleLDAReader;
@@ -37,6 +38,7 @@ public class BottomUpJob implements NLPJob {
 		required.setRequired(true);
 
 		Options opt = new Options();
+		opt.addOption("d", "dimension", false, "clustering for each dimension");
 		opt.addOptionGroup(required);
 		return opt;
 	}
@@ -47,6 +49,7 @@ public class BottomUpJob implements NLPJob {
 		LDAHDFSFiles ldaFiles = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
 		File localOutputDir = new File(conf.localBottomupFile, mgr.getJobID());
 		File clustersFile = new File(localOutputDir, "clusters.csv");
+		File dimensionFile = new File(localOutputDir, "dimensionCluster");
 		File corpusIDIndexFile = new File(localOutputDir, "corpusIDIndex.csv");
 		localOutputDir.mkdirs();
 
@@ -71,32 +74,66 @@ public class BottomUpJob implements NLPJob {
 			reader.close();
 			corpusIndexW.close();
 
-			CachedBottomupClustering clustering = new CachedBottomupClustering(points, 5L * 1024 * 1024 * 1024);
-
-			PrintWriter writer = JobUtils.getPrintWriter(clustersFile);
-			writer.println("#HierarchicalClusterID,size,density,parentID,leftCID,rightCID,centroid...,pointIDs...");
-			int i = 0;
-			int [] nextPair = null;
-			HierarchicalCluster newC = null;
-			while((nextPair = clustering.popMostSimilarClusterPair()) != null) {
-				double similarity = clustering.getMaxSimilarity();
-				System.out.println("Iteration #" + i++ + ": " + nextPair[0] + "," + nextPair[1]);
-
-				HierarchicalCluster leftC = clusters.get(nextPair[0]);
-				HierarchicalCluster rightC = clusters.get(nextPair[1]);
-				newC = new HierarchicalCluster(leftC, rightC, nextClusterID++);
-				newC.setDensity(similarity);
-				newC.setCentroid(points, topicStr);
-				clusters.put(nextPair[0], newC);
-				clusters.remove(nextPair[1]);
-
-				writer.println(leftC.toString());
-				writer.println(rightC.toString());
-				writer.flush();
+			if (!mgr.hasArg("d")) {
+				CachedBottomupClustering clustering = new CachedBottomupClustering(points, 5L * 1024 * 1024 * 1024);
+	
+				PrintWriter writer = JobUtils.getPrintWriter(clustersFile);
+				writer.println("#HierarchicalClusterID,size,density,parentID,leftCID,rightCID,centroid...,pointIDs...");
+				int i = 0;
+				int [] nextPair = null;
+				HierarchicalCluster newC = null;
+				while((nextPair = clustering.popMostSimilarClusterPair()) != null) {
+					double similarity = clustering.getMaxSimilarity();
+					System.out.println("Iteration #" + i++ + ": " + nextPair[0] + "," + nextPair[1]);
+	
+					HierarchicalCluster leftC = clusters.get(nextPair[0]);
+					HierarchicalCluster rightC = clusters.get(nextPair[1]);
+					newC = new HierarchicalCluster(leftC, rightC, nextClusterID++);
+					newC.setDensity(similarity);
+					newC.setCentroid(points, topicStr);
+					clusters.put(nextPair[0], newC);
+					clusters.remove(nextPair[1]);
+	
+					writer.println(leftC.toString());
+					writer.println(rightC.toString());
+					writer.flush();
+				}
+				writer.println(newC.toString());
+				writer.close();
+				System.out.println("Finished!");
+			} else {
+				int numCore = Runtime.getRuntime().availableProcessors();
+				Thread t [] = new Thread[numCore];
+				int tIndex [] = new int[numCore];
+				int i = 0;
+				for (int n = 0; n < numCore; n++) {
+					System.out.println("Start: " + i);
+					t[n] = new IndexBottomupClustering(points, i, new File(dimensionFile, i + ".csv"), topicStr.get(i));
+					tIndex[n] = i;
+					i++;
+					t[n].start();
+				}
+				while (i < points.get(0).size()) {
+					Thread.sleep(1000);
+					for (int n = 0; n < numCore; n++) {
+						if (!t[n].isAlive()) {
+							System.out.println("Finished: " + tIndex[n]);
+							System.out.println("Start: " + i);
+							t[n] = new IndexBottomupClustering(points, i, new File(dimensionFile, i + ".csv"), topicStr.get(i));
+							tIndex[n] = i;
+							i++;
+							t[n].start();
+						}
+					}
+				}
+				for (int n = 0; n < numCore; n++) {
+					if (t[n].isAlive()) {
+						t[n].join();
+						System.out.println("Finished: " + tIndex[n]);
+					}
+				}
+				System.out.println("Finished!");
 			}
-			writer.println(newC.toString());
-			writer.close();
-			System.out.println("Finished!");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
