@@ -1,7 +1,5 @@
 package ac.keio.sslab.clustering.bottomup;
 
-import java.io.File;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -14,8 +12,6 @@ import java.util.TreeMap;
 
 import org.apache.mahout.math.Vector;
 
-import ac.keio.sslab.nlp.JobUtils;
-
 public class IndexBottomupClustering extends Thread {
 
 	TreeMap<Double, List<int []>> order;
@@ -23,8 +19,6 @@ public class IndexBottomupClustering extends Thread {
 	List<Vector> points;
 	int index;
 	double d_min;
-	File clustersFile;
-	String topicStr;
 
 	Comparator<int []> sorter = new Comparator<int []>() {
 		@Override
@@ -34,13 +28,11 @@ public class IndexBottomupClustering extends Thread {
 		}
 	};
 
-	public IndexBottomupClustering(List<Vector> points, int index, File clustersFile, String topicStr) {
+	public IndexBottomupClustering(List<Vector> points, int index) {
 		this.points = points;
 		order = new TreeMap<>();
 		clusters = new HashMap<>();
 		this.index = index;
-		this.clustersFile = clustersFile;
-		this.topicStr = topicStr;
 
 		for (int i = 0; i < points.size(); i++)  {
 			clusters.put(i, new ArrayList<Integer>());
@@ -170,46 +162,5 @@ public class IndexBottomupClustering extends Thread {
 
 	public Map<Integer, List<Integer>> getClusters() {
 		return clusters;
-	}
-
-	@Override
-	public void run() {
-		try {
-			Map<Integer, HierarchicalCluster> clusters = new HashMap<Integer, HierarchicalCluster>();
-			int nextClusterID = points.size();
-
-			PrintWriter writer = JobUtils.getPrintWriter(clustersFile);
-			writer.println("#HierarchicalClusterID,size,density,parentID,leftCID,rightCID,centroid...,pointIDs...");
-			int i = 0;
-			int [] nextPair = null;
-			HierarchicalCluster newC = null;
-			while((nextPair = popMostSimilarClusterPair()) != null) {
-				double similarity = getMaxSimilarity();
-				System.out.println("@" + index + " Iteration #" + i++ + ": " + nextPair[0] + "," + nextPair[1]);
-
-				HierarchicalCluster leftC = clusters.get(nextPair[0]);
-				HierarchicalCluster rightC = clusters.get(nextPair[1]);
-				newC = new HierarchicalCluster(leftC, rightC, nextClusterID++);
-				newC.setDensity(similarity);
-				Map<String, Double> cent = new HashMap<String, Double>();
-				double d = 0;
-				for (int pointID: newC.getPoints()) {
-					d += points.get(pointID).get(index);
-				}
-				cent.put(topicStr, d / newC.size());
-				newC.setCentroid(cent);
-				clusters.put(nextPair[0], newC);
-				clusters.remove(nextPair[1]);
-
-				writer.println(leftC.toString());
-				writer.println(rightC.toString());
-				writer.flush();
-			}
-			writer.println(newC.toString());
-			writer.close();
-			System.out.println("@" + index + " Finished!");
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 	}
 }

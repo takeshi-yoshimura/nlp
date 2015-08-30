@@ -108,7 +108,7 @@ public class BottomUpJob implements NLPJob {
 				int i = 0;
 				for (int n = 0; n < numCore; n++) {
 					System.out.println("Start: " + i);
-					t[n] = new IndexBottomupClustering(points, i, new File(dimensionFile, i + ".csv"), topicStr.get(i));
+					t[n] = new IndexBottomupClusteringRunner(points, i, new File(dimensionFile, i + ".csv"), topicStr.get(i), clusters);
 					tIndex[n] = i;
 					i++;
 					t[n].start();
@@ -119,7 +119,7 @@ public class BottomUpJob implements NLPJob {
 						if (!t[n].isAlive()) {
 							System.out.println("Finished: " + tIndex[n]);
 							System.out.println("Start: " + i);
-							t[n] = new IndexBottomupClustering(points, i, new File(dimensionFile, i + ".csv"), topicStr.get(i));
+							t[n] = new IndexBottomupClusteringRunner(points, i, new File(dimensionFile, i + ".csv"), topicStr.get(i), clusters);
 							tIndex[n] = i;
 							i++;
 							t[n].start();
@@ -136,6 +136,65 @@ public class BottomUpJob implements NLPJob {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+	}
+
+	class IndexBottomupClusteringRunner extends Thread {
+
+		int index;
+		File clustersFile;
+		String topicStr;
+		List<Vector> points;
+		Map<Integer, HierarchicalCluster> clusters;
+		IndexBottomupClustering clustering;
+
+		public IndexBottomupClusteringRunner(List<Vector> points, int index, File clustersFile, String topicStr, Map<Integer, HierarchicalCluster> initialCluster) {
+			this.points = points;
+			this.index = index;
+			this.clustersFile = clustersFile;
+			this.topicStr = topicStr;
+			this.clusters = new HashMap<Integer, HierarchicalCluster>(initialCluster);
+			this.clustering = new IndexBottomupClustering(points, index);
+		}
+
+		@Override
+		public void run() {
+			try {
+				int nextClusterID = points.size();
+
+				PrintWriter writer = JobUtils.getPrintWriter(clustersFile);
+				writer.println("#HierarchicalClusterID,size,density,parentID,leftCID,rightCID,centroid...,pointIDs...");
+				int i = 0;
+				int [] nextPair = null;
+				HierarchicalCluster newC = null;
+				while((nextPair = clustering.popMostSimilarClusterPair()) != null) {
+					double similarity = clustering.getMaxSimilarity();
+					System.out.println("@" + index + " Iteration #" + i++ + ": " + nextPair[0] + "," + nextPair[1]);
+
+					HierarchicalCluster leftC = clusters.get(nextPair[0]);
+					HierarchicalCluster rightC = clusters.get(nextPair[1]);
+					newC = new HierarchicalCluster(leftC, rightC, nextClusterID++);
+					newC.setDensity(similarity);
+					Map<String, Double> cent = new HashMap<String, Double>();
+					double d = 0;
+					for (int pointID: newC.getPoints()) {
+						d += points.get(pointID).get(index);
+					}
+					cent.put(topicStr, d / newC.size());
+					newC.setCentroid(cent);
+					clusters.put(nextPair[0], newC);
+					clusters.remove(nextPair[1]);
+
+					writer.println(leftC.toString());
+					writer.println(rightC.toString());
+					writer.flush();
+				}
+				writer.println(newC.toString());
+				writer.close();
+				System.out.println("@" + index + " Finished!");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

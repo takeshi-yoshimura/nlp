@@ -151,7 +151,7 @@ public class BottomupClusteringTest {
 		vecs.add(new DenseVector(new double[] {8.0}));
 		vecs.add(new DenseVector(new double[] {10.0}));
 
-		IndexBottomupClustering clustering = new IndexBottomupClustering(vecs, 0, null, null);
+		IndexBottomupClustering clustering = new IndexBottomupClustering(vecs, 0);
 		NaiveBottomupClustering basic = new NaiveBottomupClustering(vecs);
 		int i = 0;
 		while (true) {
@@ -179,7 +179,7 @@ public class BottomupClusteringTest {
 			sb.append("vecs.add(new DenseVector(new double[] {").append(d).append("}));\n");
 		}
 
-		IndexBottomupClustering clustering = new IndexBottomupClustering(vecs, 0, null, null);
+		IndexBottomupClustering clustering = new IndexBottomupClustering(vecs, 0);
 		NaiveBottomupClustering basic = new NaiveBottomupClustering(vecs);
 		int i = 0;
 		while (true) {
@@ -209,7 +209,7 @@ public class BottomupClusteringTest {
 				sb.append("vecs.add(new DenseVector(new double[] {").append(d).append("}));\n");
 			}
 	
-			IndexBottomupClustering clustering = new IndexBottomupClustering(vecs, 0, null, null);
+			IndexBottomupClustering clustering = new IndexBottomupClustering(vecs, 0);
 			NaiveBottomupClustering basic = new NaiveBottomupClustering(vecs);
 			int i = 0;
 			List<Integer> badAt = new ArrayList<Integer>();
