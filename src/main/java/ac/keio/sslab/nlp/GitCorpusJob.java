@@ -77,7 +77,7 @@ public class GitCorpusJob implements NLPJob {
 			} else if (mgr.hasArg("sl")) {
 				reader = new StableLinuxGitCorpusReader(inputDir, fileStr);
 			} else {
-				reader = new GitLogCorpusReader(inputDir, sinceStr, untilStr, fileStr);
+				reader = new GitLogCorpusReader(inputDir, sinceStr, untilStr, fileStr, false);
 			}
 
 			File stats = new File(conf.localCorpusFile, mgr.getJobID() + "/stats.txt");

@@ -7,7 +7,6 @@ import java.util.Set;
 
 import org.eclipse.jgit.api.LogCommand;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevTag;
 
 import ac.keio.sslab.utils.SimpleGitReader;
 
@@ -18,39 +17,27 @@ public class GitLogCorpusReader implements GitCorpusReader {
 	Set<String> files;
 	String sinceStr, untilStr, fileStr;
 
-	public GitLogCorpusReader(File input, String sinceStr, String untilStr, String fileStr) throws Exception {
-		this.sinceStr = sinceStr;
-		this.untilStr = untilStr;
-		this.fileStr = fileStr;
+	public GitLogCorpusReader(File input, String sinceStr, String untilStr, String fileStr, boolean isTag) throws Exception {
 		git = new SimpleGitReader(input);
-		RevCommit untilRef = git.getCommit(untilStr);
-		RevCommit sinceRef = (sinceStr != null && !sinceStr.equals("")) ? git.getCommit(sinceStr): null;
+		if (!isTag) {
+			this.sinceStr = sinceStr;
+			this.untilStr = untilStr;
+		} else {
+			this.sinceStr = sinceStr != null ? git.getTagDateString(sinceStr): null;
+			this.untilStr = git.getTagDateString(untilStr);
+		}
+		this.fileStr = fileStr;
+		RevCommit until = git.getCommit(untilStr);
+		RevCommit since = (sinceStr != null && !sinceStr.equals("")) ? git.getCommit(sinceStr): null;
 
-		LogCommand cmd = git.log().add(untilRef);
-		if (sinceRef != null) {
-			cmd = git.log().addRange(sinceRef, untilRef);
+		LogCommand cmd = git.log().add(until);
+		if (since != null) {
+			cmd = git.log().addRange(since, until);
 		}
 		if (fileStr != null) {
 			cmd = cmd.addPath(fileStr);
 		}
 		logs = cmd.call().iterator();
-	}
-
-	public GitLogCorpusReader(File input, RevTag sinceTag, RevTag untilTag, String fileStr) throws Exception {
-		git = new SimpleGitReader(input);
-		this.sinceStr = sinceTag != null ? git.getTagDateString(sinceTag): null;
-		this.untilStr = git.getTagDateString(untilTag);
-		this.fileStr = fileStr;
-
-		LogCommand cmd = git.log().add(untilTag);
-		if (sinceTag != null) {
-			cmd = git.log().addRange(sinceTag, untilTag);
-		}
-		if (fileStr != null) {
-			cmd = cmd.addPath(fileStr);
-		}
-		logs = cmd.call().iterator();
-
 	}
 
 	@Override
@@ -68,7 +55,7 @@ public class GitLogCorpusReader implements GitCorpusReader {
 		sha = rev.getId().getName();
 		doc = rev.getFullMessage();
 		date = git.getCommitDateString(rev);
-		ver = git.getLatestTag(rev).getName();
+		ver = git.getLatestTag(rev);
 		files = git.getFiles(sha);
 		return true;
 	}
