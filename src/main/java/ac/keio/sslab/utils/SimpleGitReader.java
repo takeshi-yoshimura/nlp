@@ -101,22 +101,6 @@ public class SimpleGitReader {
 		return tagDates.get(tag);
 	}
 
-	public String getLatestTag(String sha) throws IOException {
-		return getLatestTag(getCommit(sha));
-	}
-
-	public String getLatestTag(RevCommit commit) throws IOException {
-		Date d = getCommitDate(commit);
-		if (tags.containsKey(d)) {
-			return tags.get(d);
-		}
-		Date latest = tags.lowerKey(d);
-		if (latest == null) {
-			return null;
-		}
-		return tags.get(latest);
-	}
-
 	public Set<String> getFiles(String sha) throws Exception {
 		Set<String> files = new HashSet<String>();
 		for (DiffEntry entry : getDiffs(sha)) {
@@ -167,5 +151,9 @@ public class SimpleGitReader {
 	public void close() {
 		git.close();
 		repo.close();
+	}
+
+	public String descirbe(String rev) throws Exception {
+		return git.describe().setTarget(rev).setLong(false).call();
 	}
 }
