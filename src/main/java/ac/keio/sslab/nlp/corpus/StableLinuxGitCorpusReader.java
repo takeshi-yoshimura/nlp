@@ -19,7 +19,6 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 	List<String> lts;
 	String fileStr;
 	GitCorpusReader reader;
-	String currentMajor;
 
 	private class GitCorpusReaderArguments {
 		public File input;
@@ -70,7 +69,6 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 
 		GitCorpusReaderArguments arg = arguments.firstEntry().getValue();
 		arguments.remove(arguments.firstKey());
-		currentMajor = arg.sinceTag;
 		reader = new GitLogCorpusReader(arg.input, arg.sinceTag, arg.untilTag, arg.fileStr, true);
 	}
 
@@ -82,7 +80,6 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 				return false;
 			reader.close();
 			GitCorpusReaderArguments arg = arguments.firstEntry().getValue();
-			currentMajor = arg.sinceTag;
 			arguments.remove(arguments.firstKey());
 			try {
 				reader = new GitLogCorpusReader(arg.input, arg.sinceTag, arg.untilTag, arg.fileStr, true);
@@ -127,7 +124,7 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 
 	@Override
 	public String getVersion() {
-		return currentMajor;
+		return reader.getVersion();
 	}
 
 	@Override

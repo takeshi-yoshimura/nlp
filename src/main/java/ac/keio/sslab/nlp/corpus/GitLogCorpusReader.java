@@ -13,7 +13,8 @@ import ac.keio.sslab.utils.SimpleGitReader;
 public class GitLogCorpusReader implements GitCorpusReader {
 	SimpleGitReader git;
 	Iterator<RevCommit> logs;
-	String sha, doc;
+	String sha, doc, ver;
+	int tagCount;
 	String sinceStr, untilStr, fileStr;
 
 	public GitLogCorpusReader(File input, String sinceStr, String untilStr, String fileStr, boolean isTag) throws Exception {
@@ -37,6 +38,7 @@ public class GitLogCorpusReader implements GitCorpusReader {
 			cmd = cmd.addPath(fileStr);
 		}
 		logs = cmd.call().iterator();
+		tagCount = 0;
 	}
 
 	@Override
@@ -53,6 +55,12 @@ public class GitLogCorpusReader implements GitCorpusReader {
 
 		sha = rev.getId().getName();
 		doc = rev.getFullMessage();
+		if (tagCount == 0) {
+			String tag[] = git.descirbe(sha).split("-");
+			ver = tag[0];
+			tagCount = Integer.parseInt(tag[1]);
+		}
+		--tagCount;
 		return true;
 	}
 
@@ -91,12 +99,7 @@ public class GitLogCorpusReader implements GitCorpusReader {
 
 	@Override
 	public String getVersion() {
-		try {
-			return git.descirbe(sha);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
-		}
+		return ver;
 	}
 
 	@Override
