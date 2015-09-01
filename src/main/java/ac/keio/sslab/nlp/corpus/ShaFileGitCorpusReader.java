@@ -45,7 +45,7 @@ public class ShaFileGitCorpusReader implements GitCorpusReader {
 		sha = rev.getId().getName();
 		doc = rev.getFullMessage();
 		date = git.getCommitDateString(rev);
-		ver = git.getLatestTag(rev);
+		ver = git.getLatestTag(rev).getName();
 		files = git.getFiles(sha);
 		return true;
 	}

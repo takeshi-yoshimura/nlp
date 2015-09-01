@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.eclipse.jgit.api.LogCommand;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTag;
 
 import ac.keio.sslab.utils.SimpleGitReader;
 
@@ -22,20 +24,33 @@ public class GitLogCorpusReader implements GitCorpusReader {
 		this.fileStr = fileStr;
 		git = new SimpleGitReader(input);
 		RevCommit untilRef = git.getCommit(untilStr);
-		if (!sinceStr.equals("")) {
-			RevCommit sinceRef = git.getCommit(sinceStr);
-			if (fileStr == null) {
-				logs = git.log().addRange(sinceRef, untilRef).call().iterator();
-			} else {
-				logs = git.log().addRange(sinceRef, untilRef).addPath(fileStr).call().iterator();
-			}
-		} else {
-			if (fileStr == null) {
-				logs = git.log().add(untilRef).call().iterator();
-			} else {
-				logs = git.log().add(untilRef).addPath(fileStr).call().iterator();
-			}
+		RevCommit sinceRef = (sinceStr != null && !sinceStr.equals("")) ? git.getCommit(sinceStr): null;
+
+		LogCommand cmd = git.log().add(untilRef);
+		if (sinceRef != null) {
+			cmd = git.log().addRange(sinceRef, untilRef);
 		}
+		if (fileStr != null) {
+			cmd = cmd.addPath(fileStr);
+		}
+		logs = cmd.call().iterator();
+	}
+
+	public GitLogCorpusReader(File input, RevTag sinceTag, RevTag untilTag, String fileStr) throws Exception {
+		git = new SimpleGitReader(input);
+		this.sinceStr = sinceTag != null ? git.getTagDateString(sinceTag): null;
+		this.untilStr = git.getTagDateString(untilTag);
+		this.fileStr = fileStr;
+
+		LogCommand cmd = git.log().add(untilTag);
+		if (sinceTag != null) {
+			cmd = git.log().addRange(sinceTag, untilTag);
+		}
+		if (fileStr != null) {
+			cmd = cmd.addPath(fileStr);
+		}
+		logs = cmd.call().iterator();
+
 	}
 
 	@Override
@@ -53,7 +68,7 @@ public class GitLogCorpusReader implements GitCorpusReader {
 		sha = rev.getId().getName();
 		doc = rev.getFullMessage();
 		date = git.getCommitDateString(rev);
-		ver = git.getLatestTag(rev);
+		ver = git.getLatestTag(rev).getName();
 		files = git.getFiles(sha);
 		return true;
 	}

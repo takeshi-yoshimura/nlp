@@ -22,6 +22,7 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevObject;
+import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.treewalk.AbstractTreeIterator;
@@ -32,7 +33,8 @@ public class SimpleGitReader {
 	Repository repo;
 	Git git;
 	RevWalk walk;
-	TreeMap<Date, String> tags;
+	TreeMap<Date, RevTag> tags;
+	SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
 
 	public SimpleGitReader(File gitDir) throws IOException {
 		repo = new FileRepositoryBuilder().findGitDir(gitDir).build();
@@ -41,21 +43,26 @@ public class SimpleGitReader {
 		tags = getTagAndDates();
 	}
 
-	public TreeMap<Date, String> getTagAndDates() throws IOException {
-		TreeMap<Date, String> vers = new TreeMap<Date, String>();
+	public TreeMap<Date, RevTag> getTagAndDates() throws IOException {
+		TreeMap<Date, RevTag> vers = new TreeMap<Date, RevTag>();
 		for (Entry<String, Ref> e: repo.getTags().entrySet()) {
 			String tag = e.getKey();
 			RevObject c = walk.peel(walk.parseAny(repo.resolve(tag)));
 			if (!(c instanceof RevCommit)) {
 				continue;
 			}
-			vers.put(getCommitDate(tag), tag);
+			RevTag t = getTag(tag);
+			vers.put(getTagDate(t), t);
 		}
 		return vers;
 	}
 
 	public RevCommit getCommit(String sha) throws IOException {
 		return walk.parseCommit(repo.resolve(sha));
+	}
+
+	public RevTag getTag(String ref) throws IOException {
+		return walk.parseTag(repo.resolve(ref));
 	}
 
 	public String getFullMessage(String sha) throws IOException {
@@ -66,13 +73,20 @@ public class SimpleGitReader {
 		return getCommit(sha).getShortMessage();
 	}
 
-	SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
 	public String getCommitDateString(String sha) throws IOException {
-		return sdf.format(getCommitDate(sha));
+		return getCommitDateString(sha);
+	}
+
+	public String getTagDateString(RevTag tag) throws IOException {
+		return sdf.format(tag.getTaggerIdent().getWhen());
 	}
 
 	public String getCommitDateString(RevCommit commit) throws IOException {
 		return sdf.format(getCommitDate(commit));
+	}
+
+	public String getTagDateString(String tag) throws IOException {
+		return getTagDateString(getTag(tag));
 	}
 
 	public Date getCommitDate(String sha) throws IOException {
@@ -83,26 +97,26 @@ public class SimpleGitReader {
 		return new Date(1000L * commit.getCommitTime());
 	}
 
-	public String getLatestTag(String sha) throws IOException {
-		Date d = getCommitDate(sha);
-		if (tags.containsKey(d)) {
-			return tags.get(d);
-		}
-		Date latest = tags.lowerKey(d);
-		if (latest == null) {
-			return "unkown";
-		}
-		return tags.get(latest);
+	public Date getTagDate(RevTag tag) throws IOException {
+		return tag.getTaggerIdent().getWhen();
 	}
 
-	public String getLatestTag(RevCommit commit) throws IOException {
+	public Date getTagDate(String tag) throws IOException {
+		return getTagDate(getTag(tag));
+	}
+
+	public RevTag getLatestTag(String sha) throws IOException {
+		return getLatestTag(getCommit(sha));
+	}
+
+	public RevTag getLatestTag(RevCommit commit) throws IOException {
 		Date d = getCommitDate(commit);
 		if (tags.containsKey(d)) {
 			return tags.get(d);
 		}
 		Date latest = tags.lowerKey(d);
 		if (latest == null) {
-			return "unkown";
+			return null;
 		}
 		return tags.get(latest);
 	}

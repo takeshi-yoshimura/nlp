@@ -81,7 +81,7 @@ public class PointCentricClusterWriter {
 		List<String> versions = new ArrayList<String>();
 		for (String sha: shas) {
 			dates.add(git.getCommitDate(sha));
-			versions.add(git.getLatestTag(sha));
+			versions.add(git.getLatestTag(sha).getName());
 			fileSet.addAll(git.getFiles(sha));
 		}
 		List<String> files = new ArrayList<String>(fileSet);

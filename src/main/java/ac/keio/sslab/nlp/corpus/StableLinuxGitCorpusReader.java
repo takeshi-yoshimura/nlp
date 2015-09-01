@@ -2,7 +2,6 @@ package ac.keio.sslab.nlp.corpus;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -12,36 +11,38 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.eclipse.jgit.revwalk.RevTag;
+
 import ac.keio.sslab.utils.SimpleGitReader;
 
 public class StableLinuxGitCorpusReader implements GitCorpusReader {
 
-	List<GitCorpusReaderArguments> arguments;
-	int readerIndex;
-	Map<String, String> lts;
+	TreeMap<Date, GitCorpusReaderArguments> arguments;
+	List<String> lts;
 	String fileStr;
 	GitCorpusReader reader;
 
 	private class GitCorpusReaderArguments {
 		public File input;
-		public String sinceStr, untilStr, fileStr;
+		public RevTag sinceTag, untilTag;
+		public String fileStr;
 
-		public GitCorpusReaderArguments(File input, String sinceStr, String untilStr, String fileStr) {
+		public GitCorpusReaderArguments(File input, RevTag sinceTag, RevTag untilTag, String fileStr) {
 			this.input = input;
-			this.sinceStr = sinceStr;
-			this.untilStr = untilStr;
+			this.sinceTag = sinceTag;
+			this.untilTag = untilTag;
 			this.fileStr = fileStr;
 		}
 	}
 
 	public StableLinuxGitCorpusReader(File input, String fileStr) throws Exception {
-		arguments = new ArrayList<GitCorpusReaderArguments>();
+		arguments = new TreeMap<>();
 		this.fileStr = fileStr;
 		SimpleGitReader g = new SimpleGitReader(input);
-		TreeMap<Date, String> tags = g.getTagAndDates();
-		Map<String, String> r = new HashMap<String, String>();
-		for (Entry<Date, String> e: tags.entrySet()) {
-			String tag = e.getValue();
+		TreeMap<Date, RevTag> tags = g.getTagAndDates();
+		Map<RevTag, RevTag> r = new HashMap<>();
+		for (Entry<Date, RevTag> e: tags.entrySet()) {
+			String tag = e.getValue().getName();
 			if (tag.lastIndexOf("rc") != -1 || tag.lastIndexOf('-') != -1) { //ignore rc versions
 				continue;
 			} else if (!tag.startsWith("v")) {
@@ -50,57 +51,44 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 			String majorStr = tag.substring(0, tag.lastIndexOf('.'));
 
 			if (majorStr.equals("v4") || majorStr.equals("v3") || majorStr.equals("v2.6")) {
-				r.put(tag, tag);
-			} else {
-				r.put(majorStr, tag);
+				r.put(g.getTag(tag), e.getValue());
+			} else if (g.getTagDate(g.getTag(majorStr)).before(g.getTagDate(e.getValue()))) {
+				r.put(g.getTag(majorStr), e.getValue());
 			}
 		}
 		g.close();
 
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
-		lts = new HashMap<String, String>();
-		for (Entry<String, String> e2: r.entrySet()) {
-			System.out.println("Extract: " + e2.getKey() + " -- " + e2.getValue());
-			Date sinceD = null, untilD = null;
-			for (Entry<Date, String> e: tags.entrySet()) {
-				if (e.getValue().equals(e2.getKey())) {
-					sinceD = e.getKey();
-				}
-				if (e.getValue().equals(e2.getValue())) {
-					untilD = e.getKey();
-				}
-			}
-			lts.put(e2.getKey() + " - " + e2.getValue(), sdf.format(sinceD) + " - " + sdf.format(untilD));
-			arguments.add(new GitCorpusReaderArguments(input, e2.getKey(), e2.getValue(), fileStr));
+		lts = new ArrayList<>();
+		for (Entry<RevTag, RevTag> e2: r.entrySet()) {
+			arguments.put(g.getTagDate(e2.getKey()), new GitCorpusReaderArguments(input, e2.getKey(), e2.getValue(), fileStr));
 		}
-		readerIndex = 0;
-		GitCorpusReaderArguments arg = arguments.get(0);
-		reader = new GitLogCorpusReader(arg.input, arg.sinceStr, arg.untilStr, arg.fileStr);
-	}
 
-	public boolean seekNextStable() throws Exception {
-		boolean result = false;
-		do {
-			result = reader.seekNext();
-		} while (result && reader.getVersion().contains("rc"));
+		for (Entry<Date, GitCorpusReaderArguments> e2: arguments.entrySet()) {
+			GitCorpusReaderArguments arg = e2.getValue();
+			System.out.println("Extract: " + arg.sinceTag + " -- " + arg.untilTag);
+			lts.add(arg.sinceTag.getName() + " - " + arg.untilTag.getName() + "(" + g.getTagDateString(arg.sinceTag) + " - " + g.getTagDateString(arg.untilTag) + ")");
+		}
 
-		return result;
+		GitCorpusReaderArguments arg = arguments.firstEntry().getValue();
+		arguments.remove(arguments.firstKey());
+		reader = new GitLogCorpusReader(arg.input, arg.sinceTag, arg.untilTag, arg.fileStr);
 	}
 
 	@Override
 	public boolean seekNext() throws Exception {
-		boolean got = seekNextStable();
+		boolean got = reader.seekNext();
 		while (!got) {
-			if (++readerIndex == arguments.size())
+			if (arguments.isEmpty())
 				return false;
 			reader.close();
-			GitCorpusReaderArguments arg = arguments.get(readerIndex);
+			GitCorpusReaderArguments arg = arguments.firstEntry().getValue();
+			arguments.remove(arguments.firstKey());
 			try {
-				reader = new GitLogCorpusReader(arg.input, arg.sinceStr, arg.untilStr, arg.fileStr);
+				reader = new GitLogCorpusReader(arg.input, arg.sinceTag, arg.untilTag, arg.fileStr);
 			} catch (Exception e) {
 				throw new IOException(e);
 			}
-			got = seekNextStable();
+			got = reader.seekNext();
 		}
 		return true;
 	}
@@ -124,8 +112,8 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 	public String getStats() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("Extracted versions:\n");
-		for (Entry<String, String> e3: lts.entrySet()) {
-			sb.append(e3.getKey()).append('(').append(e3.getValue()).append(')').append('\n');
+		for (String s: lts) {
+			sb.append(s).append('\n');
 		}
 		sb.append("directory: ").append(fileStr);
 		return sb.toString();
