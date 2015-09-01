@@ -24,6 +24,7 @@ public class PointCentricClusterWriter {
 	Map<Integer, Map<String, Double>> pointTopics;
 	SimpleGitReader git;
 	Map<Integer, List<String>> realIDs;
+	Map<String, String> versions;
 
 	public PointCentricClusterWriter(File clustersFile, File corpusIDIndexFile, File idIndexFile, File gitDir) throws IOException {
 		List<HierarchicalCluster> singletons = ClusterGraph.parseResult(clustersFile).getSingletons();
@@ -35,6 +36,14 @@ public class PointCentricClusterWriter {
 		}
 		realIDs = getRealIDs(idIndexFile, corpusIDIndexFile);
 		git = new SimpleGitReader(gitDir);
+		versions = new HashMap<>();
+		BufferedReader br = new BufferedReader(new FileReader(new File(idIndexFile.getParentFile(), "commits.txt")));
+		String line = null;
+		while ((line = br.readLine()) != null) {
+			String [] s = line.split(",");
+			versions.put(s[0], s[2]);
+		}
+		br.close();
 	}
 
 	public Set<Integer> getPointIDs() {
@@ -81,7 +90,7 @@ public class PointCentricClusterWriter {
 		List<String> versions = new ArrayList<String>();
 		for (String sha: shas) {
 			dates.add(git.getCommitDate(sha));
-			versions.add(git.descirbe(sha));
+			versions.add(this.versions.get(sha));
 			fileSet.addAll(git.getFiles(sha));
 		}
 		List<String> files = new ArrayList<String>(fileSet);

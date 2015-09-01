@@ -55,12 +55,10 @@ public class GitLogCorpusReader implements GitCorpusReader {
 
 		sha = rev.getId().getName();
 		doc = rev.getFullMessage();
-		if (tagCount == 0) {
-			String tag[] = git.descirbe(sha).split("-");
-			ver = tag[0];
-			tagCount = Integer.parseInt(tag[1]);
+		if (tagCount-- == 0) {
+			ver = git.describe(sha);
+			tagCount = git.describeNum(sha);
 		}
-		--tagCount;
 		return true;
 	}
 

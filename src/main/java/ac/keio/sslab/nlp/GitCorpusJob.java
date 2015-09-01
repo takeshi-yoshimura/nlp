@@ -155,7 +155,7 @@ public class GitCorpusJob implements NLPJob {
 			} else {
 				while (reader.seekNext()) {
 					int pId = 0;
-					System.out.println("commit " + reader.getSha());
+					System.out.println("commit " + reader.getSha() + "," + reader.getDate() + "," + reader.getVersion());
 					boolean hasParagraph = false;
 					for (String para: filter.filterDocument(reader.getDoc())) {
 						if (!para.contains(" ")) {

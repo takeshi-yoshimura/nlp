@@ -78,7 +78,7 @@ public class SimpleGitReader {
 	}
 
 	public String getCommitDateString(String sha) throws IOException {
-		return getCommitDateString(sha);
+		return getCommitDateString(getCommit(sha));
 	}
 
 	public String getTagDateString(String tag) throws IOException {
@@ -153,7 +153,22 @@ public class SimpleGitReader {
 		repo.close();
 	}
 
-	public String descirbe(String rev) throws Exception {
-		return git.describe().setTarget(rev).setLong(false).call();
+	int num = -1;
+	public String describe(String rev) throws Exception {
+		String [] t = git.describe().setTarget(rev).setLong(true).call().split("-");
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < t.length - 3; i++) {
+			sb.append(t[i]).append('-');
+		}
+		sb.append(t[t.length - 3]);
+		num = Integer.parseInt(t[t.length - 2]);
+		return sb.toString();
+	}
+
+	public int describeNum(String rev) throws Exception {
+		if (num == -1) {
+			describe(rev);
+		}
+		return num;
 	}
 }
