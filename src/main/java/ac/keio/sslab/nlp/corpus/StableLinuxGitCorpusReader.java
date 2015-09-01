@@ -75,6 +75,9 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 	@Override
 	public boolean seekNext() throws Exception {
 		boolean got = reader.seekNext();
+		if (reader.getVersion().contains("-rc")) {
+			got = false;
+		}
 		while (!got) {
 			if (arguments.isEmpty())
 				return false;
@@ -87,6 +90,9 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 				throw new IOException(e);
 			}
 			got = reader.seekNext();
+			if (reader.getVersion().contains("-rc")) {
+				got = false;
+			}
 		}
 		return true;
 	}
