@@ -12,15 +12,15 @@ import ac.keio.sslab.utils.SimpleGitReader;
 import ac.keio.sslab.utils.SimpleJsonReader;
 import ac.keio.sslab.utils.SimpleJsonWriter;
 
-public class ClusterMetrics {
+public class IncrementalClusterDumper {
 
 	List<DeltaCluster> clusters;
 
-	public ClusterMetrics(List<DeltaCluster> clusters) {
+	public IncrementalClusterDumper(List<DeltaCluster> clusters) {
 		this.clusters = clusters;
 	}
 
-	public ClusterMetrics(List<HierarchicalCluster> all, Map<Integer, Map<String, Double>> pointTopics, Map<Integer, List<String>> realIDs, SimpleGitReader git) throws IOException {
+	public IncrementalClusterDumper(List<HierarchicalCluster> all, Map<Integer, Map<String, Double>> pointTopics, Map<Integer, List<String>> realIDs, SimpleGitReader git) throws IOException {
 		clusters = new ArrayList<DeltaCluster>();
 		Set<Integer> donePointID = new HashSet<Integer>();
 		for (HierarchicalCluster h: all) {
@@ -67,7 +67,7 @@ public class ClusterMetrics {
 		json.writeEndObject();
 	}
 
-	public static ClusterMetrics readJson(SimpleJsonReader json) throws IOException {
+	public static IncrementalClusterDumper readJson(SimpleJsonReader json) throws IOException {
 		json.readStartObject("cluster");
 		json.readIntValue("final ID");
 		json.readIntValue("final size");
@@ -80,7 +80,7 @@ public class ClusterMetrics {
 			json.readEndObject();
 		}
 		json.readEndObject();
-		return new ClusterMetrics(clusters);
+		return new IncrementalClusterDumper(clusters);
 	}
 
 	public String toPlainText(SimpleGitReader git) throws Exception {

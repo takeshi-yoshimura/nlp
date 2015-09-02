@@ -10,7 +10,7 @@ import java.util.Map.Entry;
 import ac.keio.sslab.utils.SimpleJsonReader;
 import ac.keio.sslab.utils.SimpleJsonWriter;
 
-public class PointMetrics {
+public class PointDumper {
 	int pointID;
 	String subject;
 	List<Date> dates;
@@ -18,9 +18,9 @@ public class PointMetrics {
 	List<String> shas;
 	List<String> files;
 	Map<String, Double> topic;
-	ClusterMetrics c;
+	IncrementalClusterDumper c;
 
-	public PointMetrics(int pointID, String subject, List<Date> dates, List<String> versions, List<String> shas, List<String> files, Map<String, Double> topic, ClusterMetrics c) {
+	public PointDumper(int pointID, String subject, List<Date> dates, List<String> versions, List<String> shas, List<String> files, Map<String, Double> topic, IncrementalClusterDumper c) {
 		this.pointID = pointID;
 		this.subject = subject;
 		this.dates = dates;
@@ -74,7 +74,7 @@ public class PointMetrics {
 		return sb.toString();
 	}
 
-	public static PointMetrics readJson(File inputDir, int pointID) throws Exception {
+	public static PointDumper readJson(File inputDir, int pointID) throws Exception {
 		File f = new File(inputDir, (pointID / 10000) + "/" + pointID + ".json");
 		if (!f.exists()) {
 			return null;
@@ -87,12 +87,12 @@ public class PointMetrics {
 		List<String> shas = json.readStringCollection("commit shas");
 		List<String> files = json.readStringCollection("files");
 		Map<String, Double> topic = json.readStringDoubleMap("topics");
-		ClusterMetrics c = ClusterMetrics.readJson(json);
+		IncrementalClusterDumper c = IncrementalClusterDumper.readJson(json);
 		json.close();
-		return new PointMetrics(pointID, subject, dates, versions, shas, files, topic, c);
+		return new PointDumper(pointID, subject, dates, versions, shas, files, topic, c);
 	}
 
-	public ClusterMetrics getClusterMetrics() {
+	public IncrementalClusterDumper getClusterMetrics() {
 		return c;
 	}
 

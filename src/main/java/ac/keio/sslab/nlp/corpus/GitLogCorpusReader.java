@@ -100,6 +100,10 @@ public class GitLogCorpusReader implements GitCorpusReader {
 		return ver;
 	}
 
+	public int getVersionCount() {
+		return tagCount;
+	}
+
 	@Override
 	public Set<String> getFiles() {
 		try {

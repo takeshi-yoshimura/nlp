@@ -18,7 +18,7 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 	TreeMap<Date, GitCorpusReaderArguments> arguments;
 	List<String> lts;
 	String fileStr;
-	GitCorpusReader reader;
+	GitLogCorpusReader reader;
 
 	private class GitCorpusReaderArguments {
 		public File input;
@@ -75,8 +75,8 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 	@Override
 	public boolean seekNext() throws Exception {
 		boolean got = reader.seekNext();
-		if (reader.getVersion().contains("-rc")) {
-			got = false;
+		while (got && reader.getVersion().contains("-rc")) {
+			got = reader.seekNext();
 		}
 		while (!got) {
 			if (arguments.isEmpty())
@@ -90,8 +90,8 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 				throw new IOException(e);
 			}
 			got = reader.seekNext();
-			if (reader.getVersion().contains("-rc")) {
-				got = false;
+			while (got && reader.getVersion().contains("-rc")) {
+				got = reader.seekNext();
 			}
 		}
 		return true;

@@ -18,7 +18,7 @@ import java.util.TreeMap;
 import ac.keio.sslab.nlp.JobUtils;
 import ac.keio.sslab.utils.SimpleGitReader;
 
-public class PointCentricClusterWriter {
+public class BottomupClassifier {
 
 	Map<Integer, HierarchicalCluster> singletons;
 	Map<Integer, Map<String, Double>> pointTopics;
@@ -26,7 +26,7 @@ public class PointCentricClusterWriter {
 	Map<Integer, List<String>> realIDs;
 	Map<String, String> versions;
 
-	public PointCentricClusterWriter(File clustersFile, File corpusIDIndexFile, File idIndexFile, File gitDir) throws IOException {
+	public BottomupClassifier(File clustersFile, File corpusIDIndexFile, File idIndexFile, File gitDir) throws IOException {
 		List<HierarchicalCluster> singletons = ClusterGraph.parseResult(clustersFile).getSingletons();
 		this.pointTopics = new HashMap<Integer, Map<String, Double>>();
 		this.singletons = new HashMap<Integer, HierarchicalCluster>();
@@ -96,8 +96,8 @@ public class PointCentricClusterWriter {
 		List<String> files = new ArrayList<String>(fileSet);
 		Map<String, Double> topic = singletons.get(pointID).getCentroid();
 		List<HierarchicalCluster> all = getBestCluster(pointID);
-		ClusterMetrics c = new ClusterMetrics(all, pointTopics, realIDs, git);
-		new PointMetrics(pointID, subject, dates, versions, shas, files, topic, c).writeJson(outputDir);
+		IncrementalClusterDumper c = new IncrementalClusterDumper(all, pointTopics, realIDs, git);
+		new PointDumper(pointID, subject, dates, versions, shas, files, topic, c).writeJson(outputDir);
 	}
 
 	public Map<Integer, List<String>> getRealIDs(File idIndexFile, File corpusIDIndexFile) throws IOException {

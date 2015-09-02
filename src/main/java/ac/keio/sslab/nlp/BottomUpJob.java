@@ -3,6 +3,7 @@ package ac.keio.sslab.nlp;
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +54,7 @@ public class BottomUpJob implements NLPJob {
 		File corpusIDIndexFile = new File(localOutputDir, "corpusIDIndex.csv");
 		localOutputDir.mkdirs();
 
+		System.out.println("Start at: " + (new Date().toString()));
 		try {
 			Map<Integer, String> topicStr = SimpleLDAReader.getTopicTerm(conf.hdfs, ldaFiles.dictionaryPath, ldaFiles.topicPath);
 			List<Vector> points = new ArrayList<Vector>();
@@ -100,7 +102,6 @@ public class BottomUpJob implements NLPJob {
 				}
 				writer.println(newC.toString());
 				writer.close();
-				System.out.println("Finished!");
 			} else {
 				int numCore = Runtime.getRuntime().availableProcessors();
 				Thread t [] = new Thread[numCore];
@@ -132,11 +133,11 @@ public class BottomUpJob implements NLPJob {
 						System.out.println("Finished: " + tIndex[n]);
 					}
 				}
-				System.out.println("Finished!");
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		System.out.println("End at: " + (new Date().toString()));
 	}
 
 	class IndexBottomupClusteringRunner extends Thread {

@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -70,6 +71,7 @@ public class GitCorpusJob implements NLPJob {
 		boolean useNLTKStopwords = mgr.getArgOrDefault("n", false, Boolean.class);
 		boolean splitParagraph = mgr.getArgOrDefault("p", false, Boolean.class);
 
+		String startAt = new Date().toString();
 		try {
 			GitCorpusReader reader = null;
 			if (mgr.hasArg("c")) {
@@ -245,6 +247,18 @@ public class GitCorpusJob implements NLPJob {
 			br.close();
 			writer.close();
 
+			PrintWriter idIndexWriter = JobUtils.getPrintWriter(idIndexFile);
+			for (Entry<Integer, List<String>> id: idIndex.entrySet()) {
+				sb.setLength(0);
+				sb.append(id.getKey()).append('\t').append('\t');
+				for (String sha: id.getValue()) {
+					sb.append(sha).append(',');
+				}
+				sb.setLength(sb.length() - 1);
+				idIndexWriter.println(sb.toString());
+			}
+			idIndexWriter.close();
+
 			PrintWriter statsWriter = JobUtils.getPrintWriter(stats);
 			statsWriter.println(reader.getStats());
 			statsWriter.print("total commits: ");
@@ -259,20 +273,12 @@ public class GitCorpusJob implements NLPJob {
 			statsWriter.println(useNLTKStopwords);
 			statsWriter.print("split paragraph?: ");
 			statsWriter.println(splitParagraph);
+			statsWriter.print("start at:");
+			statsWriter.println(startAt);
+			statsWriter.print("end at:");
+			statsWriter.println(new Date().toString());
 			statsWriter.close();
 			reader.close();
-
-			PrintWriter idIndexWriter = JobUtils.getPrintWriter(idIndexFile);
-			for (Entry<Integer, List<String>> id: idIndex.entrySet()) {
-				sb.setLength(0);
-				sb.append(id.getKey()).append('\t').append('\t');
-				for (String sha: id.getValue()) {
-					sb.append(sha).append(',');
-				}
-				sb.setLength(sb.length() - 1);
-				idIndexWriter.println(sb.toString());
-			}
-			idIndexWriter.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

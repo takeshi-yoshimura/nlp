@@ -1,12 +1,13 @@
 package ac.keio.sslab.nlp;
 
 import java.io.File;
+import java.util.Date;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
-import ac.keio.sslab.clustering.bottomup.PointCentricClusterWriter;
+import ac.keio.sslab.clustering.bottomup.TopdownClassifier;
 
 public class ClassificationJob implements NLPJob {
 
@@ -17,26 +18,21 @@ public class ClassificationJob implements NLPJob {
 
 	@Override
 	public String getJobDescription() {
-		return "extract similar patches for each patch";
+		return "extract similar patches from the topdown";
 	}
 
 	@Override
 	public Options getOptions() {
 		OptionGroup g = new OptionGroup();
 		g.addOption(new Option("b", "bottomupID", true, "ID for a bottomup job"));
-		OptionGroup g4 = new OptionGroup();
-		g4.addOption(new Option("c", "corpusID", true, "ID for a corpus job"));
-		OptionGroup g5 = new OptionGroup();
-		g5.addOption(new Option("g", "gitDir", true, "git directory"));
+		OptionGroup g6 = new OptionGroup();
+		g6.addOption(new Option("ga", "groupAverage", true, "output clusters whose ga is lower than this value"));
 		g.setRequired(true);
-		g4.setRequired(true);
-		g5.setRequired(true);
+		g6.setRequired(true);
 
 		Options opt = new Options();
-		opt.addOption("d", "density", false, "record density.csv for debugging purpose");
 		opt.addOptionGroup(g);
-		opt.addOptionGroup(g4);
-		opt.addOptionGroup(g5);
+		opt.addOptionGroup(g6);
 		return opt;
 	}
 
@@ -44,33 +40,24 @@ public class ClassificationJob implements NLPJob {
 	public void run(JobManager mgr) {
 		NLPConf conf = NLPConf.getInstance();
 		File outputDir = new File(conf.finalOutputFile, "class/" + mgr.getArgStr("j"));
-		File gitDir = new File(mgr.getArgStr("g"));
-		File idIndexFile = new File(conf.localCorpusFile + "/" + mgr.getArgStr("c"), "idIndex.txt");
 		File clustersFile = new File(conf.localBottomupFile + "/" + mgr.getArgStr("b"), "clusters.csv");
-		File corpusIDIndexFile = new File(conf.localBottomupFile + "/" + mgr.getArgStr("b"), "corpusIDIndex.csv");
-		File densityFile = new File(outputDir, "density.csv");
 
+		System.out.println("Start at: " + new Date().toString());
 		try {
 			outputDir.getParentFile().mkdirs();
 			System.out.println("loading " + clustersFile.getAbsolutePath());
-			PointCentricClusterWriter c = new PointCentricClusterWriter(clustersFile, corpusIDIndexFile, idIndexFile, gitDir);
-			for (int pointID: c.getPointIDs()) {
-				System.out.println("writing point ID = " + pointID);
-				c.writeBestClusterJson(outputDir, pointID);
-			}
+			TopdownClassifier c = new TopdownClassifier(clustersFile);
+			double ga = mgr.getArgOrDefault("ga", 1.0, Double.class);
+			c.writeResultCSV(outputDir, ga);
 	        System.out.println("Results: " + outputDir.getAbsolutePath());
-			if (mgr.hasArg("d")) {
-				c.writeAllDensityTrendCSV(densityFile);
-		        System.out.println("Results: " + densityFile.getAbsolutePath());
-			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		System.out.println("End at:" + new Date().toString());
 	}
 
 	@Override
 	public boolean runInBackground() {
-		return false;
+		return true;
 	}
-
 }

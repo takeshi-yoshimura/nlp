@@ -208,7 +208,7 @@ public class CliMain {
 		jobs.add(new BottomUpGraphJob());
 		jobs.add(new ClusteringResultJob());
 		jobs.add(new ClassificationJob());
-		jobs.add(new PatchMetricsJob());
+		jobs.add(new PatchClusterJob());
 		jobs.add(new TopicTrendJob());
 		jobs.add(new LoadBugResultJob());
 		jobs.add(new CompareWithManualJob());
