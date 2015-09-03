@@ -66,7 +66,7 @@ public class DeltaCluster {
 
 	public String toPlainText(SimpleGitReader git) throws Exception {
 		StringBuilder sb = new StringBuilder();
-		sb.append("cluster ID: ").append(ID).append(", current size: ").append(size).append(", current group average").append(groupAverage).append('\n');
+		sb.append("cluster ID: ").append(ID).append(", current size: ").append(size).append(", current group average: ").append(groupAverage).append('\n');
 		for (int pointID: pointShas.keySet()) {
 			sb.append("-------------------------------------------------------------\n");
 			sb.append("point ID: ").append(pointID).append(", topics:");

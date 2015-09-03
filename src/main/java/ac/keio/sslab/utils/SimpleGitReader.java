@@ -135,7 +135,7 @@ public class SimpleGitReader {
 		sb.append("commit ").append(commit.getId().getName()).append('\n');
 		sb.append("Author: ").append(p.getName()).append(" <").append(p.getEmailAddress()).append(">\n");
 		sb.append("Date: ").append(new Date(1000L * commit.getCommitTime())).append("\n\n");
-		sb.append(commit.getFullMessage());
+		sb.append(commit.getFullMessage()).append('\n');
 		for (DiffEntry entry: getDiffs(sha)) {
 			diff.format(entry);
 			sb.append(ba.toString());

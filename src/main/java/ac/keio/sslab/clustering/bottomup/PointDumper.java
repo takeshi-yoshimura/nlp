@@ -39,7 +39,7 @@ public class PointDumper {
 		json.writeStringField("subject", subject);
 		json.writeDateCollection("date", dates);
 		json.writeStringCollection("version", versions);
-		json.writeStringCollection("commit shas", shas);
+		json.writeStringCollection("commits", shas);
 		json.writeStringCollection("files", files);
 		json.writeStringDoubleMap("topics", topic);
 		c.writeJson(json);
@@ -59,7 +59,7 @@ public class PointDumper {
 		for (String version: versions) {
 			sb.append(' ').append(version);
 		}
-		sb.append("\ncommit shas:");
+		sb.append("\ncommits:");
 		for (String sha: shas) {
 			sb.append(' ').append(sha);
 		}
@@ -84,7 +84,7 @@ public class PointDumper {
 		String subject = json.readStringField("subject");
 		List<Date> dates = json.readDateCollection("date");
 		List<String> versions = json.readStringCollection("version");
-		List<String> shas = json.readStringCollection("commit shas");
+		List<String> shas = json.readStringCollection("commits");
 		List<String> files = json.readStringCollection("files");
 		Map<String, Double> topic = json.readStringDoubleMap("topics");
 		IncrementalClusterDumper c = IncrementalClusterDumper.readJson(json);
