@@ -2,6 +2,7 @@ package ac.keio.sslab.nlp.corpus;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -109,8 +110,8 @@ public class GitLogCorpusReader implements GitCorpusReader {
 		try {
 			return git.getFiles(sha);
 		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
+			//no files
+			return new HashSet<String>();
 		}
 	}
 }
