@@ -233,9 +233,6 @@ public class GitCorpusJob implements NLPJob {
 			String line = null;
 			StringBuilder sb = new StringBuilder();
 			while ((line = br.readLine()) != null) {
-				if (line.isEmpty()) {
-					continue;
-				}
 				String [] splitLine = line.split(" ");
 				sb.setLength(0);
 				for (int j = 1; j < splitLine.length; j++) {
@@ -243,6 +240,10 @@ public class GitCorpusJob implements NLPJob {
 						continue;
 					}
 					sb.append(splitLine[j]).append(' ');
+				}
+				if (sb.length() <= 1) {
+					System.err.println("ignored line: " + line + " in " + originalCorpus.getAbsolutePath());
+					continue;
 				}
 				sb.setLength(sb.length() - 1);
 				writer.append(splitLine[0], sb.toString());

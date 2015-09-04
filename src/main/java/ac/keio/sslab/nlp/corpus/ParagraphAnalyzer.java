@@ -121,7 +121,7 @@ class SignatureFilter extends FilteringTokenFilter {
 			return false;
 		}
 		String lower = str.toLowerCase();
-		if (lower.indexOf("signed-off-by:") != -1 || lower.indexOf("cc:") != -1) {
+		if (lower.indexOf("signed-off-by:") != -1 || lower.indexOf("cc:") != -1 || lower.indexOf("git-svn-id:") != -1 || lower.indexOf("bitkeeper revision") != -1) {
 			return false;
 		}
 		if ((lower.indexOf("commit") != -1 && lower.indexOf("upstream") != -1) || lower.indexOf("cherry pick") != -1) {
