@@ -155,7 +155,12 @@ public class SimpleGitReader {
 
 	int num = -1;
 	public String describe(String rev) throws Exception {
-		String [] t = git.describe().setTarget(rev).setLong(true).call().split("-");
+		String tag = git.describe().setTarget(rev).setLong(true).call();
+		if (tag == null) {
+			num = 1000;
+			return "unkown";
+		}
+		String [] t = tag.split("-");
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < t.length - 3; i++) {
 			sb.append(t[i]).append('-');

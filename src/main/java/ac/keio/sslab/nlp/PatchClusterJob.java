@@ -3,7 +3,6 @@ package ac.keio.sslab.nlp;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.io.PrintWriter;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -102,11 +101,8 @@ public class PatchClusterJob implements NLPJob {
 				System.out.println("Finished! Retry read json for " + patchID);
 				p = PointDumper.readJson(classDir, patchID);
 			}
-			File output = new File(conf.finalOutputFile, "patchCluster/" + mgr.getArgStr("j") + ".txt");
-			PrintWriter pw = JobUtils.getPrintWriter(output);
-			pw.println(p.toPlainText());
-			pw.println(p.getClusterMetrics().toPlainText(git));
-			pw.close();
+			System.out.println(p.toPlainText());
+			System.out.println(p.getClusterMetrics().toPlainText(git));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
