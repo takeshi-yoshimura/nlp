@@ -233,6 +233,9 @@ public class GitCorpusJob implements NLPJob {
 			String line = null;
 			StringBuilder sb = new StringBuilder();
 			while ((line = br.readLine()) != null) {
+				if (line.isEmpty()) {
+					continue;
+				}
 				String [] splitLine = line.split(" ");
 				sb.setLength(0);
 				for (int j = 1; j < splitLine.length; j++) {
