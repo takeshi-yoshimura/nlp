@@ -7,7 +7,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
-import ac.keio.sslab.clustering.bottomup.TopdownClassifier;
+import ac.keio.sslab.clustering.view.TopdownClassifier;
 
 public class ClassificationJob implements NLPJob {
 

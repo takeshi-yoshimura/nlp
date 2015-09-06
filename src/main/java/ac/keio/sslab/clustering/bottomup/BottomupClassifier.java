@@ -15,6 +15,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import ac.keio.sslab.clustering.view.ClusterGraph;
+import ac.keio.sslab.clustering.view.HierarchicalCluster;
+import ac.keio.sslab.clustering.view.IncrementalClusterDumper;
+import ac.keio.sslab.clustering.view.PointDumper;
 import ac.keio.sslab.nlp.JobUtils;
 import ac.keio.sslab.utils.SimpleGitReader;
 

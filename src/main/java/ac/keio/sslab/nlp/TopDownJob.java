@@ -4,7 +4,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
-import ac.keio.sslab.clustering.topdown.Main;
+import ac.keio.sslab.clustering.topdown.TopdownClustering;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
 
 public class TopDownJob implements NLPJob {
@@ -34,7 +34,7 @@ public class TopDownJob implements NLPJob {
 	public void run(JobManager mgr) {
 		NLPConf conf = mgr.getNLPConf();
 		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
-		Main topdown = new Main();
+		TopdownClustering topdown = new TopdownClustering();
 		try {
 			topdown.run(hdfs.documentPath, mgr.getJobIDPath(conf.topdownPath), 32);
 		} catch (Exception e) {

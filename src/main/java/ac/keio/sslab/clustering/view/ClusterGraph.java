@@ -1,4 +1,4 @@
-package ac.keio.sslab.clustering.bottomup;
+package ac.keio.sslab.clustering.view;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -10,6 +10,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 public class ClusterGraph {
 
@@ -58,6 +61,11 @@ public class ClusterGraph {
 		HierarchicalCluster root = graph.get(HierarchicalClusterIDs.iterator().next());
 
 		return new ClusterGraph(clusters, singletons, root);
+	}
+
+	public static ClusterGraph parseResult(FileSystem fs, Path outputPath) throws IOException {
+		//TODO
+		return null;
 	}
 
 	public HierarchicalCluster getRoot() {

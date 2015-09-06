@@ -6,7 +6,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
-import ac.keio.sslab.clustering.bottomup.ClusterGraphDumper;
+import ac.keio.sslab.clustering.view.ClusterGraphDumper;
 
 public class BottomUpGraphJob implements NLPJob {
 

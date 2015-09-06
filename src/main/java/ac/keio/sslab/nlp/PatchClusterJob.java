@@ -9,7 +9,7 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 import ac.keio.sslab.clustering.bottomup.BottomupClassifier;
-import ac.keio.sslab.clustering.bottomup.PointDumper;
+import ac.keio.sslab.clustering.view.PointDumper;
 import ac.keio.sslab.utils.SimpleGitReader;
 
 public class PatchClusterJob implements NLPJob {

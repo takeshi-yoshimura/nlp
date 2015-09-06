@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.util.ToolRunner;
 import org.apache.mahout.clustering.Cluster;
 import org.apache.mahout.common.AbstractJob;
 import org.apache.mahout.math.Vector;
@@ -16,7 +15,7 @@ import ac.keio.sslab.nlp.NLPConf;
 import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 import ac.keio.sslab.utils.hadoop.SequenceSwapWriter;
 
-public class Main extends AbstractJob {
+public class TopdownClustering extends AbstractJob {
 
 	Logger log = LoggerFactory.getLogger(getClass());
 	NLPConf conf = NLPConf.getInstance();
@@ -70,9 +69,5 @@ public class Main extends AbstractJob {
 		}
 		int x = Integer.parseInt(getOption("maxIter"));
 		return this.run(getInputPath(), getOutputPath(), x);
-	}
-
-	public static void main(String[] args) throws Exception {
-		ToolRunner.run(new Configuration(), new Main(), args);
 	}
 }

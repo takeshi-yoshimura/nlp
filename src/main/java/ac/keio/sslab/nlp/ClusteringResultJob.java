@@ -22,8 +22,8 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
-import ac.keio.sslab.clustering.bottomup.ClusterScore;
-import ac.keio.sslab.clustering.bottomup.HierarchicalCluster;
+import ac.keio.sslab.clustering.view.ClusterScore;
+import ac.keio.sslab.clustering.view.HierarchicalCluster;
 
 public class ClusteringResultJob implements NLPJob {
 

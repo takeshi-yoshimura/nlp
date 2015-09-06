@@ -1,4 +1,4 @@
-package ac.keio.sslab.clustering.bottomup;
+package ac.keio.sslab.clustering.view;
 
 import java.io.File;
 import java.text.SimpleDateFormat;

@@ -1,4 +1,4 @@
-package ac.keio.sslab.test.eclipse;
+package ac.keio.sslab.clustering.bottomup;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +9,7 @@ import org.apache.mahout.common.distance.DistanceMeasure;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.math.Vector;
 
+// for test purpose only
 public class NaiveBottomupClustering {
 
 	TreeMap<Integer, List<Integer>> clusters;
@@ -50,7 +51,7 @@ public class NaiveBottomupClustering {
 		if (min_i == -1) {
 			return null;
 		}
-		currentMinS = min_d;
+		currentMaxS = min_d;
 
 		clusters.get(min_i).addAll(clusters.remove(min_j));
 
@@ -89,5 +90,9 @@ public class NaiveBottomupClustering {
 		return clusters;
 	}
 
-	double currentMinS;
+	double currentMaxS;
+
+	public double getMaxSimilarity() {
+		return currentMaxS;
+	}
 }

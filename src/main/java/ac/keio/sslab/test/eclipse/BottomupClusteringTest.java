@@ -11,6 +11,7 @@ import org.apache.mahout.math.Vector.Element;
 
 import ac.keio.sslab.clustering.bottomup.CachedBottomupClustering;
 import ac.keio.sslab.clustering.bottomup.IndexBottomupClustering;
+import ac.keio.sslab.clustering.bottomup.NaiveBottomupClustering;
 
 public class BottomupClusteringTest {
 
@@ -137,7 +138,7 @@ public class BottomupClusteringTest {
 			}
 			boolean ok = (nextPair1[0] == nextPair2[0]) && (nextPair1[1] == nextPair2[1]);
 			System.out.println("Iteration #" + i + ": " + nextPair1[0] + ", " + nextPair1[1] + " = " + clustering.getMaxSimilarity() + ", " 
-								+ nextPair2[0] + ", " + nextPair2[1] + " = " + basic.currentMinS + " (" + ok + ")");
+								+ nextPair2[0] + ", " + nextPair2[1] + " = " + basic.getMaxSimilarity() + " (" + ok + ")");
 			++i;
 		}
 	}
@@ -162,7 +163,7 @@ public class BottomupClusteringTest {
 			}
 			boolean ok = (nextPair1[0] == nextPair2[0]) && (nextPair1[1] == nextPair2[1]);
 			System.out.println("Iteration #" + i + ": " + nextPair1[0] + ", " + nextPair1[1] + " = " + clustering.getMaxSimilarity() + ", " 
-								+ nextPair2[0] + ", " + nextPair2[1] + " = " + basic.currentMinS + " (" + ok + ")");
+								+ nextPair2[0] + ", " + nextPair2[1] + " = " + basic.getMaxSimilarity() + " (" + ok + ")");
 			++i;
 		}
 	}
@@ -190,7 +191,7 @@ public class BottomupClusteringTest {
 			}
 			boolean ok = (nextPair1[0] == nextPair2[0]) && (nextPair1[1] == nextPair2[1]);
 			System.out.println("Iteration #" + i + ": " + nextPair1[0] + ", " + nextPair1[1] + " = " + clustering.getMaxSimilarity() + ", " 
-								+ nextPair2[0] + ", " + nextPair2[1] + " = " + basic.currentMinS + " (" + ok + ")");
+								+ nextPair2[0] + ", " + nextPair2[1] + " = " + basic.getMaxSimilarity() + " (" + ok + ")");
 			++i;
 		}
 	}

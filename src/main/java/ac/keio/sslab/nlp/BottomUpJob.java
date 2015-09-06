@@ -14,8 +14,8 @@ import org.apache.commons.cli.Options;
 import org.apache.mahout.math.Vector;
 
 import ac.keio.sslab.clustering.bottomup.CachedBottomupClustering;
-import ac.keio.sslab.clustering.bottomup.HierarchicalCluster;
 import ac.keio.sslab.clustering.bottomup.IndexBottomupClustering;
+import ac.keio.sslab.clustering.view.HierarchicalCluster;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
 import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 import ac.keio.sslab.utils.mahout.SimpleLDAReader;
