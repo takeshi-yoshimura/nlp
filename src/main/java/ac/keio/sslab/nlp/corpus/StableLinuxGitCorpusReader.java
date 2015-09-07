@@ -3,6 +3,7 @@ package ac.keio.sslab.nlp.corpus;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -13,19 +14,19 @@ import java.util.TreeMap;
 
 import ac.keio.sslab.utils.SimpleGitReader;
 
-public class StableLinuxGitCorpusReader implements GitCorpusReader {
+public class StableLinuxGitCorpusReader implements RepositoryReader {
 
 	TreeMap<Date, GitCorpusReaderArguments> arguments;
 	List<String> lts;
-	String fileStr;
-	GitLogCorpusReader reader;
+	Collection<String> fileStr;
+	RepositoryReader reader;
 
 	private class GitCorpusReaderArguments {
 		public File input;
 		public String sinceTag, untilTag;
-		public String fileStr;
+		public Collection<String> fileStr;
 
-		public GitCorpusReaderArguments(File input, String sinceTag, String untilTag, String fileStr) {
+		public GitCorpusReaderArguments(File input, String sinceTag, String untilTag, Collection<String> fileStr) {
 			this.input = input;
 			this.sinceTag = sinceTag;
 			this.untilTag = untilTag;
@@ -33,7 +34,7 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 		}
 	}
 
-	public StableLinuxGitCorpusReader(File input, String fileStr) throws Exception {
+	public StableLinuxGitCorpusReader(File input, Collection<String> fileStr) throws Exception {
 		arguments = new TreeMap<>();
 		this.fileStr = fileStr;
 		SimpleGitReader g = new SimpleGitReader(input);
@@ -98,8 +99,8 @@ public class StableLinuxGitCorpusReader implements GitCorpusReader {
 	}
 
 	@Override
-	public String getSha() {
-		return reader.getSha();
+	public String getID() {
+		return reader.getID();
 	}
 
 	@Override

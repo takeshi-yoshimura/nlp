@@ -7,9 +7,8 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 
-import ac.keio.sslab.nlp.corpus.DocumentFilter;
+import ac.keio.sslab.nlp.corpus.PatchCorpusWriter;
 import ac.keio.sslab.nlp.corpus.SimpleTextCorpusReader;
-import ac.keio.sslab.utils.hadoop.SequenceSwapWriter;
 
 public class TextCorpusJob implements NLPJob {
 
@@ -41,24 +40,23 @@ public class TextCorpusJob implements NLPJob {
 	public void run(JobManager mgr) {
 		NLPConf conf = mgr.getNLPConf();
 		File input = new File(mgr.getArgStr("i"));
+		File outputDir = new File(conf.localCorpusFile, mgr.getArgStr("j"));
 		Path outputPath = mgr.getJobIDPath(conf.corpusPath);
 		String s = mgr.getArgStr("s");
+		boolean splitParagraph = mgr.getArgOrDefault("p", false, Boolean.class);
 		boolean tokenizeAtUnderline = mgr.getArgOrDefault("t", true, Boolean.class);
 		boolean useNLTKStopwords = mgr.getArgOrDefault("n", false, Boolean.class);
 
 		try {
-			SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, conf.tmpPath, conf.hdfs, mgr.doForceWrite(), String.class, String.class);
+			PatchCorpusWriter writer = new PatchCorpusWriter(outputDir, mgr.doForceWrite(), splitParagraph, tokenizeAtUnderline, useNLTKStopwords);
 			SimpleTextCorpusReader reader = new SimpleTextCorpusReader(input, s);
-			DocumentFilter filter = new DocumentFilter(tokenizeAtUnderline, useNLTKStopwords);
-			StringBuilder sb = new StringBuilder();
 			while(reader.seekNext()) {
-				sb.setLength(0);
-				for (String para: filter.filterDocument(reader.getDoc())) {
-					sb.append(para).append(' ');
-				}
-				writer.append(reader.getId(), sb.toString());
+				System.out.println("write " + reader.getID());
+				writer.processPatchMessage(reader.getID(), reader.getDate(), reader.getVersion(), reader.getFiles(), reader.getDoc());
 			}
+			writer.emitSummary(conf.hdfs, outputPath, conf.tmpPath, reader.getStats());
 			writer.close();
+			reader.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.err.println("Failed to load Local file " + input.getAbsolutePath());

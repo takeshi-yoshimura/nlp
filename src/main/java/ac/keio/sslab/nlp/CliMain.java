@@ -189,7 +189,7 @@ public class CliMain {
 		jobs.add(new GitCorpusJob());
 		jobs.add(new TextCorpusJob());
 		jobs.add(new DeduplicateCorpusJob());
-		jobs.add(new MergeCorpusJob());
+		jobs.add(new MergeCorporaJob());
 		jobs.add(new LDAJob());
 		jobs.add(new LDADumpJob());
 		jobs.add(new ExtractGroupJob());

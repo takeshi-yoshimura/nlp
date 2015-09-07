@@ -2,6 +2,7 @@ package ac.keio.sslab.nlp.corpus;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -11,14 +12,15 @@ import org.eclipse.jgit.revwalk.RevCommit;
 
 import ac.keio.sslab.utils.SimpleGitReader;
 
-public class GitLogCorpusReader implements GitCorpusReader {
+public class GitLogCorpusReader implements RepositoryReader {
 	SimpleGitReader git;
 	Iterator<RevCommit> logs;
-	String sha, doc, ver;
+	String hash, doc, ver;
 	int tagCount;
-	String sinceStr, untilStr, fileStr;
+	String sinceStr, untilStr;
+	Collection<String> fileStr;
 
-	public GitLogCorpusReader(File input, String sinceStr, String untilStr, String fileStr, boolean isTag) throws Exception {
+	public GitLogCorpusReader(File input, String sinceStr, String untilStr, Collection<String> fileStr, boolean isTag) throws Exception {
 		git = new SimpleGitReader(input);
 		if (!isTag) {
 			this.sinceStr = sinceStr;
@@ -36,7 +38,9 @@ public class GitLogCorpusReader implements GitCorpusReader {
 			cmd = git.log().addRange(since, until);
 		}
 		if (fileStr != null) {
-			cmd = cmd.addPath(fileStr);
+			for (String f: fileStr) {
+				cmd = cmd.addPath(f);
+			}
 		}
 		logs = cmd.call().iterator();
 		tagCount = 0;
@@ -54,18 +58,18 @@ public class GitLogCorpusReader implements GitCorpusReader {
 			rev = logs.next();
 		}
 
-		sha = rev.getId().getName();
+		hash = rev.getId().getName();
 		doc = rev.getFullMessage();
 		if (tagCount-- == 0) {
-			ver = git.describe(sha);
-			tagCount = git.describeNum(sha);
+			ver = git.describe(hash);
+			tagCount = git.describeNum(hash);
 		}
 		return true;
 	}
 
 	@Override
-	public String getSha() {
-		return sha;
+	public String getID() {
+		return hash;
 	}
 
 	@Override
@@ -82,14 +86,17 @@ public class GitLogCorpusReader implements GitCorpusReader {
 	public String getStats() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("Extracted: ").append(sinceStr).append(" - ").append(untilStr).append('\n');
-		sb.append("directory: ").append(fileStr);
+		sb.append("directory:");
+		for (String f: fileStr) {
+			sb.append(' ').append(f);
+		}
 		return sb.toString();
 	}
 
 	@Override
 	public String getDate() {
 		try {
-			return git.getCommitDateString(sha);
+			return git.getCommitDateString(hash);
 		} catch (IOException e) {
 			e.printStackTrace();
 			return null;
@@ -108,7 +115,7 @@ public class GitLogCorpusReader implements GitCorpusReader {
 	@Override
 	public Set<String> getFiles() {
 		try {
-			return git.getFiles(sha);
+			return git.getFiles(hash);
 		} catch (Exception e) {
 			//no files
 			return new HashSet<String>();

@@ -12,16 +12,16 @@ import org.eclipse.jgit.revwalk.RevCommit;
 
 import ac.keio.sslab.utils.SimpleGitReader;
 
-public class ShaFileGitCorpusReader implements GitCorpusReader {
+public class HashFileGitCorpusReader implements RepositoryReader {
 
 	SimpleGitReader git;
 	Set<String> shas;
 	Iterator<String> sha_iterator;
-	String sha, doc, date, ver;
+	String hash, doc, date, ver;
 	Set<String> files;
 	File input;
 
-	public ShaFileGitCorpusReader(File input, File gitDir) throws Exception {
+	public HashFileGitCorpusReader(File input, File gitDir) throws Exception {
 		this.input = input;
 		git = new SimpleGitReader(gitDir);
 
@@ -42,17 +42,17 @@ public class ShaFileGitCorpusReader implements GitCorpusReader {
 		if (!sha_iterator.hasNext())
 			return false;
 		RevCommit rev = git.getCommit(sha_iterator.next());
-		sha = rev.getId().getName();
+		hash = rev.getId().getName();
 		doc = rev.getFullMessage();
 		date = git.getCommitDateString(rev);
-		ver = git.describe(sha);
-		files = git.getFiles(sha);
+		ver = git.describe(hash);
+		files = git.getFiles(hash);
 		return true;
 	}
 
 	@Override
-	public String getSha() {
-		return sha;
+	public String getID() {
+		return hash;
 	}
 
 	@Override
