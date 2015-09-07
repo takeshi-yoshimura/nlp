@@ -4,11 +4,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.cli.CommandLine;
@@ -168,31 +166,6 @@ public class JobManager {
 		} else {
 			System.err.println("WARNING: Inconsistent unlock");
 		}
-	}
-
-	public boolean hasPastArgs() throws IOException {
-		if (!argFile.exists()) {
-			return false;
-		}
-		FileInputStream inputStream = null;
-		inputStream = new FileInputStream(argFile);
-		JSONObject reader = new JSONObject(IOUtils.toString(inputStream));
-		boolean hasJobID = reader.has(jobID);
-        inputStream.close();
-        return hasJobID;
-	}
-
-	public String [] readPastArgs() throws Exception {
-		List<String> args = new ArrayList<String>();
-		FileInputStream inputStream = new FileInputStream(argFile);
-		JSONObject jobJson = new JSONObject(IOUtils.toString(inputStream));
-		JSONObject jobIDJson = jobJson.getJSONObject(jobID);
-		for (Object key : jobIDJson.keySet()) {
-			args.add("-" + (String) key);
-			args.add(jobIDJson.getString((String) key));
-		}
-		inputStream.close();
-		return args.toArray(new String[args.size()]);
 	}
 
 	public void saveArgs() throws IOException {

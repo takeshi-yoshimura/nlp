@@ -81,6 +81,7 @@ public class CliMain {
 		JobManager manager = new JobManager(job);
 		try {
 			manager.parseOptions(args);
+			manager.saveArgs();
 		} catch (Exception e) {
 			manager.printHelp();
 			System.err.println(e.getMessage());
@@ -157,17 +158,6 @@ public class CliMain {
 				return;
 			}
 			String jobID = manager.getJobID();
-			if (manager.hasPastArgs()) {
-				System.out.println("Found the past output for job " + job.getJobName() + " ID = " + jobID + ". Use the past arguments");
-				String [] pastArgs = manager.readPastArgs();
-				if (manager.doForceWrite()) {
-					newArgs = new String[pastArgs.length + 1];
-					System.arraycopy(pastArgs, 0, newArgs, 0, pastArgs.length);
-					newArgs[newArgs.length - 1] = "-ow";
-				} else {
-					newArgs = pastArgs;
-				}
-			}
 			if (runInBackground) {
 				forkProcess(job, newArgs);
 				return;
@@ -199,6 +189,7 @@ public class CliMain {
 		jobs.add(new GitCorpusJob());
 		jobs.add(new TextCorpusJob());
 		jobs.add(new DeduplicateCorpusJob());
+		jobs.add(new MergeCorpusJob());
 		jobs.add(new LDAJob());
 		jobs.add(new LDADumpJob());
 		jobs.add(new ExtractGroupJob());
