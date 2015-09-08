@@ -45,6 +45,8 @@ public class PatchCorpusWriter {
 		df = new HashMap<>();
 		this.filter = new DocumentFilter(tokenizeAtUnderline, useNLTKStopwords);
 
+		JobUtils.promptDeleteDirectory(outputDir, doForceWrite);
+
 		originalCorpus = new File(outputDir, "beforesStopWordsCorpus.txt");
 		originalCorpusWriter = JobUtils.getPrintWriter(originalCorpus);
 		dfFile = new File(outputDir, "df.txt");
@@ -57,8 +59,6 @@ public class PatchCorpusWriter {
 		this.splitParagraph = splitParagraph;
 		this.tokenizeAtUnderline = tokenizeAtUnderline;
 		this.useNLTKStopwords = useNLTKStopwords;
-
-		JobUtils.promptDeleteDirectory(outputDir, doForceWrite);
 		startAt = new Date().toString();
 	}
 
