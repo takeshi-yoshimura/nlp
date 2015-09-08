@@ -6,42 +6,39 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
+import ac.keio.sslab.nlp.corpus.HashFileGitCorpusReader;
 import ac.keio.sslab.nlp.corpus.RepositoryReader;
-import ac.keio.sslab.nlp.corpus.SimpleTextCorpusReader;
 
-public class TextCorpusJob extends CorpusJob {
+public class HashFilesCorpusJob extends CorpusJob {
 
 	@Override
 	public String getAlgorithmName() {
-		return "corpus.text";
+		return "corpus.hash";
 	}
 
 	@Override
 	public String getAlgorithmDescription() {
-		return "create corpus from a text file (format is defined)";
+		return "Filter and upload corpus from the specified hash in git-log";
 	}
 
 	@Override
 	public Options getOptions() {
 		Options options = super.getOptions();
 		OptionGroup g = new OptionGroup();
-		g.addOption(new Option("i", "input", true, "Input file"));
-		g.addOption(new Option("s", "separator", true, "separator of ID and data sections"));
+		g.addOption(new Option("g", "gitDir", true, "path to a git repository"));
 		g.setRequired(true);
+		OptionGroup g2 = new OptionGroup();
+		g2.addOption(new Option("c", "commitFile", true, "File for commits to be extracted"));
+		g2.setRequired(true);
+
 		options.addOptionGroup(g);
+		options.addOptionGroup(g2);
 		return options;
 	}
 
 	@Override
-	public boolean runInBackground() {
-		return false;
-	}
-
-	@Override
 	protected RepositoryReader getReader(JobManager mgr) throws Exception {
-		File input = new File(mgr.getArgStr("i"));
-		String s = mgr.getArgStr("s");
-		return new SimpleTextCorpusReader(input, s);
+		File inputDir = new File(mgr.getArgStr("g"));
+		return new HashFileGitCorpusReader(new File(mgr.getArgStr("c")), inputDir);
 	}
-
 }

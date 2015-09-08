@@ -15,16 +15,39 @@ import java.util.Set;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.hadoop.fs.Path;
 
 import ac.keio.sslab.nlp.JobManager;
 import ac.keio.sslab.nlp.JobUtils;
-import ac.keio.sslab.nlp.NLPJob;
+import ac.keio.sslab.nlp.NLPConf;
+import ac.keio.sslab.nlp.NLPJobGroup;
+import ac.keio.sslab.nlp.SingletonGroupNLPJob;
 
-public class LoadBugResultJob implements NLPJob {
+public class LoadBugResultJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobName() {
 		return "loadBugResult";
+	}
+
+	@Override
+	public String getShortJobName() {
+		return "br";
+	}
+
+	@Override
+	public NLPJobGroup getParentJobGroup() {
+		return null;
+	}
+
+	@Override
+	public File getLocalJobDir() {
+		return new File(NLPConf.getInstance().finalOutputFile, "statistics");
+	}
+
+	@Override
+	public Path getHDFSJobDir() {
+		return null;
 	}
 
 	@Override
@@ -36,11 +59,14 @@ public class LoadBugResultJob implements NLPJob {
 	public Options getOptions() {
 		OptionGroup g = new OptionGroup();
 		g.addOption(new Option("d", "directory", true, "json directory path for results"));
-		g.addOption(new Option("e", "error", true, "json file path for error class"));
+		OptionGroup g2 = new OptionGroup();
+		g2.addOption(new Option("e", "error", true, "json file path for error class"));
 		g.setRequired(true);
+		g2.setRequired(true);
 
 		Options opt = new Options();
 		opt.addOptionGroup(g);
+		opt.addOptionGroup(g2);
 		return opt;
 	}
 

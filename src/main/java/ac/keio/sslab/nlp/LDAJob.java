@@ -1,12 +1,8 @@
 package ac.keio.sslab.nlp;
 
-import java.io.IOException;
+import java.io.File;
 
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import ac.keio.sslab.nlp.lda.CVB0;
@@ -15,11 +11,31 @@ import ac.keio.sslab.nlp.lda.LocalCVB0;
 import ac.keio.sslab.nlp.lda.RowId;
 import ac.keio.sslab.nlp.lda.Seq2sparse;
 
-public class LDAJob implements NLPJob {
+public class LDAJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobName() {
 		return "lda";
+	}
+
+	@Override
+	public String getShortJobName() {
+		return "l";
+	}
+
+	@Override
+	public NLPJobGroup getParentJobGroup() {
+		return new CorpusJobGroup();
+	}
+
+	@Override
+	public File getLocalJobDir() {
+		return new File(NLPConf.getInstance().localRootFile, getJobName());
+	}
+
+	@Override
+	public Path getHDFSJobDir() {
+		return new Path(NLPConf.getInstance().rootPath, getJobName());
 	}
 
 	@Override
@@ -29,12 +45,7 @@ public class LDAJob implements NLPJob {
 
 	@Override
 	public Options getOptions() {
-		OptionGroup g = new OptionGroup();
-		g.addOption(new Option("c", "corpusID", true, "ID of a corpus."));
-		g.setRequired(true);
-
 		Options options = new Options();
-		options.addOptionGroup(g);
 		options.addOption("t", "numTopics", true, "Number of topics. Default is 300.");
 		options.addOption("x", "numIterations", true, "Number of iterations. Default is 1000.");
 		options.addOption("nM", "numMappers", true, "Numer of Mappers in CVB0. Default is 20.");
@@ -48,57 +59,23 @@ public class LDAJob implements NLPJob {
 	}
 
 	@Override
-	public void run(JobManager mgr) {
-		NLPConf conf = mgr.getNLPConf();
-		Path outputPath = mgr.getArgJobIDPath(conf.ldaPath, "j");
+	public void run(JobManager mgr) throws Exception {
+		NLPConf conf = NLPConf.getInstance();
+		Path outputPath = mgr.getHDFSOutputDir();
 		int numTopics = mgr.getArgOrDefault("t", 300, Integer.class);
 		int numIterations = mgr.getArgOrDefault("x", 1000, Integer.class);
-		Path corpusPath = mgr.getArgJobIDPath(conf.corpusPath, "c");
+		Path corpusPath = mgr.getParentJobManager().getHDFSOutputDir();
 		int numMappers = mgr.getArgOrDefault("nM", 20, Integer.class);
 		int numReducers = mgr.getArgOrDefault("nR", 15, Integer.class);
 		boolean local = mgr.hasArg("loc");
 
-		FileSystem fs = null;
-		try {
-			fs = FileSystem.get(new Configuration());
-			fs.mkdirs(outputPath);
-		} catch (IOException e) {
-			System.err.println("Connecting HDFS failed : " + e.toString());
-			return;
-		}
-
 		LDAHDFSFiles hdfs = new LDAHDFSFiles(outputPath);
-		Seq2sparse sparse = new Seq2sparse(fs, hdfs);
-		try {
-			sparse.start(corpusPath, numTopics, numIterations);
-		} catch (Exception e) {
-			System.err.println("Seq2sparse failed: " + e.toString());
-			return;
-		}
-
-		RowId rowid = new RowId(fs, hdfs);
-		try {
-			rowid.start(corpusPath, numTopics, numIterations);
-		} catch (Exception e) {
-			System.err.println("RowId failed: " + e.toString());
-			return;
-		}
-
+		new Seq2sparse(conf.hdfs, hdfs).start(corpusPath, numTopics, numIterations);
+		new RowId(conf.hdfs, hdfs).start(corpusPath, numTopics, numIterations);
 		if (!local) {
-			CVB0 cvb = new CVB0(fs, hdfs, numMappers, numReducers);
-			try {
-				cvb.start(corpusPath, numTopics, numIterations);
-			} catch (Exception e) {
-				System.err.println("CVB0 failed: " + e.toString());
-			}
+			new CVB0(conf.hdfs, hdfs, numMappers, numReducers).start(corpusPath, numTopics, numIterations);
 		} else {
-			LocalCVB0 locCVB = new LocalCVB0(fs, hdfs, numMappers, numReducers);
-			try {
-				locCVB.start(corpusPath, numTopics, numIterations);
-			} catch (Exception e) {
-				System.err.println("LocalCVB0 failed: " + e.toString());
-			}
-			
+			new LocalCVB0(conf.hdfs, hdfs, numMappers, numReducers).start(corpusPath, numTopics, numIterations);	
 		}
 	}
 

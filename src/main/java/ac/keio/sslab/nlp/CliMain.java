@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.el.parser.ParseException;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 
@@ -32,7 +33,7 @@ public class CliMain {
 		this.conf = NLPConf.getInstance();
 		this.conf.loadConfFile(confFile);
 		for (NLPJob job: jobs) {
-			this.jobs.put(job.getJobName(), job);
+			this.jobs.put(job.getAlgorithmName(), job);
 		}
 		this.jobs.put("help", null);
 		this.jobs.put("fg", null);
@@ -43,7 +44,7 @@ public class CliMain {
 		System.out.println("Available commands:");
 		for (Entry<String, NLPJob> e: jobs.entrySet()) {
 			if (e.getValue() != null) {
-				System.out.println(e.getValue().getJobName() + "\t" + e.getValue().getJobDescription());
+				System.out.println(e.getValue().getAlgorithmName() + "\t" + e.getValue().getAlgorithmDescription());
 			}
 		}
 		System.out.println("list\tShow past job IDs");
@@ -77,23 +78,13 @@ public class CliMain {
 		}
 	}
 
-	public void forkProcess(NLPJob job, String [] args) {
-		JobManager manager = new JobManager(job);
-		try {
-			manager.parseOptions(args);
-			manager.saveArgs();
-		} catch (Exception e) {
-			manager.printHelp();
-			System.err.println(e.getMessage());
-			return;
-		}
-		String jobID = manager.getJobID();
+	public void forkProcess(NLPJob job, String jobID, String [] args) {
 		ProcessBuilder pb = new ProcessBuilder();
 		List<String> cmd = new ArrayList<String>();
 		cmd.add("nohup");
 		cmd.add(conf.runPath);
 		cmd.add("fg"); //a hidden job name
-		cmd.add(job.getJobName());
+		cmd.add(job.getAlgorithmName());
 		for (String arg: args) {
 			cmd.add(arg);
 		}
@@ -101,7 +92,7 @@ public class CliMain {
 			System.out.print(c + " ");
 		}
 		pb.command(cmd);
-		File outputDir = new File(conf.localLogFile, job.getJobName() + "/" + jobID);
+		File outputDir = new File(conf.localLogFile, job.getAlgorithmName() + "/" + jobID);
 		outputDir.mkdirs();
 		File stdoutFile = new File(outputDir, "stdout");
 		File stderrFile = new File(outputDir, "stderr");
@@ -119,7 +110,7 @@ public class CliMain {
 		}
 	}
 
-	public void run(String [] args) {
+	public void run(String [] args) throws Exception {
 		if (args.length == 0 || !jobs.containsKey(args[0]) || args[0].equals("help")) {
 			showJobs();
 			return;
@@ -150,34 +141,36 @@ public class CliMain {
 			runInBackground = job.runInBackground();
 		}
 
-		JobManager manager = new JobManager(job);
+		JobManager mgr = null;
 		try {
-			manager.parseBasicArgs(newArgs);
-			if (manager.hasHelp()) {
-				manager.printHelp();
+			mgr = JobManager.parseArgs(job, newArgs);
+			if (mgr.hasHelp()) {
+				JobManager.printHelp(job);
 				return;
 			}
-			String jobID = manager.getJobID();
 			if (runInBackground) {
-				forkProcess(job, newArgs);
+				forkProcess(job, mgr.getJobID(), newArgs);
 				return;
 			}
-			manager.parseOptions(newArgs);
 
-			if (!manager.tryLock()) {
-				System.out.println("Currently the job " + job.getJobName() + " ID = " + jobID + " is running. Aborts");
-				return;
+			mgr.saveArgs();
+			mgr.lock();
+			JobManager p = null;
+			if (job.getJobGroup().getParentJobGroup() != null) {
+				p = mgr.getParentJobManager();
+				p.lock();
 			}
-			manager.saveArgs();
-			job.run(manager);
-			manager.unLock();
-		} catch (Exception e) {
-			e.printStackTrace();
-			manager.printHelp();
+			job.run(mgr);
+			if (p != null) {
+				p.unLock();
+			}
+			mgr.unLock();
+		} catch (ParseException e) {
+			JobManager.printHelp(job);
 		}
 	}
 
-	public static void main(String [] args) {
+	public static void main(String [] args) throws Exception {
 		String confFile = "";
 		for (int i = 0; i < args.length; i++) {
 			if (args[i].startsWith("NLPCONF=")) {
@@ -186,10 +179,10 @@ public class CliMain {
 			}
 		}
 		List<NLPJob> jobs = new ArrayList<NLPJob>();
-		jobs.add(new GitCorpusJob());
+		jobs.add(new GitLogCorpusJob());
+		jobs.add(new HashFilesCorpusJob());
 		jobs.add(new TextCorpusJob());
-		jobs.add(new DeduplicateCorpusJob());
-		jobs.add(new MergeCorporaJob());
+		jobs.add(new StableLinuxCorpusJob());
 		jobs.add(new LDAJob());
 		jobs.add(new LDADumpJob());
 		jobs.add(new ExtractGroupJob());
@@ -197,8 +190,7 @@ public class CliMain {
 		jobs.add(new TopDownDumpJob());
 		jobs.add(new BottomUpJob());
 		jobs.add(new BottomUpGraphJob());
-		jobs.add(new ClusteringResultJob());
-		jobs.add(new ClassificationJob());
+		jobs.add(new GAUnderClassJob());
 		jobs.add(new PatchClusterJob());
 		jobs.add(new TopicTrendJob());
 		jobs.add(new LoadBugResultJob());

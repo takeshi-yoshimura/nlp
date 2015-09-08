@@ -62,7 +62,11 @@ public class PatchCorpusWriter {
 		startAt = new Date().toString();
 	}
 
-	public void processPatchMessage(String patchID, String date, String version, Set<String> files, String message) throws Exception {
+	public void process(RepositoryReader reader) throws Exception {
+		processPatchMessage(reader.getID(), reader.getDate(), reader.getVersion(), reader.getFiles(), reader.getDoc());
+	}
+
+	protected void processPatchMessage(String patchID, String date, String version, Set<String> files, String message) throws Exception {
 		boolean isProcessed = false;
 		if (splitParagraph) {
 			isProcessed = processPatchMessageSplitByParagraph(patchID, date, version, files, message);

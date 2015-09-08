@@ -6,18 +6,26 @@ import java.util.TreeMap;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.hadoop.fs.Path;
 import org.eclipse.jgit.util.FileUtils;
 
 import ac.keio.sslab.nlp.JobManager;
+import ac.keio.sslab.nlp.LDAJob;
 import ac.keio.sslab.nlp.NLPConf;
-import ac.keio.sslab.nlp.NLPJob;
+import ac.keio.sslab.nlp.NLPJobGroup;
+import ac.keio.sslab.nlp.SingletonGroupNLPJob;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
 
-public class CompareWithManualJob implements NLPJob {
+public class CompareWithManualJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobName() {
 		return "compareWithManual";
+	}
+
+	@Override
+	public String getShortJobName() {
+		return "cwm";
 	}
 
 	@Override
@@ -26,10 +34,24 @@ public class CompareWithManualJob implements NLPJob {
 	}
 
 	@Override
+	public NLPJobGroup getParentJobGroup() {
+		return new LDAJob();
+	}
+
+	@Override
+	public File getLocalJobDir() {
+		return new File(NLPConf.getInstance().finalOutputFile, getJobName());
+	}
+
+	@Override
+	public Path getHDFSJobDir() {
+		return null;
+	}
+
+	@Override
 	public Options getOptions() {
 		OptionGroup g = new OptionGroup();
 		g.addOption(new Option("m", "manualResult", true, "csv File {commits, tag1,tag2,....}"));
-		g.addOption(new Option("l", "ldaID", true, "ID for lda job"));
 		g.setRequired(true);
 
 		Options opt = new Options();
@@ -38,10 +60,10 @@ public class CompareWithManualJob implements NLPJob {
 	}
 
 	@Override
-	public void run(JobManager mgr) {
-		NLPConf conf = mgr.getNLPConf();
+	public void run(JobManager mgr) throws Exception {
+		NLPConf conf = NLPConf.getInstance();
 		File manualFile = new File(mgr.getArgStr("m"));
-		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
+		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getParentJobManager().getHDFSOutputDir());
 		
 		System.out.println("Load manual classification from " + manualFile.getAbsolutePath());
 		NamedMatrix docTags = NamedMatrix.buildFromCSV(manualFile, "doc", "tag").normalizeRow(); // calculate p(tag|doc) = 1 / N(tag|doc) for each doc as a Matrix row
@@ -106,18 +128,13 @@ public class CompareWithManualJob implements NLPJob {
 		File tagHarmonyMatrixFile = new File(tmpOutputFile, "tagTopicKVS.csv");
 		File tagHarmonyKVSFile = new File(tmpOutputFile, "tagTopicKVS.csv");
 
-		try {
-			// write p(tag & topic) Matrix
-			tagAndTopics.dumpCSVInMatrixFormat(tagTopicMatrixFile);
-			tagAndTopics.dumpCSVInKeyValueFormat(tagTopicKVSFile);
+		// write p(tag & topic) Matrix
+		tagAndTopics.dumpCSVInMatrixFormat(tagTopicMatrixFile);
+		tagAndTopics.dumpCSVInKeyValueFormat(tagTopicKVSFile);
 
-			// write topics ordered by similarity for each tag with two rows: ordered topic name and similarity
-			sortedHarmony.dumpCSV(tagHarmonyMatrixFile, false);
-			sortedHarmony.dumpCSV(tagHarmonyKVSFile, false);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return;
-		}
+		// write topics ordered by similarity for each tag with two rows: ordered topic name and similarity
+		sortedHarmony.dumpCSV(tagHarmonyMatrixFile, false);
+		sortedHarmony.dumpCSV(tagHarmonyKVSFile, false);
 		outDir.mkdirs();
 		tmpOutputFile.renameTo(outDir);
 	}
@@ -126,5 +143,4 @@ public class CompareWithManualJob implements NLPJob {
 	public boolean runInBackground() {
 		return false;
 	}
-
 }

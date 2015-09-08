@@ -5,14 +5,11 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -32,13 +29,38 @@ import org.eclipse.jgit.util.FileUtils;
 
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
 import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
-import ac.keio.sslab.utils.mahout.LDATopicReader;
+import ac.keio.sslab.utils.mahout.SimpleLDAReader;
 
-public class TopicTrendJob implements NLPJob {
+public class TopicTrendJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobName() {
 		return "topicTrend";
+	}
+
+	@Override
+	public String getAlgorithmName() {
+		return "analysis.topicTrend";
+	}
+
+	@Override
+	public NLPJobGroup getParentJobGroup() {
+		return new LDAJob();
+	}
+
+	@Override
+	public String getShortJobName() {
+		return "tt";
+	}
+
+	@Override
+	public File getLocalJobDir() {
+		return new File(NLPConf.getInstance().finalOutputFile, getJobName());
+	}
+
+	@Override
+	public Path getHDFSJobDir() {
+		return null;
 	}
 
 	@Override
@@ -48,14 +70,7 @@ public class TopicTrendJob implements NLPJob {
 
 	@Override
 	public Options getOptions() {
-		OptionGroup g = new OptionGroup();
-		g.addOption(new Option("l", "ldaID", true, "ID for lda job"));
-		g.addOption(new Option("g", "gitDir", true, "Path to a git repository"));
-		g.setRequired(true);
-
-		Options opt = new Options();
-		opt.addOptionGroup(g);
-		return opt;
+		return null;
 	}
 
 	protected Map<Integer, String> getVersions(Repository repo) throws Exception {
@@ -111,109 +126,95 @@ public class TopicTrendJob implements NLPJob {
 	}
 
 	@Override
-	public void run(JobManager mgr) {
-		NLPConf conf = mgr.getNLPConf();
-		File topicTrendFile = new File(conf.finalOutputFile, "topicTrend");
+	public void run(JobManager mgr) throws Exception {
+		NLPConf conf = NLPConf.getInstance();
 		File gitFile = new File(mgr.getArgStr("g"));
-		File outputFile = mgr.getLocalArgFile(topicTrendFile, "l");
+		File outputFile = mgr.getLocalOutputDir();
 		outputFile.mkdirs();
 
-		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
-		try {
-			//get <sha, <ver, dirs>> and num(doc|ver), num(doc|dir) at first
-			Repository repo = new FileRepositoryBuilder().findGitDir(gitFile).build();
-			Map<Integer, String> vers = getVersions(repo); // <version time, version name>
-			Map<Integer, Integer> verDocs = new TreeMap<Integer, Integer>(); //<version time, num(doc)>
-			Map<String, Integer> dirDocs = new HashMap<String, Integer>(); //<dir, num(doc)>
-			Map<Integer, GitMetaInfo> shas = getGitMetaInfo(hdfs.docIndexPath, conf.hdfs, repo, vers, verDocs, dirDocs); //<sha ID, version>
+		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getParentJobManager().getHDFSOutputDir());
+		//get <sha, <ver, dirs>> and num(doc|ver), num(doc|dir) at first
+		Repository repo = new FileRepositoryBuilder().findGitDir(gitFile).build();
+		Map<Integer, String> vers = getVersions(repo); // <version time, version name>
+		Map<Integer, Integer> verDocs = new TreeMap<Integer, Integer>(); //<version time, num(doc)>
+		Map<String, Integer> dirDocs = new HashMap<String, Integer>(); //<dir, num(doc)>
+		Map<Integer, GitMetaInfo> shas = getGitMetaInfo(hdfs.docIndexPath, conf.hdfs, repo, vers, verDocs, dirDocs); //<sha ID, version>
 
-			System.out.println("Load topic");
-			Map<Integer, String> topicNames = getTopics(hdfs.dictionaryPath, hdfs.topicPath, conf.hdfs);
+		System.out.println("Load topic");
+		Map<Integer, String> topicNames = SimpleLDAReader.getTopicTerm(conf.hdfs, hdfs.dictionaryPath, hdfs.topicPath);
 
-			System.out.println("Load p(topic|document) and calculate p(topic|ver), p(topic|dir)");
-			Map<Integer, Map<Integer, Double>> pTopicVer = new HashMap<Integer, Map<Integer, Double>>(); //<topicID, <ver, p(topic|ver)>>
-			Map<Integer, Map<String, Double>> pTopicDir = new HashMap<Integer, Map<String, Double>>(); //<topicID, <dir, p(topic|dir)>>
-			SequenceDirectoryReader<Integer, Vector> docReader = new SequenceDirectoryReader<>(hdfs.documentPath, conf.hdfs, Integer.class, Vector.class);
-			while (docReader.seekNext()) {
-				int sha = docReader.key();
-				if (!shas.containsKey(sha)) {
-					System.err.println("sha id " + sha + " was not found");
-					continue;
+		System.out.println("Load p(topic|document) and calculate p(topic|ver), p(topic|dir)");
+		Map<Integer, Map<Integer, Double>> pTopicVer = new HashMap<Integer, Map<Integer, Double>>(); //<topicID, <ver, p(topic|ver)>>
+		Map<Integer, Map<String, Double>> pTopicDir = new HashMap<Integer, Map<String, Double>>(); //<topicID, <dir, p(topic|dir)>>
+		SequenceDirectoryReader<Integer, Vector> docReader = new SequenceDirectoryReader<>(hdfs.documentPath, conf.hdfs, Integer.class, Vector.class);
+		while (docReader.seekNext()) {
+			int sha = docReader.key();
+			if (!shas.containsKey(sha)) {
+				System.err.println("patch ID " + sha + " was not found");
+				continue;
+			}
+			int ver = shas.get(sha).version;
+			Set<String> dirs = shas.get(sha).dirs;
+			System.out.print("load sha ID " + Integer.toString(sha) + "(" + vers.get(ver) + "):");
+			for (String dir: dirs) {
+				System.out.print(" " + dir);
+			}
+			System.out.println();
+			for (Element e: docReader.val().all()) { //p(topic|doc)
+				Map<Integer, Double> verMap; //<ver time, current p(topic|ver)> for topicID (== e.index())
+				Map<String, Double> dirMap; //<dir, current p(topic|dir)> for topicID ( == e.index())
+				if (pTopicVer.containsKey(e.index())) {
+					verMap = pTopicVer.get(e.index());
+					dirMap = pTopicDir.get(e.index());
+				} else {
+					verMap = new TreeMap<Integer, Double>();
+					dirMap = new HashMap<String, Double>();
+					pTopicVer.put(e.index(), verMap);
+					pTopicDir.put(e.index(), dirMap);
 				}
-				int ver = shas.get(sha).version;
-				Set<String> dirs = shas.get(sha).dirs;
-				System.out.print("load sha ID " + Integer.toString(sha) + "(" + vers.get(ver) + "):");
+				if (!verMap.containsKey(ver)) {
+					verMap.put(ver, 0.0);
+				}
+				//p(topic|ver) = sigma{p(topic|doc) / num(doc|ver)}
+				verMap.put(ver, verMap.get(ver) + e.get() / (double)verDocs.get(ver));
 				for (String dir: dirs) {
-					System.out.print(" " + dir);
-				}
-				System.out.println();
-				for (Element e: docReader.val().all()) { //p(topic|doc)
-					Map<Integer, Double> verMap; //<ver time, current p(topic|ver)> for topicID (== e.index())
-					Map<String, Double> dirMap; //<dir, current p(topic|dir)> for topicID ( == e.index())
-					if (pTopicVer.containsKey(e.index())) {
-						verMap = pTopicVer.get(e.index());
-						dirMap = pTopicDir.get(e.index());
-					} else {
-						verMap = new TreeMap<Integer, Double>();
-						dirMap = new HashMap<String, Double>();
-						pTopicVer.put(e.index(), verMap);
-						pTopicDir.put(e.index(), dirMap);
+					if (!dirMap.containsKey(dir)) {
+						dirMap.put(dir, 0.0);
 					}
-					if (!verMap.containsKey(ver)) {
-						verMap.put(ver, 0.0);
-					}
-					//p(topic|ver) = sigma{p(topic|doc) / num(doc|ver)}
-					verMap.put(ver, verMap.get(ver) + e.get() / (double)verDocs.get(ver));
-					for (String dir: dirs) {
-						if (!dirMap.containsKey(dir)) {
-							dirMap.put(dir, 0.0);
-						}
-						//p(topic|dir) = sigma{p(topic|doc) / num(doc|dir)}
-						dirMap.put(dir, dirMap.get(dir) + e.get() / (double)dirDocs.get(dir));
-					}
+					//p(topic|dir) = sigma{p(topic|doc) / num(doc|dir)}
+					dirMap.put(dir, dirMap.get(dir) + e.get() / (double)dirDocs.get(dir));
 				}
 			}
-			docReader.close();
-
-			File versionFile = new File(outputFile, "version");
-			if (versionFile.exists()) {
-				FileUtils.delete(versionFile, FileUtils.RECURSIVE);
-			}
-			versionFile.mkdirs();
-			System.out.println("Write topic trends by kernel versions: " + versionFile.getAbsolutePath());
-			for (Entry<Integer, Map<Integer, Double>> e: pTopicVer.entrySet()) {
-				PrintWriter pw = JobUtils.getPrintWriter(new File(versionFile, e.getKey() + "-" + topicNames.get(e.getKey()) + ".csv"));
-				for (Entry<Integer, Double> ver: e.getValue().entrySet()) {
-					pw.println(vers.get(ver.getKey()) + "," + ver.getValue().toString());
-				}
-				pw.close();
-			}
-
-			File dirFile = new File(outputFile, "directory");
-			if (dirFile.exists()) {
-				FileUtils.delete(dirFile, FileUtils.RECURSIVE);
-			}
-			dirFile.mkdirs();
-			System.out.println("Write topic trends by kernel directories: " + dirFile.getAbsolutePath());
-			for (Entry<Integer, Map<String, Double>> e: pTopicDir.entrySet()) {
-				PrintWriter pw = JobUtils.getPrintWriter(new File(dirFile, e.getKey() + "-" + topicNames.get(e.getKey()) + ".csv"));
-				for (Entry<String, Double> ver: e.getValue().entrySet()) {
-					pw.println(ver.getKey() + "," + ver.getValue().toString());
-				}
-				pw.close();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			System.err.println("Failed: " + e.toString());
 		}
-	}
+		docReader.close();
 
-	private Map<Integer, String> getTopics(Path dictionaryPath, Path topicPath, FileSystem fs) throws Exception {
-		Map<Integer, String> topicNames = new HashMap<Integer, String>();
-		for (Entry<Integer, List<String>> e: new LDATopicReader(dictionaryPath, topicPath, fs, 1).getTopics().entrySet()) {
-			topicNames.put(e.getKey(), e.getValue().get(0));
+		File versionFile = new File(outputFile, "version");
+		if (versionFile.exists()) {
+			FileUtils.delete(versionFile, FileUtils.RECURSIVE);
 		}
-		return topicNames;
+		versionFile.mkdirs();
+		System.out.println("Write topic trends by kernel versions: " + versionFile.getAbsolutePath());
+		for (Entry<Integer, Map<Integer, Double>> e: pTopicVer.entrySet()) {
+			PrintWriter pw = JobUtils.getPrintWriter(new File(versionFile, e.getKey() + "-" + topicNames.get(e.getKey()) + ".csv"));
+			for (Entry<Integer, Double> ver: e.getValue().entrySet()) {
+				pw.println(vers.get(ver.getKey()) + "," + ver.getValue().toString());
+			}
+			pw.close();
+		}
+
+		File dirFile = new File(outputFile, "directory");
+		if (dirFile.exists()) {
+			FileUtils.delete(dirFile, FileUtils.RECURSIVE);
+		}
+		dirFile.mkdirs();
+		System.out.println("Write topic trends by kernel directories: " + dirFile.getAbsolutePath());
+		for (Entry<Integer, Map<String, Double>> e: pTopicDir.entrySet()) {
+			PrintWriter pw = JobUtils.getPrintWriter(new File(dirFile, e.getKey() + "-" + topicNames.get(e.getKey()) + ".csv"));
+			for (Entry<String, Double> ver: e.getValue().entrySet()) {
+				pw.println(ver.getKey() + "," + ver.getValue().toString());
+			}
+			pw.close();
+		}
 	}
 
 	private Map<Integer, GitMetaInfo> getGitMetaInfo(Path docIndexPath, FileSystem fs, 

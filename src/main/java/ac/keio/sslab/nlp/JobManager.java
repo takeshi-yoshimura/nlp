@@ -1,13 +1,10 @@
 package ac.keio.sslab.nlp;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
@@ -16,72 +13,62 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
-import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.Path;
-import org.json.JSONObject;
+
+import ac.keio.sslab.utils.SimpleJsonReader;
+import ac.keio.sslab.utils.SimpleJsonWriter;
 
 public class JobManager {
 
-	protected NLPConf conf = NLPConf.getInstance();
-	protected File argFile;
-	protected File lockFile;
-
-	Options options;
-	String jobID;
+	NLPJobGroup job;
 	Map<String, String> args;
-	NLPJob job;
 
-	public JobManager(NLPJob job) {
+	protected JobManager(NLPJobGroup job, Map<String, String> args) {
 		this.job = job;
-		options = job.getOptions();
+		this.args = args;
+	}
+
+	static public JobManager parseArgs(NLPJob job, String [] args) throws ParseException {
+		Map<String, String> a = new HashMap<>();
+
+		Options options = getFinalOptions(job);
+		if (options == null) {
+			throw new ParseException("Duplicated options -j --jobID, -ow --overwrite, or -h --help for job " + job.getAlgorithmName());
+		}
+		CommandLine line = (new PosixParser()).parse(options, args);
+		for (Option opt: line.getOptions()) {
+			a.put(opt.getOpt(), opt.getValue());
+		}
+
+		return new JobManager(job.getJobGroup(), a);
+	}
+
+	public static Options getFinalOptions(NLPJob job) {
+		Options options = job.getOptions();
 		if (options == null) {
 			options = new Options();
 		}
 		if (options.hasOption("j") || options.hasOption("ow") || options.hasOption("h")) {
-			System.err.println("Ignore options -j --jobID, -ow --overwrite, -h --help at "  + this.getClass().getName());
+			return null;
 		}
+
 		OptionGroup required = new OptionGroup();
 		required.setRequired(true);
 		required.addOption(new Option("j", "jobID", true, "ID of the job"));
 		options.addOptionGroup(required);
+		OptionGroup parent = new OptionGroup();
+		parent.setRequired(true);
+		NLPJobGroup p = job.getJobGroup().getParentJobGroup();
+		parent.addOption(new Option(p.getShortJobName(), p.getJobName(), true, "ID for " + p.getJobDescription() + " job"));
+		options.addOptionGroup(parent);
 		options.addOption("ow", "overwrite", false, "Force to overwrite");
 		options.addOption("h", "help", false, "Help");
 
-		args = new HashMap<String, String>();
-
-		argFile = new File(conf.localArgFile, job.getJobName());
-		lockFile = new File(conf.localLockFile, job.getJobName());
-		argFile.getParentFile().mkdirs();
-		lockFile.mkdirs();
+		return options;
 	}
 
-	@SuppressWarnings("rawtypes")
-	public void parseBasicArgs(String [] arguments) throws ParseException {
-		OptionGroup required = new OptionGroup();
-		required.setRequired(true);
-		required.addOption(new Option("j", "jobID", true, "ID of the job"));
-		Options jobOpts = new Options();
-		jobOpts.addOption("h", "help", true, "Help");
-		jobOpts.addOptionGroup(required);
-
-		Collection opts = options.getOptions();
-		for (Iterator i = opts.iterator(); i.hasNext();) {
-			jobOpts.addOption((Option)i.next());
-		}
-
-		CommandLine line = (new PosixParser()).parse(jobOpts, arguments, false);
-		for (Option opt: line.getOptions()) {
-			args.put(opt.getOpt(), opt.getValue());
-		}
-		this.jobID = args.get("j");
-	}
-
-	public void parseOptions(String [] arguments) throws ParseException {
-		CommandLine line = (new PosixParser()).parse(options, arguments);
-		for (Option opt: line.getOptions()) {
-			args.put(opt.getOpt(), opt.getValue());
-		}
-		this.jobID = args.get("j");
+	static public JobManager restoreArgs(NLPJob job, String jobID) throws Exception {
+		return new JobManager(job.getJobGroup(), readJobArgs(job.getAlgorithmName()).get(jobID));
 	}
 
 	interface StrParser {
@@ -108,28 +95,33 @@ public class JobManager {
 		return args.get(key);
 	}
 
-	public Path getArgJobIDPath(Path p, String key) {
-		return new Path(p, args.get(key));
-	}
-
-	public Path getJobIDPath(Path p) {
-		return getArgJobIDPath(p, "j");
-	}
-
-	public File getLocalArgFile(File f, String key) {
-		return new File(f, args.get(key));
-	}
-
 	public String getJobID() {
 		return args.get("j");
+	}
+
+	public String getParentJobID() {
+		return args.get(job.getShortJobName());
+	}
+
+	public File getLocalOutputDir() {
+		return new File(job.getLocalJobDir(), getJobID());
+	}
+
+	public Path getHDFSOutputDir() {
+		return new Path(job.getHDFSJobDir(), getJobID());
 	}
 
 	public boolean hasHelp() {
 		return args.containsKey("h");
 	}
 
-	public void printHelp() {
-		new HelpFormatter().printHelp(job.getJobName(), options);
+	static public void printHelp(NLPJob job) {
+		Options options = getFinalOptions(job);
+		if (options == null) {
+			System.err.println("Duplicated options -j --jobID, -ow --overwrite, or -h --help for job " + job.getAlgorithmName());
+			return;
+		}
+		new HelpFormatter().printHelp(job.getJobGroup().getJobName(), options);
 	}
 
 	public boolean doForceWrite() {
@@ -140,56 +132,73 @@ public class JobManager {
 		return args.containsKey(key);
 	}
 
-	public void addArg(String key, String value) {
-		args.put(key, value);
+	public JobManager getParentJobManager() throws Exception {
+		return new JobManager(job, readJobArgs(job.getParentJobGroup().getJobName()).get(getParentJobID()));
 	}
 
-	public Options getOptions() {
-		return options;
-	}
-
-	public boolean tryLock() throws IOException {
-		File lock = new File(lockFile, jobID);
-		if (lock.exists()) {
-			return false;
+	public void saveArgs() throws IOException {
+		Map<String, Map<String, String>> jobArgs;
+		File argFile = new File(NLPConf.getInstance().localArgFile, job.getJobName());
+		if (!argFile.exists()) {
+			NLPConf.getInstance().localArgFile.mkdirs();
+			argFile.createNewFile();
+			jobArgs = new HashMap<>();
 		} else {
-			lock.createNewFile();
-			lock.deleteOnExit(); //Does this work?
-			return true;
+			jobArgs = readJobArgs(job.getJobName());
 		}
+		if (jobArgs.containsKey(getJobID())) {
+			jobArgs.remove(getJobID());
+		}
+		writeJobArgs(argFile, jobArgs);
+	}
+
+	static protected Map<String, Map<String, String>> readJobArgs(String jobTypeName) throws IOException {
+		File f = new File(NLPConf.getInstance().localArgFile, jobTypeName);
+		Map<String, Map<String, String>> ret = new HashMap<>();
+		SimpleJsonReader reader = new SimpleJsonReader(f);
+		while (!reader.isCurrentTokenEndObject()) {
+			String jobID = reader.getCurrentFieldName();
+			reader.readStartObject(jobID);
+			Map<String, String> jobArg = new HashMap<>();
+			while (!reader.isCurrentTokenEndObject()) {
+				String key = reader.getCurrentFieldName();
+				String value = reader.readStringField(key);
+				jobArg.put(key, value);
+			}
+			ret.put(jobID, jobArg);
+		}
+		reader.close();
+		return ret;
+	}
+
+	protected void writeJobArgs(File f, Map<String, Map<String, String>> arg) throws IOException {
+		SimpleJsonWriter writer = new SimpleJsonWriter(f);
+		for (Entry<String, Map<String, String>> e: arg.entrySet()) {
+			writer.writeStartObject(e.getKey());
+			for (Entry<String, String> e2: e.getValue().entrySet()) {
+				writer.writeStringField(e2.getKey(), e2.getValue());
+			}
+			writer.writeEndObject();
+		}
+		writer.close();
+	}
+
+	public void lock() throws IOException {
+		File lock = new File(NLPConf.getInstance().localLockFile, job.getJobName() + "/" + getJobID());
+		if (lock.exists()) {
+			throw new IOException(getJobID() + " job (" + job.getJobName() + ") output files are in use");
+		}
+		lock.getParentFile().mkdirs();
+		lock.createNewFile();
+		lock.deleteOnExit(); //Does this work?
 	}
 
 	public void unLock() throws IOException {
-		File lock = new File(lockFile, jobID);
+		File lock = new File(NLPConf.getInstance().localLockFile, job.getJobName() + "/" + getJobID());
 		if (lock.exists()) {
 			//lock.delete();
 		} else {
 			System.err.println("WARNING: Inconsistent unlock");
 		}
-	}
-
-	public void saveArgs() throws IOException {
-		FileInputStream inputStream;
-		JSONObject jobJson;
-		if (!argFile.exists()) {
-			jobJson = new JSONObject();
-			argFile.createNewFile();
-			inputStream = new FileInputStream(argFile);
-		} else {
-			inputStream = new FileInputStream(argFile);
-			jobJson = new JSONObject(IOUtils.toString(inputStream));
-		}
-		if (jobJson.has(jobID)) {
-			jobJson.remove(jobID);
-		}
-		jobJson.put(jobID, args);
-        inputStream.close();
-        FileOutputStream outputStream = new FileOutputStream(argFile);
-        outputStream.write(jobJson.toString(4).getBytes());
-        outputStream.close();
-	}
-
-	public NLPConf getNLPConf() {
-		return conf;
 	}
 }

@@ -2,17 +2,36 @@ package ac.keio.sslab.nlp;
 
 import java.io.File;
 
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.hadoop.fs.Path;
 
 import ac.keio.sslab.clustering.view.ClusterGraphDumper;
 
-public class BottomUpGraphJob implements NLPJob {
+public class BottomUpGraphJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobName() {
-		return "bottomupGraph";
+		return "graph.bottomup";
+	}
+
+	@Override
+	public String getShortJobName() {
+		return "bgr";
+	}
+
+	@Override
+	public NLPJobGroup getParentJobGroup() {
+		return new BottomUpJob();
+	}
+
+	@Override
+	public File getLocalJobDir() {
+		return new File(NLPConf.getInstance().finalOutputFile, getJobName());
+	}
+
+	@Override
+	public Path getHDFSJobDir() {
+		return null;
 	}
 
 	@Override
@@ -22,29 +41,16 @@ public class BottomUpGraphJob implements NLPJob {
 
 	@Override
 	public Options getOptions() {
-		OptionGroup g = new OptionGroup();
-		g.addOption(new Option("b", "bottomupID", true, "ID for a bottomup job"));
-		g.setRequired(true);
-
 		Options opt = new Options();
 		opt.addOption("s", "startID", true, "starting cluster ID for graph (default: root)");
 		opt.addOption("n", "numHierarchy", true, "number of Hierarchy to view (default: 5)");
-		opt.addOptionGroup(g);
 		return opt;
 	}
 
 	@Override
-	public void run(JobManager mgr) {
-		NLPConf conf = NLPConf.getInstance();
-		File localOutputDir = mgr.getLocalArgFile(conf.localBottomupGraphFile, "j");
-		File clustersFile = new File(conf.localBottomupFile + "/" + mgr.getArgStr("b"), "clusters.csv");
-
-		try {
-			ClusterGraphDumper v= new ClusterGraphDumper(clustersFile);
-			v.dumpPDF(localOutputDir, mgr.getArgOrDefault("s", v.getRootID(), Integer.class), mgr.getArgOrDefault("n", 5, Integer.class), true);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+	public void run(JobManager mgr) throws Exception {
+		ClusterGraphDumper v= new ClusterGraphDumper(new File(mgr.getParentJobManager().getLocalOutputDir(), "clusters.csv"));
+		v.dumpPDF(mgr.getLocalOutputDir(), mgr.getArgOrDefault("s", v.getRootID(), Integer.class), mgr.getArgOrDefault("n", 5, Integer.class), true);
 	}
 
 	@Override

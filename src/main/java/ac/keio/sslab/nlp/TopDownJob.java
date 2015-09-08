@@ -1,51 +1,43 @@
 package ac.keio.sslab.nlp;
 
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 import ac.keio.sslab.clustering.topdown.TopdownClustering;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
 
-public class TopDownJob implements NLPJob {
+public class TopDownJob extends ClusteringJobGroup implements NLPJob {
 
 	@Override
-	public String getJobName() {
-		return "topdown";
+	public String getAlgorithmName() {
+		return "clustering.topdown";
 	}
 
 	@Override
-	public String getJobDescription() {
+	public String getAlgorithmDescription() {
 		return "topdown kmeans";
 	}
 
 	@Override
-	public Options getOptions() {
-		OptionGroup g = new OptionGroup();
-		g.addOption(new Option("l", "ldaID", true, "ID of lda"));
-		g.setRequired(true);
-
-		Options opt = new Options();
-		opt.addOptionGroup(g);
-		return opt;
+	public void run(JobManager mgr) throws Exception {
+		JobManager topdownMgr = mgr.getParentJobManager();
+		LDAHDFSFiles hdfs = new LDAHDFSFiles(topdownMgr.getHDFSOutputDir());
+		TopdownClustering topdown = new TopdownClustering();
+		topdown.run(hdfs.documentPath, mgr.getHDFSOutputDir(), 32);
 	}
 
 	@Override
-	public void run(JobManager mgr) {
-		NLPConf conf = mgr.getNLPConf();
-		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getArgJobIDPath(conf.ldaPath, "l"));
-		TopdownClustering topdown = new TopdownClustering();
-		try {
-			topdown.run(hdfs.documentPath, mgr.getJobIDPath(conf.topdownPath), 32);
-		} catch (Exception e) {
-			e.printStackTrace();
-			System.err.println("Error during clustering");
-		}
+	public Options getOptions() {
+		return null;
 	}
 
 	@Override
 	public boolean runInBackground() {
 		return true;
+	}
+
+	@Override
+	public NLPJobGroup getJobGroup() {
+		return new ClusteringJobGroup();
 	}
 
 }
