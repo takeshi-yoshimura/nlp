@@ -48,8 +48,8 @@ public class BottomUpGraphJob extends SingletonGroupNLPJob {
 	}
 
 	@Override
-	public void run(JobManager mgr) throws Exception {
-		ClusterGraphDumper v= new ClusterGraphDumper(new File(mgr.getParentJobManager().getLocalOutputDir(), "clusters.csv"));
+	public void run(JobManager mgr, JobManager pMgr) throws Exception {
+		ClusterGraphDumper v= new ClusterGraphDumper(new File(pMgr.getLocalOutputDir(), "clusters.csv"));
 		v.dumpPDF(mgr.getLocalOutputDir(), mgr.getArgOrDefault("s", v.getRootID(), Integer.class), mgr.getArgOrDefault("n", 5, Integer.class), true);
 	}
 

@@ -60,12 +60,12 @@ public class TopDownDumpJob extends SingletonGroupNLPJob {
 	}
 
 	@Override
-	public void run(JobManager mgr) throws Exception {
+	public void run(JobManager mgr, JobManager pMgr) throws Exception {
 		NLPConf conf = NLPConf.getInstance();
 		Map<Integer, String> clusterStr = new HashMap<Integer, String>();
 		Map<Integer, Integer> clusterCount = new HashMap<Integer, Integer>();
 		JobManager topdownMgr = mgr.getParentJobManager();
-		LDAHDFSFiles hdfs = new LDAHDFSFiles(topdownMgr.getParentJobManager().getHDFSOutputDir());
+		LDAHDFSFiles hdfs = new LDAHDFSFiles(pMgr.getHDFSOutputDir());
 		Map<Integer, String> topicStr = new HashMap<Integer, String>();
 		LDATopicReader topReader = new LDATopicReader(hdfs.dictionaryPath, hdfs.topicPath, conf.hdfs, 1);
 		StringBuilder sb = new StringBuilder();

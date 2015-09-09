@@ -121,13 +121,13 @@ public class TopicTrendJob extends SingletonGroupNLPJob {
 	}
 
 	@Override
-	public void run(JobManager mgr) throws Exception {
+	public void run(JobManager mgr, JobManager pMgr) throws Exception {
 		NLPConf conf = NLPConf.getInstance();
 		File gitFile = new File(mgr.getArgStr("g"));
 		File outputFile = mgr.getLocalOutputDir();
 		outputFile.mkdirs();
 
-		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getParentJobManager().getHDFSOutputDir());
+		LDAHDFSFiles hdfs = new LDAHDFSFiles(pMgr.getHDFSOutputDir());
 		//get <sha, <ver, dirs>> and num(doc|ver), num(doc|dir) at first
 		Repository repo = new FileRepositoryBuilder().findGitDir(gitFile).build();
 		Map<Integer, String> vers = getVersions(repo); // <version time, version name>

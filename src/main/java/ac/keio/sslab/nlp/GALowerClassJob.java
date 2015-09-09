@@ -8,13 +8,13 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 
-import ac.keio.sslab.clustering.view.TopdownClassifier;
+import ac.keio.sslab.clustering.view.GALowerClassifier;
 
-public class GAUnderClassJob extends SingletonGroupNLPJob {
+public class GALowerClassJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobName() {
-		return "bottomup.gaunder";
+		return "bottomup.galower";
 	}
 
 	@Override
@@ -39,7 +39,7 @@ public class GAUnderClassJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobDescription() {
-		return "extract similar patches from bottomup result under specified ga";
+		return "extract similar patches from bottomup result lower than specified ga";
 	}
 
 	@Override
@@ -54,14 +54,14 @@ public class GAUnderClassJob extends SingletonGroupNLPJob {
 	}
 
 	@Override
-	public void run(JobManager mgr) throws Exception {
+	public void run(JobManager mgr, JobManager pMgr) throws Exception {
 		File outputDir = mgr.getLocalOutputDir();
-		File clustersFile = new File(mgr.getParentJobManager().getLocalOutputDir(), "clusters.csv");
+		File clustersFile = new File(pMgr.getLocalOutputDir(), "clusters.csv");
 
 		System.out.println("Start at: " + new Date().toString());
 		outputDir.getParentFile().mkdirs();
 		System.out.println("loading " + clustersFile.getAbsolutePath());
-		TopdownClassifier c = new TopdownClassifier(clustersFile);
+		GALowerClassifier c = new GALowerClassifier(clustersFile);
 		double ga = mgr.getArgOrDefault("ga", 1.0, Double.class);
 		c.writeResultCSV(outputDir, ga);
         System.out.println("Results: " + outputDir.getAbsolutePath());

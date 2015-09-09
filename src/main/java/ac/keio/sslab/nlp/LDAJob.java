@@ -59,12 +59,12 @@ public class LDAJob extends SingletonGroupNLPJob {
 	}
 
 	@Override
-	public void run(JobManager mgr) throws Exception {
+	public void run(JobManager mgr, JobManager pMgr) throws Exception {
 		NLPConf conf = NLPConf.getInstance();
 		Path outputPath = mgr.getHDFSOutputDir();
 		int numTopics = mgr.getArgOrDefault("t", 300, Integer.class);
 		int numIterations = mgr.getArgOrDefault("x", 1000, Integer.class);
-		Path corpusPath = mgr.getParentJobManager().getHDFSOutputDir();
+		Path corpusPath = pMgr.getHDFSOutputDir();
 		int numMappers = mgr.getArgOrDefault("nM", 20, Integer.class);
 		int numReducers = mgr.getArgOrDefault("nR", 15, Integer.class);
 		boolean local = mgr.hasArg("loc");

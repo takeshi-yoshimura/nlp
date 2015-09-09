@@ -60,10 +60,10 @@ public class CompareWithManualJob extends SingletonGroupNLPJob {
 	}
 
 	@Override
-	public void run(JobManager mgr) throws Exception {
+	public void run(JobManager mgr, JobManager pMgr) throws Exception {
 		NLPConf conf = NLPConf.getInstance();
 		File manualFile = new File(mgr.getArgStr("m"));
-		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getParentJobManager().getHDFSOutputDir());
+		LDAHDFSFiles hdfs = new LDAHDFSFiles(pMgr.getHDFSOutputDir());
 		
 		System.out.println("Load manual classification from " + manualFile.getAbsolutePath());
 		NamedMatrix docTags = NamedMatrix.buildFromCSV(manualFile, "doc", "tag").normalizeRow(); // calculate p(tag|doc) = 1 / N(tag|doc) for each doc as a Matrix row

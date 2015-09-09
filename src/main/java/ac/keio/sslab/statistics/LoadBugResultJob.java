@@ -140,7 +140,7 @@ public class LoadBugResultJob extends SingletonGroupNLPJob {
 	}
 
 	@Override
-	public void run(JobManager mgr) {
+	public void run(JobManager mgr, JobManager pMgr) {
 		File outDir = new File("statistics", mgr.getArgStr("j"));
 		File csvDir = new File(outDir, "csv");
 		File varDir = new File(outDir, "obj-by-sbj-var");

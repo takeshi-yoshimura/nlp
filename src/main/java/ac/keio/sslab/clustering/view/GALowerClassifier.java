@@ -13,20 +13,18 @@ import java.util.TreeMap;
 import ac.keio.sslab.nlp.JobUtils;
 import ac.keio.sslab.utils.SimpleGitReader;
 
-public class TopdownClassifier {
+public class GALowerClassifier {
 
 	List<HierarchicalCluster> clusters;
 	SimpleGitReader git;
 	Map<Integer, List<String>> realIDs;
 	Map<String, String> versions;
 
-	public TopdownClassifier(File clustersFile) throws IOException {
+	public GALowerClassifier(File clustersFile) throws IOException {
 		clusters = ClusterGraph.parseResult(clustersFile).getClusters();
 	}
 
-	public void writeResultCSV(File outputDir, double ga) throws Exception {
-		File summaryFile = new File(outputDir, "summary.csv");
-		outputDir.mkdirs();
+	public TreeMap<Integer, List<HierarchicalCluster>> getAllGALowerClusters(double ga) {
 		TreeMap<Integer, List<HierarchicalCluster>> all = new TreeMap<>(Collections.reverseOrder());
 		for (HierarchicalCluster c: clusters) {
 			if (c.getParent() == null) {
@@ -52,6 +50,13 @@ public class TopdownClassifier {
 			}
 			all.get(c.size()).add(c);
 		}
+		return all;
+	}
+
+	public void writeResultCSV(File outputDir, double ga) throws Exception {
+		File summaryFile = new File(outputDir, "summary.csv");
+		outputDir.mkdirs();
+		TreeMap<Integer, List<HierarchicalCluster>> all = getAllGALowerClusters(ga);
 		PrintWriter p = JobUtils.getPrintWriter(summaryFile);
 		p.println("#HierarchicalClusterID,size,density,parentID,leftCID,rightCID,centroid...,pointIDs...");
 

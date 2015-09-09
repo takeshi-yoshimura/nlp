@@ -61,10 +61,10 @@ public class ExtractGroupJob extends SingletonGroupNLPJob {
 	}
 
 	@Override
-	public void run(JobManager mgr) throws Exception {
+	public void run(JobManager mgr, JobManager pMgr) throws Exception {
 		NLPConf conf = NLPConf.getInstance();
 		File inputFile = new File(mgr.getArgStr("f"));
-		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getParentJobManager().getHDFSOutputDir());
+		LDAHDFSFiles hdfs = new LDAHDFSFiles(pMgr.getHDFSOutputDir());
 		BufferedReader reader = new BufferedReader(new FileReader(inputFile));
 		Set<Integer> group = new HashSet<Integer>();
 		String line = reader.readLine();

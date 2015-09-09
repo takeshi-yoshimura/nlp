@@ -37,7 +37,7 @@ public class HashFilesCorpusJob extends CorpusJob {
 	}
 
 	@Override
-	protected RepositoryReader getReader(JobManager mgr) throws Exception {
+	protected RepositoryReader getReader(JobManager mgr, JobManager pMgr) throws Exception {
 		File inputDir = new File(mgr.getArgStr("g"));
 		return new HashFileGitCorpusReader(new File(mgr.getArgStr("c")), inputDir);
 	}

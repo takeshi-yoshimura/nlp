@@ -38,7 +38,7 @@ public class GitLogCorpusJob extends CorpusJob {
 	}
 
 	@Override
-	protected RepositoryReader getReader(JobManager mgr) throws Exception {
+	protected RepositoryReader getReader(JobManager mgr, JobManager pMgr) throws Exception {
 		File inputDir = new File(mgr.getArgStr("g"));
 		String sinceStr = mgr.getArgOrDefault("s", "", String.class);
 		String untilStr = mgr.getArgOrDefault("u", "HEAD", String.class);

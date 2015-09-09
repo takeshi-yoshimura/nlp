@@ -50,7 +50,7 @@ public class LDADumpJob extends SingletonGroupNLPJob {
 	}
 
 	@Override
-	public void run(JobManager mgr) throws Exception {
+	public void run(JobManager mgr, JobManager pMgr) throws Exception {
 		NLPConf conf = NLPConf.getInstance();
 		File outputFile = mgr.getLocalOutputDir();
 		if (!JobUtils.promptDeleteDirectory(outputFile, mgr.doForceWrite())) {
@@ -58,7 +58,7 @@ public class LDADumpJob extends SingletonGroupNLPJob {
 		}
 		outputFile.mkdirs();
 
-		LDAHDFSFiles hdfs = new LDAHDFSFiles(mgr.getParentJobManager().getHDFSOutputDir());
+		LDAHDFSFiles hdfs = new LDAHDFSFiles(pMgr.getHDFSOutputDir());
 		File topicFile = new File(outputFile, "topics.txt");
 		System.out.println("Extracting top 10 topics: " + topicFile.getAbsolutePath());
 		LDATopicReader topReader = new LDATopicReader(hdfs.dictionaryPath, hdfs.topicPath, conf.hdfs, 10);

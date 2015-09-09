@@ -36,7 +36,7 @@ public class StableLinuxCorpusJob extends CorpusJob {
 	}
 
 	@Override
-	protected RepositoryReader getReader(JobManager mgr) throws Exception {
+	protected RepositoryReader getReader(JobManager mgr, JobManager pMgr) throws Exception {
 		File inputDir = new File(mgr.getArgStr("g"));
 		Set<String> fileStr = null;
 		if (mgr.hasArg("f")) {

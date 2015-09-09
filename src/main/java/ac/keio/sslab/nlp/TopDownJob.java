@@ -18,9 +18,8 @@ public class TopDownJob extends ClusteringJobGroup implements NLPJob {
 	}
 
 	@Override
-	public void run(JobManager mgr) throws Exception {
-		JobManager topdownMgr = mgr.getParentJobManager();
-		LDAHDFSFiles hdfs = new LDAHDFSFiles(topdownMgr.getHDFSOutputDir());
+	public void run(JobManager mgr, JobManager pMgr) throws Exception {
+		LDAHDFSFiles hdfs = new LDAHDFSFiles(pMgr.getHDFSOutputDir());
 		TopdownClustering topdown = new TopdownClustering();
 		topdown.run(hdfs.documentPath, mgr.getHDFSOutputDir(), 32);
 	}

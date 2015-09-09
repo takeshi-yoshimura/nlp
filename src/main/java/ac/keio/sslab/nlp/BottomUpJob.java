@@ -45,9 +45,9 @@ public class BottomUpJob extends ClusteringJobGroup implements NLPJob {
 	}
 
 	@Override
-	public void run(JobManager mgr) throws Exception {
+	public void run(JobManager mgr, JobManager pMgr) throws Exception {
 		NLPConf conf = NLPConf.getInstance();
-		LDAHDFSFiles ldaFiles = new LDAHDFSFiles(mgr.getParentJobManager().getHDFSOutputDir());
+		LDAHDFSFiles ldaFiles = new LDAHDFSFiles(pMgr.getHDFSOutputDir());
 		File localOutputDir = mgr.getLocalOutputDir();
 		File corpusIDIndexFile = new File(localOutputDir, "corpusIDIndex.csv");
 		localOutputDir.mkdirs();

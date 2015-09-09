@@ -30,7 +30,7 @@ public class PatchClusterJob extends SingletonGroupNLPJob {
 
 	@Override
 	public File getLocalJobDir() {
-		return null;
+		return new File(NLPConf.getInstance().finalOutputFile, getJobName());
 	}
 
 	@Override
@@ -52,8 +52,8 @@ public class PatchClusterJob extends SingletonGroupNLPJob {
 	}
 
 	@Override
-	public void run(JobManager mgr) throws Exception {
-		JobManager bottomupMgr = mgr.getParentJobManager();
+	public void run(JobManager mgr, JobManager pMgr) throws Exception {
+		JobManager bottomupMgr = pMgr;
 		JobManager corpusMgr = bottomupMgr.getParentJobManager().getParentJobManager();
 		corpusMgr.lock();
 		File bottomupDir = bottomupMgr.getLocalOutputDir();

@@ -149,7 +149,7 @@ public class CliMain {
 				p = mgr.getParentJobManager();
 				p.lock();
 			}
-			job.run(mgr);
+			job.run(mgr, p);
 			if (p != null) {
 				p.unLock();
 			}
@@ -180,7 +180,8 @@ public class CliMain {
 		jobs.add(new TopDownDumpJob());
 		jobs.add(new BottomUpJob());
 		jobs.add(new BottomUpGraphJob());
-		jobs.add(new GAUnderClassJob());
+		jobs.add(new GALowerClassJob());
+		jobs.add(new ClusterMetricsJob());
 		jobs.add(new PatchClusterJob());
 		jobs.add(new TopicTrendJob());
 		jobs.add(new LoadBugResultJob());

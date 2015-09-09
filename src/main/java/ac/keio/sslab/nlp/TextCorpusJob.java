@@ -41,7 +41,7 @@ public class TextCorpusJob extends CorpusJob {
 	}
 
 	@Override
-	protected RepositoryReader getReader(JobManager mgr) throws Exception {
+	protected RepositoryReader getReader(JobManager mgr, JobManager pMgr) throws Exception {
 		File input = new File(mgr.getArgStr("i"));
 		String s = mgr.getArgStr("s");
 		return new SimpleTextCorpusReader(input, s);
