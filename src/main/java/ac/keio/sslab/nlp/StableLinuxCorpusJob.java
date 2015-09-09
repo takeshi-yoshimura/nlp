@@ -15,7 +15,7 @@ public class StableLinuxCorpusJob extends GitLogCorpusJob {
 
 	@Override
 	public String getAlgorithmName() {
-		return "corpus.stableLinux";
+		return "corpus.linux.stable";
 	}
 
 	@Override

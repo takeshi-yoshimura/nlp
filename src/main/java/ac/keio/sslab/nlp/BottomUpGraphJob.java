@@ -11,7 +11,7 @@ public class BottomUpGraphJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobName() {
-		return "graph.bottomup";
+		return "bottomup.graph";
 	}
 
 	@Override

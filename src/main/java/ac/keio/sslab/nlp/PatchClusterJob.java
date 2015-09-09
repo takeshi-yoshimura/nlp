@@ -15,7 +15,7 @@ public class PatchClusterJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobName() {
-		return "patchCluster";
+		return "bottomup.simpatch";
 	}
 
 	@Override

@@ -13,7 +13,7 @@ public class DimensionBottomUpJob extends BottomUpJob {
 
 	@Override
 	public String getAlgorithmName() {
-		return "clusgtering.dimbottomup";
+		return "dimbottomup";
 	}
 
 	@Override
