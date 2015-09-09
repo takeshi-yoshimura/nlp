@@ -57,11 +57,13 @@ public class JobManager {
 		required.setRequired(true);
 		required.addOption(new Option("j", "jobID", true, "ID of the job"));
 		options.addOptionGroup(required);
-		OptionGroup parent = new OptionGroup();
-		parent.setRequired(true);
 		NLPJobGroup p = job.getJobGroup().getParentJobGroup();
-		parent.addOption(new Option(p.getShortJobName(), p.getJobName(), true, "ID for " + p.getJobDescription() + " job"));
-		options.addOptionGroup(parent);
+		if (p != null) {
+			OptionGroup parent = new OptionGroup();
+			parent.setRequired(true);
+			parent.addOption(new Option(p.getShortJobName(), p.getJobName(), true, "ID for " + p.getJobDescription() + " job"));
+			options.addOptionGroup(parent);
+		}
 		options.addOption("ow", "overwrite", false, "Force to overwrite");
 		options.addOption("h", "help", false, "Help");
 
