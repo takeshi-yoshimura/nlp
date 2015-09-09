@@ -133,7 +133,7 @@ public class JobManager {
 	}
 
 	public JobManager getParentJobManager() throws Exception {
-		return new JobManager(job, readJobArgs(job.getParentJobGroup().getJobName()).get(getParentJobID()));
+		return new JobManager(job.getParentJobGroup(), readJobArgs(job.getParentJobGroup().getJobName()).get(getParentJobID()));
 	}
 
 	public void saveArgs() throws IOException {
