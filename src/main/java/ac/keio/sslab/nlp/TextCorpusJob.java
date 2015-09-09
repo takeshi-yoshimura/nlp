@@ -26,9 +26,12 @@ public class TextCorpusJob extends CorpusJob {
 		Options options = super.getOptions();
 		OptionGroup g = new OptionGroup();
 		g.addOption(new Option("i", "input", true, "Input file"));
-		g.addOption(new Option("s", "separator", true, "separator of ID and data sections"));
+		OptionGroup g2 = new OptionGroup();
+		g2.addOption(new Option("s", "separator", true, "separator of ID and data sections"));
 		g.setRequired(true);
+		g2.setRequired(true);
 		options.addOptionGroup(g);
+		options.addOptionGroup(g2);
 		return options;
 	}
 
