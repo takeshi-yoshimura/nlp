@@ -8,7 +8,7 @@ public class ClusteringJobGroup implements NLPJobGroup {
 
 	@Override
 	final public String getJobName() {
-		return "clustering;";
+		return "clustering";
 	}
 
 	@Override
