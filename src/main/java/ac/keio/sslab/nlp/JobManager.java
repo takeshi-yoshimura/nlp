@@ -8,6 +8,7 @@ import java.util.Map.Entry;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
@@ -28,7 +29,7 @@ public class JobManager {
 		this.args = args;
 	}
 
-	static public JobManager parseArgs(NLPJob job, String [] args) throws ParseException {
+	static public JobManager parseArgs(NLPJob job, String [] args) throws ParseException,MissingOptionException {
 		Map<String, String> a = new HashMap<>();
 
 		Options options = getFinalOptions(job);

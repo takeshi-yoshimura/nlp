@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.el.parser.ParseException;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
@@ -153,7 +154,7 @@ public class CliMain {
 				p.unLock();
 			}
 			mgr.unLock();
-		} catch (ParseException e) {
+		} catch (ParseException|MissingOptionException e) {
 			JobManager.printHelp(job);
 		}
 	}
