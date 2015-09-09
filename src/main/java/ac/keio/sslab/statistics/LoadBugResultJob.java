@@ -27,7 +27,7 @@ public class LoadBugResultJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobName() {
-		return "loadBugResult";
+		return "stest.man";
 	}
 
 	@Override

@@ -20,7 +20,7 @@ public class CompareWithManualJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobName() {
-		return "compareWithManual";
+		return "lda.comp.man";
 	}
 
 	@Override

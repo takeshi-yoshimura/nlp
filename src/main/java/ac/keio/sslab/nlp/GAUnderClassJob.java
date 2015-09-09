@@ -14,7 +14,7 @@ public class GAUnderClassJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobName() {
-		return "class.gaunder";
+		return "bottomup.gaunder";
 	}
 
 	@Override

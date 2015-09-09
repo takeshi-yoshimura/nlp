@@ -21,7 +21,7 @@ public class ExtractGroupJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobName() {
-		return "lda.groupextract";
+		return "lda.subset";
 	}
 
 	@Override
