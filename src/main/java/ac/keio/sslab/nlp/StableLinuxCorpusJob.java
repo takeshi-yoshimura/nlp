@@ -11,11 +11,16 @@ import org.apache.commons.cli.Options;
 import ac.keio.sslab.nlp.corpus.RepositoryReader;
 import ac.keio.sslab.nlp.corpus.StableLinuxGitCorpusReader;
 
-public class StableLinuxCorpusJob extends GitLogCorpusJob {
+public class StableLinuxCorpusJob extends CorpusJob {
 
 	@Override
 	public String getAlgorithmName() {
 		return "corpus.linux.stable";
+	}
+
+	@Override
+	public String getAlgorithmDescription() {
+		return "Filter and upload corpus from only stable patches for Linux in git-log";
 	}
 
 	@Override
@@ -28,11 +33,6 @@ public class StableLinuxCorpusJob extends GitLogCorpusJob {
 		options.addOptionGroup(g);
 		options.addOption("f", "file", true, "target files or directory paths (comma-separated) in git repository. Default is the top of the input directory.");
 		return options;
-	}
-
-	@Override
-	public String getAlgorithmDescription() {
-		return "Filter and upload corpus from only stable patches for Linux in git-log";
 	}
 
 	@Override

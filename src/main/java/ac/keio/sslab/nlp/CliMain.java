@@ -156,6 +156,7 @@ public class CliMain {
 			mgr.unLock();
 		} catch (ParseException|MissingOptionException e) {
 			JobManager.printHelp(job);
+			System.err.println(e.getMessage());
 		}
 	}
 
