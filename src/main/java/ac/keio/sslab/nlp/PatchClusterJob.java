@@ -53,7 +53,6 @@ public class PatchClusterJob extends SingletonGroupNLPJob {
 
 	@Override
 	public void run(JobManager mgr) throws Exception {
-		NLPConf conf = NLPConf.getInstance();
 		JobManager bottomupMgr = mgr.getParentJobManager();
 		JobManager corpusMgr = bottomupMgr.getParentJobManager().getParentJobManager();
 		corpusMgr.lock();
@@ -63,7 +62,7 @@ public class PatchClusterJob extends SingletonGroupNLPJob {
 			throw new Exception("Not implemented for corpora from corpus.text job");
 		}
 		File gitDir = new File(corpusMgr.getArgStr("g"));
-		File classDir = new File(conf.finalOutputFile, "patchCluster/" + mgr.getArgStr("j"));
+		File classDir = mgr.getLocalOutputDir();
 		int patchID = mgr.getArgOrDefault("p", -1, Integer.class);
 		String sha = mgr.getArgOrDefault("s", null, String.class);
 		if ((patchID == -1 && sha == null) || (patchID != -1 && sha != null)) {
@@ -86,7 +85,7 @@ public class PatchClusterJob extends SingletonGroupNLPJob {
 			}
 			br.close();
 			if (!found) {
-				System.err.println("Could not find sha " + sha + " in " + idIndex.getAbsolutePath());
+				System.err.println("Could not find ID " + sha + " in " + idIndex.getAbsolutePath());
 				return;
 			}
 			System.out.println("Use patchID = " + patchID + " for " + sha);

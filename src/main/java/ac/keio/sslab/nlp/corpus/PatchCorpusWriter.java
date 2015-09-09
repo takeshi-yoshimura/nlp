@@ -246,5 +246,6 @@ public class PatchCorpusWriter {
 
 	public void close() {
 		originalCorpusWriter.close();
+		patchWriter.close();
 	}
 }
