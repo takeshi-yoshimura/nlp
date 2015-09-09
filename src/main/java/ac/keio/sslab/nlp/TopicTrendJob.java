@@ -39,11 +39,6 @@ public class TopicTrendJob extends SingletonGroupNLPJob {
 	}
 
 	@Override
-	public String getAlgorithmName() {
-		return "analysis.topicTrend";
-	}
-
-	@Override
 	public NLPJobGroup getParentJobGroup() {
 		return new LDAJob();
 	}

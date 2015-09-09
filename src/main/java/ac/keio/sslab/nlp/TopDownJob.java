@@ -9,7 +9,7 @@ public class TopDownJob extends ClusteringJobGroup implements NLPJob {
 
 	@Override
 	public String getAlgorithmName() {
-		return "clustering.topdown";
+		return "topdown";
 	}
 
 	@Override

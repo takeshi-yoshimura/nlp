@@ -4,10 +4,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.apache.commons.el.parser.ParseException;
 import org.apache.commons.io.IOUtils;
@@ -21,7 +21,7 @@ public class CliMain {
 	protected NLPConf conf;
 
 	public CliMain(String confFile) {
-		jobs = new HashMap<String, NLPJob>();
+		jobs = new TreeMap<String, NLPJob>();
 		this.conf = NLPConf.getInstance();
 		this.conf.loadConfFile(confFile);
 		this.jobs.put("help", null);
@@ -29,7 +29,7 @@ public class CliMain {
 	}
 
 	public CliMain(List<NLPJob> jobs, String confFile) {
-		this.jobs = new HashMap<String, NLPJob>();
+		this.jobs = new TreeMap<String, NLPJob>();
 		this.conf = NLPConf.getInstance();
 		this.conf.loadConfFile(confFile);
 		for (NLPJob job: jobs) {
@@ -51,34 +51,30 @@ public class CliMain {
 		System.out.println("help\tShow available commands and their descriptions");
 	}
 
-	public void listJobs(String jobName) {
+	public void listJobs(String jobName) throws IOException {
 		NLPConf conf = NLPConf.getInstance();
 		File argFile = new File(conf.localArgFile, jobName);
 		argFile.getParentFile().mkdirs();
-		try {
-			if (!argFile.exists()) {
-				System.out.println("Job " + jobName + " has never been invoked");
-			} else {
-				FileInputStream inputStream = new FileInputStream(argFile);
-				JSONObject jobJson = new JSONObject(IOUtils.toString(inputStream));
-				StringBuilder sb = new StringBuilder();
-				for (Object jobID: jobJson.keySet()) {
-					sb.setLength(0);
-					sb.append((String)jobID).append(":");
-					JSONObject argObj = jobJson.getJSONObject((String)jobID);
-					for (Object arg: argObj.keySet()) {
-						sb.append(" -").append((String)arg).append(" ").append(argObj.get((String)arg));
-					}
-					System.out.println(sb.toString());
+		if (!argFile.exists()) {
+			System.out.println("Job group " + jobName + " has never been invoked or not found");
+		} else {
+			FileInputStream inputStream = new FileInputStream(argFile);
+			JSONObject jobJson = new JSONObject(IOUtils.toString(inputStream));
+			StringBuilder sb = new StringBuilder();
+			for (Object jobID: jobJson.keySet()) {
+				sb.setLength(0);
+				sb.append((String)jobID).append(":");
+				JSONObject argObj = jobJson.getJSONObject((String)jobID);
+				for (Object arg: argObj.keySet()) {
+					sb.append(" -").append((String)arg).append(" ").append(argObj.get((String)arg));
 				}
-		        inputStream.close();
+				System.out.println(sb.toString());
 			}
-		} catch (Exception e) {
-			System.err.println("List up job IDs failed: " + e.toString());
+	        inputStream.close();
 		}
 	}
 
-	public void forkProcess(NLPJob job, String jobID, String [] args) {
+	public void forkProcess(NLPJob job, String jobID, String [] args) throws Exception {
 		ProcessBuilder pb = new ProcessBuilder();
 		List<String> cmd = new ArrayList<String>();
 		cmd.add("nohup");
@@ -103,11 +99,7 @@ public class CliMain {
 		System.out.println("The process for a job remains running in a background");
 		System.out.println("Stdout: " + stdoutFile.getAbsolutePath());
 		System.out.println("Stderr: " + stderrFile.getAbsolutePath());
-		try {
-			pb.start(); //restart this class from calling main()
-		} catch (IOException e) {
-			System.err.println("A job running attempt failed: " + e.toString());
-		}
+		pb.start(); //restart this class from calling main()
 	}
 
 	public void run(String [] args) throws Exception {
@@ -128,11 +120,7 @@ public class CliMain {
 			System.arraycopy(args, 2, newArgs, 0, args.length - 2);
 			runInBackground = false;
 		} else if (args[0].equals("list")) {
-			if (args.length == 1 || !jobs.containsKey(args[1])) {
-				System.err.println("Need to specify job type Name");
-			} else {
-				listJobs(args[1]);
-			}
+			listJobs(args[1]);
 			return;
 		} else {
 			job = jobs.get(args[0]);

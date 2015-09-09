@@ -12,7 +12,7 @@ import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
 import ac.keio.sslab.utils.mahout.LDADocTopicReader;
 import ac.keio.sslab.utils.mahout.LDATopicReader;
 
-public class LDADumpJob implements NLPJob, NLPJobGroup {
+public class LDADumpJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobName() {
@@ -22,16 +22,6 @@ public class LDADumpJob implements NLPJob, NLPJobGroup {
 	@Override
 	public String getShortJobName() {
 		return "ld";
-	}
-
-	@Override
-	public String getAlgorithmName() {
-		return "dump.lda";
-	}
-
-	@Override
-	public NLPJobGroup getJobGroup() {
-		return this;
 	}
 
 	@Override
@@ -51,11 +41,6 @@ public class LDADumpJob implements NLPJob, NLPJobGroup {
 
 	@Override
 	public String getJobDescription() {
-		return "dump lda results";
-	}
-
-	@Override
-	public String getAlgorithmDescription() {
 		return "dump lda results";
 	}
 

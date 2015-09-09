@@ -31,7 +31,7 @@ public class BottomUpJob extends ClusteringJobGroup implements NLPJob {
 
 	@Override
 	public String getAlgorithmName() {
-		return "clusgtering.bottomup";
+		return "bottomup";
 	}
 
 	@Override
