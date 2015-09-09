@@ -35,7 +35,7 @@ public class TopicTrendJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobName() {
-		return "topicTrend";
+		return "topic.trend";
 	}
 
 	@Override

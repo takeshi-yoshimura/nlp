@@ -109,6 +109,6 @@ public class BottomUpJob extends ClusteringJobGroup implements NLPJob {
 
 	@Override
 	public boolean runInBackground() {
-		return false;
+		return true;
 	}
 }

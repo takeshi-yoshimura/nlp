@@ -26,7 +26,7 @@ public class TopDownDumpJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobName() {
-		return "topdownDump";
+		return "topdown.dump";
 	}
 
 	@Override

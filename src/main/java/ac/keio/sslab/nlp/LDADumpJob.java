@@ -16,7 +16,7 @@ public class LDADumpJob extends SingletonGroupNLPJob {
 
 	@Override
 	public String getJobName() {
-		return "ldaDump";
+		return "lda.dump";
 	}
 
 	@Override

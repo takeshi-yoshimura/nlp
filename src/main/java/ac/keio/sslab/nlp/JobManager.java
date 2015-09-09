@@ -101,7 +101,7 @@ public class JobManager {
 	}
 
 	public String getParentJobID() {
-		return args.get(job.getShortJobName());
+		return args.get(job.getParentJobGroup().getShortJobName());
 	}
 
 	public File getLocalOutputDir() {
@@ -150,6 +150,7 @@ public class JobManager {
 		if (jobArgs.containsKey(getJobID())) {
 			jobArgs.remove(getJobID());
 		}
+		jobArgs.put(getJobID(), args);
 		writeJobArgs(argFile, jobArgs);
 	}
 
@@ -167,6 +168,7 @@ public class JobManager {
 				jobArg.put(key, value);
 			}
 			ret.put(jobID, jobArg);
+			reader.readEndObject();
 		}
 		reader.close();
 		return ret;
