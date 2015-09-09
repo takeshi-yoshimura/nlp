@@ -59,7 +59,7 @@ public class PatchClusterJob extends SingletonGroupNLPJob {
 		corpusMgr.lock();
 		File bottomupDir = bottomupMgr.getLocalOutputDir();
 		File corpusDir = corpusMgr.getLocalOutputDir();
-		if (corpusMgr.hasArg("g")) {
+		if (!corpusMgr.hasArg("g")) {
 			throw new Exception("Not implemented for corpora from corpus.text job");
 		}
 		File gitDir = new File(corpusMgr.getArgStr("g"));
