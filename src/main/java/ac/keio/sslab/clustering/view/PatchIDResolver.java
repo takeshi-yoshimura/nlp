@@ -66,10 +66,10 @@ public class PatchIDResolver {
 		int pointID = -1;
 		br = new BufferedReader(new FileReader(corpusIDIndexFile));
 		while ((line = br.readLine()) != null) {
-			if (!line.startsWith(corpusIndex)) {
+			if (!line.endsWith(corpusIndex)) {
 				continue;
 			}
-			pointID = Integer.parseInt(line.split(",")[1]);
+			pointID = Integer.parseInt(line.split(",")[0]);
 			break;
 		}
 		if (pointID == -1) {
