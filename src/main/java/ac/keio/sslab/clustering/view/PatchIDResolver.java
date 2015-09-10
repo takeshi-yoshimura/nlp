@@ -66,11 +66,11 @@ public class PatchIDResolver {
 		int pointID = -1;
 		br = new BufferedReader(new FileReader(corpusIDIndexFile));
 		while ((line = br.readLine()) != null) {
-			if (!line.endsWith(corpusIndex)) {
-				continue;
+			String [] split = line.split(",");
+			if (split[1].equals(corpusIndex)) {
+				pointID = Integer.parseInt(split[0]);
+				break;
 			}
-			pointID = Integer.parseInt(line.split(",")[0]);
-			break;
 		}
 		if (pointID == -1) {
 			throw new IOException("Could not find ID " + corpusIndex + " (pulled with " + patchID + " from " + idIndexFile + ") in " + corpusIDIndexFile);

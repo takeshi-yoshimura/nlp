@@ -73,7 +73,7 @@ public class DeltaCluster {
 			for (Entry<String, Double> e: pointTopics.get(pointID).entrySet()) {
 				sb.append(' ').append(e.getKey()).append(':').append(e.getValue());
 			}
-			sb.append("\ncommit shas:");
+			sb.append("\ncommits:");
 			for (String sha: pointShas.get(pointID)) {
 				sb.append(' ').append(sha);
 			}
