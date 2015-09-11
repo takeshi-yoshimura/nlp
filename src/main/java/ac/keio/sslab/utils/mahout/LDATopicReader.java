@@ -2,13 +2,12 @@ package ac.keio.sslab.utils.mahout;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import ac.keio.sslab.utils.SimpleSorter;
 import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 
 import org.apache.hadoop.fs.FileSystem;
@@ -60,11 +59,6 @@ public class LDATopicReader {
 	public void loadTopicTermDir(Path topicTerm, FileSystem fs, int maxTerms) throws IOException {
 		topicIDTermID = new HashMap<Integer, List<Integer>>();
 		SequenceDirectoryReader<Integer, Vector> topicTermReader = new SequenceDirectoryReader<>(topicTerm, fs, Integer.class, Vector.class);
-		Comparator<Entry<Integer, Double>> reverser = new Comparator<Entry<Integer, Double>>() {
-			public int compare(Entry<Integer, Double> e1, Entry<Integer, Double> e2) {
-				return e2.getValue().compareTo(e1.getValue());
-			}
-		};
 		while (topicTermReader.seekNext()) {
 			int topicID = topicTermReader.key();
 			Vector vector = topicTermReader.val();
@@ -72,8 +66,7 @@ public class LDATopicReader {
 			for (Element e: vector.all()) {
 				termID.put(e.index(), e.get());
 			}
-			List<Entry<Integer, Double>> sortedTermID = new ArrayList<Entry<Integer, Double>>(termID.entrySet());
-			Collections.sort(sortedTermID, reverser);
+			List<Entry<Integer, Double>> sortedTermID = SimpleSorter.reverse(termID);
 			List<Integer> topTermID = new ArrayList<Integer>();
 			for (int i = 0; i < maxTerms && i < sortedTermID.size(); i++) {
 				topTermID.add(sortedTermID.get(i).getKey());

@@ -2,9 +2,6 @@ package ac.keio.sslab.nlp;
 
 import java.io.File;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +16,7 @@ import org.apache.mahout.math.Vector;
 import org.eclipse.jgit.util.FileUtils;
 
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
+import ac.keio.sslab.utils.SimpleSorter;
 import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 import ac.keio.sslab.utils.mahout.LDATopicReader;
 
@@ -79,12 +77,6 @@ public class TopDownDumpJob extends SingletonGroupNLPJob {
 		}
 
 		Path topdownPath = topdownMgr.getHDFSOutputDir();
-		Comparator<Entry<Integer, Double>> reverser = new Comparator<Entry<Integer, Double>>() {
-			public int compare(Entry<Integer, Double> e1, Entry<Integer, Double> e2) {
-				return e2.getValue().compareTo(e1.getValue());
-			}
-		};
-
 		for (FileStatus status: conf.hdfs.listStatus(topdownPath)) {
 			Path dirPath = status.getPath();
 			if (!dirPath.getName().startsWith("topdown-")) {
@@ -107,8 +99,7 @@ public class TopDownDumpJob extends SingletonGroupNLPJob {
 				for (Element e: centroidReader.val().getCenter().all()) {
 					tmpMap.put(e.index(), e.get());
 				}
-				List<Entry<Integer, Double>> sorted = new ArrayList<Entry<Integer, Double>>(tmpMap.entrySet());
-				Collections.sort(sorted, reverser);
+				List<Entry<Integer, Double>> sorted = SimpleSorter.reverse(tmpMap);
 				sb.setLength(0);
 				sb.append(topicStr.get(sorted.get(0).getKey())).append(':').append(sorted.get(0).getValue());
 				sb.append(',').append(topicStr.get(sorted.get(1).getKey())).append(':').append(sorted.get(1).getValue());

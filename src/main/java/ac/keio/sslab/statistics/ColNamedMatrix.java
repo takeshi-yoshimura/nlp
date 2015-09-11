@@ -17,6 +17,7 @@ import org.apache.mahout.math.MatrixSlice;
 import org.apache.mahout.math.Vector.Element;
 
 import ac.keio.sslab.nlp.JobUtils;
+import ac.keio.sslab.utils.SimpleSorter;
 
 public class ColNamedMatrix {
 	protected Matrix value, col;
@@ -47,12 +48,6 @@ public class ColNamedMatrix {
 	}
 
 	public ColNamedMatrix colSortedByValue() {
-		Comparator<Entry<Integer, Double>> reverser = new Comparator<Entry<Integer, Double>>() {
-			public int compare(Entry<Integer, Double> e1, Entry<Integer, Double> e2) {
-				return e2.getValue().compareTo(e1.getValue());
-			}
-		};
-
 		Matrix newValue = new DenseMatrix(value.rowSize(), value.columnSize());
 		Matrix newCol = new DenseMatrix(col.rowSize(), col.columnSize());
 		for (MatrixSlice row: value) {
@@ -60,8 +55,7 @@ public class ColNamedMatrix {
 			for (Element e: row.getVector().all()) {
 				colValues.put((int)col.get(row.index(), e.index()), e.get());
 			}
-			List<Entry<Integer, Double>> sortedColValues = new ArrayList<Entry<Integer, Double>>(colValues.entrySet());
-			Collections.sort(sortedColValues, reverser);
+			List<Entry<Integer, Double>> sortedColValues = SimpleSorter.reverse(colValues);
 			for (int i = 0; i < sortedColValues.size(); i++) {
 				newCol.set(row.index(), i, sortedColValues.get(i).getKey());
 				newValue.set(row.index(), i, sortedColValues.get(i).getValue());

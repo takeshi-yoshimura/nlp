@@ -9,8 +9,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +20,7 @@ import org.apache.mahout.math.Vector;
 import org.eclipse.jgit.util.FileUtils;
 
 import ac.keio.sslab.nlp.lda.LDAFiles;
+import ac.keio.sslab.utils.SimpleSorter;
 import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 import ac.keio.sslab.utils.hadoop.SequenceSwapWriter;
 
@@ -125,17 +124,11 @@ public class JobUtils {
 	}
 
 	public static List<Entry<Integer, Double>> getTopElements(Vector v, int num) {
-		Comparator<Entry<Integer, Double>> reverser = new Comparator<Entry<Integer, Double>>() {
-			public int compare(Entry<Integer, Double> e1, Entry<Integer, Double> e2) {
-				return e2.getValue().compareTo(e1.getValue());
-			}
-		};
 		Map<Integer, Double> points = new HashMap<Integer, Double>();
 		for (Vector.Element e: v.nonZeroes()) {
 			points.put(e.index(), e.get());
 		}
-		List<Entry<Integer, Double>> sorted = new ArrayList<Entry<Integer, Double>>(points.entrySet());
-		Collections.sort(sorted, reverser);
+		List<Entry<Integer, Double>> sorted = SimpleSorter.reverse(points);
 		List<Entry<Integer, Double>> ret = new ArrayList<Entry<Integer, Double>>();
 		for (int i = 0; i < sorted.size() && i < num; i++) {
 			ret.add(sorted.get(i));

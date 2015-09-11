@@ -5,8 +5,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -25,6 +23,7 @@ import org.apache.mahout.math.Vector.Element;
 
 import ac.keio.sslab.nlp.JobUtils;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
+import ac.keio.sslab.utils.SimpleSorter;
 import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 import ac.keio.sslab.utils.mahout.LDATopicReader;
 
@@ -268,20 +267,13 @@ public class NamedMatrix {
 	}
 
 	public void dumpCSVInKeyValueFormat(File out) throws Exception {
-		Comparator<Entry<String, Double>> reverser = new Comparator<Entry<String, Double>>() {
-			public int compare(Entry<String, Double> e1, Entry<String, Double> e2) {
-				return e2.getValue().compareTo(e1.getValue());
-			}
-		};
-
 		Map<String, Double> values = new HashMap<String, Double>();
 		for (MatrixSlice slice: matrix) {
 			for (Element p: slice.all()) {
 				values.put(rowIndex.get(slice.index()) + "," + colIndex.get(p.index()), p.get());
 			}
 		}
-		List<Entry<String, Double>> sortedValues = new ArrayList<Entry<String, Double>>(values.entrySet());
-		Collections.sort(sortedValues, reverser);
+		List<Entry<String, Double>> sortedValues = SimpleSorter.reverse(values);
 
 		PrintWriter pw = JobUtils.getPrintWriter(out);
 		StringBuilder sb = new StringBuilder();

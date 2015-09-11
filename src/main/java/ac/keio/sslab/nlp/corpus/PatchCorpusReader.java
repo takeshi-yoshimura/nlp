@@ -16,7 +16,7 @@ public class PatchCorpusReader {
 
 	File inputDir;
 
-	public PatchCorpusReader(File inputDir) throws IOException {
+	public PatchCorpusReader(File inputDir) {
 		this.inputDir = inputDir;
 	}
 

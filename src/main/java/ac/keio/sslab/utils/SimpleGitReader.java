@@ -61,24 +61,24 @@ public class SimpleGitReader {
 		return vers;
 	}
 
-	public RevCommit getCommit(String sha) throws IOException {
-		return walk.parseCommit(repo.resolve(sha));
+	public RevCommit getCommit(String hash) throws IOException {
+		return walk.parseCommit(repo.resolve(hash));
 	}
 
 	public RevCommit getTag(String ref) throws IOException {
 		return getCommit(ref);
 	}
 
-	public String getFullMessage(String sha) throws IOException {
-		return getCommit(sha).getFullMessage();
+	public String getFullMessage(String hash) throws IOException {
+		return getCommit(hash).getFullMessage();
 	}
 
-	public String getSubject(String sha) throws IOException {
-		return getCommit(sha).getShortMessage();
+	public String getSubject(String hash) throws IOException {
+		return getCommit(hash).getShortMessage();
 	}
 
-	public String getCommitDateString(String sha) throws IOException {
-		return getCommitDateString(getCommit(sha));
+	public String getCommitDateString(String hash) throws IOException {
+		return getCommitDateString(getCommit(hash));
 	}
 
 	public String getTagDateString(String tag) throws IOException {
@@ -89,8 +89,8 @@ public class SimpleGitReader {
 		return sdf.format(getCommitDate(commit));
 	}
 
-	public Date getCommitDate(String sha) throws IOException {
-		return new Date(1000L * getCommit(sha).getCommitTime());
+	public Date getCommitDate(String hash) throws IOException {
+		return new Date(1000L * getCommit(hash).getCommitTime());
 	}
 
 	public Date getCommitDate(RevCommit commit) throws IOException {
@@ -101,16 +101,16 @@ public class SimpleGitReader {
 		return tagDates.get(tag);
 	}
 
-	public Set<String> getFiles(String sha) throws Exception {
+	public Set<String> getFiles(String hash) throws Exception {
 		Set<String> files = new HashSet<String>();
-		for (DiffEntry entry : getDiffs(sha)) {
+		for (DiffEntry entry : getDiffs(hash)) {
 			files.add(entry.getNewPath());
 		}
 		return files;
 	}
 
-	public List<DiffEntry> getDiffs(String sha) throws Exception {
-		return git.diff().setNewTree(getTreeIterator(sha)).setOldTree(getTreeIterator(sha + "^")).call();
+	public List<DiffEntry> getDiffs(String hash) throws Exception {
+		return git.diff().setNewTree(getTreeIterator(hash)).setOldTree(getTreeIterator(hash + "^")).call();
 	}
 
 	// from jGit test code
@@ -125,18 +125,18 @@ public class SimpleGitReader {
 		}
 	}
 
-	public String showCommit(String sha) throws Exception {
+	public String showCommit(String hash) throws Exception {
 		StringBuilder sb = new StringBuilder();
 		ByteArrayOutputStream ba = new ByteArrayOutputStream();
 		DiffFormatter diff = new DiffFormatter(ba);
 		diff.setRepository(repo);
-		RevCommit commit = getCommit(sha);
+		RevCommit commit = getCommit(hash);
 		PersonIdent p = commit.getAuthorIdent();
 		sb.append("commit ").append(commit.getId().getName()).append('\n');
 		sb.append("Author: ").append(p.getName()).append(" <").append(p.getEmailAddress()).append(">\n");
 		sb.append("Date: ").append(new Date(1000L * commit.getCommitTime())).append("\n\n");
 		sb.append(commit.getFullMessage()).append('\n');
-		for (DiffEntry entry: getDiffs(sha)) {
+		for (DiffEntry entry: getDiffs(hash)) {
 			diff.format(entry);
 			sb.append(ba.toString());
 		}
@@ -151,6 +151,10 @@ public class SimpleGitReader {
 	public void close() {
 		git.close();
 		repo.close();
+	}
+
+	public boolean msgMatches(String hash, String regex) throws IOException {
+		return getCommit(hash).getFullMessage().matches(regex);
 	}
 
 	int num = -1;

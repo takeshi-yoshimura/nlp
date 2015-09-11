@@ -6,8 +6,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,6 +19,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import ac.keio.sslab.nlp.JobUtils;
+import ac.keio.sslab.utils.SimpleSorter;
 import ac.keio.sslab.utils.hadoop.SequenceSwapWriter;
 
 public class PatchCorpusWriter {
@@ -153,13 +152,7 @@ public class PatchCorpusWriter {
 	}
 
 	protected Set<String> emitDF() throws IOException {
-		Comparator<Entry<String, Integer>> reverser = new Comparator<Entry<String, Integer>>() {
-			public int compare(Entry<String, Integer> e1, Entry<String, Integer> e2) {
-				return e2.getValue().compareTo(e1.getValue());
-			}
-		};
-		List<Entry<String, Integer>> orderedDf = new ArrayList<Entry<String, Integer>>(df.entrySet());
-		Collections.sort(orderedDf, reverser);
+		List<Entry<String, Integer>> orderedDf = SimpleSorter.reverse(df);
 		Set<String> stopWord = new HashSet<>();
 		PrintWriter dfWriter = JobUtils.getPrintWriter(dfFile);		
 		for (Entry<String, Integer> e: orderedDf) {

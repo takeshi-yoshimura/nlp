@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -23,6 +22,7 @@ import weka.core.Instances;
 import weka.core.converters.ArffLoader.ArffReader;
 import weka.core.converters.ArffSaver;
 import ac.keio.sslab.nlp.JobUtils;
+import ac.keio.sslab.utils.SimpleSorter;
 
 public class CategoricalCrossTable {
 
@@ -223,13 +223,7 @@ public class CategoricalCrossTable {
 	public void writeCSV(File outFile) {
 		Map<String, List<Integer>> count = new HashMap<String, List<Integer>>();
 		Map<String, Integer> subjectiveCount = countAllSubjectVariable();
-		List<Entry<String, Integer>> subjectiveNames = new ArrayList<Entry<String, Integer>>();
-		subjectiveNames.addAll(subjectiveCount.entrySet());
-		Collections.sort(subjectiveNames ,new Comparator<Entry<String, Integer>>(){
-			public int compare(Entry<String, Integer> o1, Entry<String, Integer> o2){
-				return o2.getValue().compareTo(o1.getValue());
-			}
-		});
+		List<Entry<String, Integer>> subjectiveNames = SimpleSorter.reverse(subjectiveCount);
 		for (String objectiveVarName: objectiveVariables) {
 			Map<String, Integer> countOne = countSubjectVariablesForObjectiveVariable(objectiveVarName);
 			List<Integer> countList = new ArrayList<Integer>();

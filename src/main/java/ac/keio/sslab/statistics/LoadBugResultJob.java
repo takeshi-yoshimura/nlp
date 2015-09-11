@@ -2,9 +2,6 @@ package ac.keio.sslab.statistics;
 
 import java.io.File;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -22,6 +19,7 @@ import ac.keio.sslab.nlp.JobUtils;
 import ac.keio.sslab.nlp.NLPConf;
 import ac.keio.sslab.nlp.NLPJobGroup;
 import ac.keio.sslab.nlp.SingletonGroupNLPJob;
+import ac.keio.sslab.utils.SimpleSorter;
 
 public class LoadBugResultJob extends SingletonGroupNLPJob {
 
@@ -117,13 +115,7 @@ public class LoadBugResultJob extends SingletonGroupNLPJob {
 		table.writeArff(new File(arffDir, name + ".arff"));
 
 		Map<String, Integer> count = table.countAllSubjectVariable();
-		List<Entry<String, Integer>> list = new ArrayList<Entry<String, Integer>>();
-		list.addAll(count.entrySet());
-		Collections.sort(list ,new Comparator<Entry<String, Integer>>(){
-			public int compare(Entry<String, Integer> o1, Entry<String, Integer> o2){
-				return o2.getValue().compareTo(o1.getValue());
-			}
-		});
+		List<Entry<String, Integer>> list = SimpleSorter.reverse(count);
 		try {
 			PrintWriter writer = JobUtils.getPrintWriter(new File(countDir, name + ".csv"));
 			int total = 0;

@@ -2,8 +2,6 @@ package ac.keio.sslab.utils.mahout;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +12,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.Vector.Element;
 
+import ac.keio.sslab.utils.SimpleSorter;
 import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 
 public class LDADocTopicReader {
@@ -47,12 +46,6 @@ public class LDADocTopicReader {
 	public void loadDocumentDir(Path documentDir, FileSystem fs, int maxTopics) throws IOException {
 		docTopicId = new HashMap<Integer, List<Integer>>();
 		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(documentDir, fs, Integer.class, Vector.class);
-
-		Comparator<Entry<Integer, Double>> reverser = new Comparator<Entry<Integer, Double>>() {
-			public int compare(Entry<Integer, Double> e1, Entry<Integer, Double> e2) {
-				return e2.getValue().compareTo(e1.getValue());
-			}
-		};
 		while (reader.seekNext()) {
 			int docId = reader.key();
 			Vector vector = reader.val();
@@ -60,8 +53,7 @@ public class LDADocTopicReader {
 			for (Element e: vector.all()) {
 				docTopic.put(e.index(), e.get());
 			}
-			List<Entry<Integer, Double>> sortedDocTopic = new ArrayList<Entry<Integer, Double>>(docTopic.entrySet());
-			Collections.sort(sortedDocTopic, reverser);
+			List<Entry<Integer, Double>> sortedDocTopic = SimpleSorter.reverse(docTopic);
 			List<Integer> topicId = new ArrayList<Integer>();
 			for (int i = 0; i < maxTopics && i < sortedDocTopic.size(); i++) {
 				topicId.add(sortedDocTopic.get(i).getKey());
