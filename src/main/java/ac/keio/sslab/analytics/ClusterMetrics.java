@@ -12,6 +12,7 @@ import java.util.Set;
 
 import ac.keio.sslab.nlp.corpus.OriginalCorpusReader;
 import ac.keio.sslab.nlp.corpus.PatchEntryReader;
+import ac.keio.sslab.utils.SimpleJsonWriter;
 import ac.keio.sslab.utils.SimpleSorter;
 
 public class ClusterMetrics {
@@ -176,5 +177,31 @@ public class ClusterMetrics {
 
 	public double ga() {
 		return c.getDensity();
+	}
+
+	public void writeJson(File dir, File corpusDir, File bottomupDir, PatchDocMatcher m) throws IOException {
+		SimpleJsonWriter w = new SimpleJsonWriter(new File(dir, Integer.toString(c.getID())));
+		w.writeNumberField("size", size());
+		w.writeNumberField("group average", ga());
+		w.writeStartObject("topics");
+		for (Entry<String, Integer> e: getExpectedTopicNum()) {
+			w.writeNumberField(e.getKey(), e.getValue());
+		}
+		w.writeEndObject();
+		w.writeStartObject("versions");
+		for (Entry<String, Integer> e: getVersions(corpusDir, bottomupDir)) {
+			w.writeNumberField(e.getKey(), e.getValue());
+		}
+		w.writeStartObject("files");
+		for (Entry<String, Integer> e: getFiles(corpusDir, bottomupDir)) {
+			w.writeNumberField(e.getKey(), e.getValue());
+		}
+		w.writeEndObject();
+		w.writeStartObject("keywords");
+		for (Entry<String, Integer> e: getKeyFreqs(corpusDir, bottomupDir, m)) {
+			w.writeNumberField(e.getKey(), e.getValue());
+		}
+		w.writeEndObject();
+		w.close();
 	}
 }
