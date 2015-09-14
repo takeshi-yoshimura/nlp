@@ -1,8 +1,6 @@
 package ac.keio.sslab.nlp.corpus;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -18,7 +16,7 @@ import java.util.Map.Entry;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-import ac.keio.sslab.nlp.JobUtils;
+import ac.keio.sslab.nlp.job.JobUtils;
 import ac.keio.sslab.utils.SimpleSorter;
 import ac.keio.sslab.utils.hadoop.SequenceSwapWriter;
 
@@ -32,8 +30,8 @@ public class PatchCorpusWriter {
 
 	DocumentFilter filter;
 
-	File originalCorpus, dfFile, idIndexFile, patchFile, statsFile;
-	PrintWriter originalCorpusWriter, patchWriter;
+	File originalCorpus, beforeStopWordCorpus, dfFile, idIndexFile, patchFile, statsFile;
+	PrintWriter beforeStopWordWriter, patchWriter;
 	boolean doForceWrite, splitParagraph, tokenizeAtUnderline, useNLTKStopwords;
 	int totalDocuments, totalPatches;
 	String startAt;
@@ -46,8 +44,10 @@ public class PatchCorpusWriter {
 
 		JobUtils.promptDeleteDirectory(outputDir, doForceWrite);
 
-		originalCorpus = new File(outputDir, "beforesStopWordsCorpus.txt");
-		originalCorpusWriter = JobUtils.getPrintWriter(originalCorpus);
+		originalCorpus = new File(outputDir, "originalCorpus");
+		originalCorpus.mkdirs();
+		beforeStopWordCorpus = new File(outputDir, "beforeStopWordCorpus.txt");
+		beforeStopWordWriter = JobUtils.getPrintWriter(beforeStopWordCorpus);
 		dfFile = new File(outputDir, "df.txt");
 		idIndexFile = new File(outputDir, "idIndex.txt");
 		patchFile = new File(outputDir, "commits.txt");
@@ -74,6 +74,7 @@ public class PatchCorpusWriter {
 		}
 		if (isProcessed) {
 			emitPatchMetaData(patchID, date, version, files);
+			emitOriginalCorpus(patchID, message);
 			++totalPatches;
 		}
 	}
@@ -126,15 +127,21 @@ public class PatchCorpusWriter {
 		patchWriter.println();
 	}
 
+	protected void emitOriginalCorpus(String patchID, String message) throws IOException {
+		PrintWriter originalCorpusWriter = JobUtils.getPrintWriter(new File(originalCorpus, patchID));
+		originalCorpusWriter.println(message);
+		originalCorpusWriter.close();
+	}
+
 	protected void addDocument(String documentID, String message) throws Exception {
 		String hash = JobUtils.getSha(message);
 		if (!contentHash.containsKey(hash)) {
 			int pointID = idIndex.size();
 			idIndex.put(pointID, new ArrayList<String>());
 			contentHash.put(hash, pointID);
-			originalCorpusWriter.print(Integer.toString(pointID));
-			originalCorpusWriter.print(' ');
-			originalCorpusWriter.println(message);
+			beforeStopWordWriter.print(Integer.toString(pointID));
+			beforeStopWordWriter.print(' ');
+			beforeStopWordWriter.println(message);
 
 			Set<String> words = new HashSet<String>();
 			for (String word: message.split(" ")) {
@@ -170,26 +177,23 @@ public class PatchCorpusWriter {
 
 	protected void emitHDFSFile(FileSystem fs, Path outputPath, Path tmpPath, Set<String> stopWord) throws IOException {
 		SequenceSwapWriter<String, String> writer = new SequenceSwapWriter<>(outputPath, tmpPath, fs, doForceWrite, String.class, String.class);
-		BufferedReader br = new BufferedReader(new FileReader(originalCorpus));
-		String line = null;
+		BeforeStopWordCorpusReader r = new BeforeStopWordCorpusReader(beforeStopWordCorpus.getParentFile());
 		StringBuilder sb = new StringBuilder();
-		while ((line = br.readLine()) != null) {
-			String [] splitLine = line.split(" ");
-			sb.setLength(0);
-			for (int j = 1; j < splitLine.length; j++) {
-				if (stopWord.contains(splitLine[j])) {
+		while (r.seekNext()) {
+			for (String w: r.val()) {
+				if (stopWord.contains(w)) {
 					continue;
 				}
-				sb.append(splitLine[j]).append(' ');
+				sb.append(w).append(' ');
 			}
 			if (sb.length() <= 1) {
-				System.err.println("ignored line: " + line + " in " + originalCorpus.getAbsolutePath());
+				System.err.println("ignored line: key = " + r.key() + " in " + beforeStopWordCorpus.getAbsolutePath());
 				continue;
 			}
 			sb.setLength(sb.length() - 1);
-			writer.append(splitLine[0], sb.toString());
+			writer.append(Integer.toString(r.key()), sb.toString());
 		}
-		br.close();
+		r.close();
 		writer.close();
 	}
 
@@ -238,7 +242,7 @@ public class PatchCorpusWriter {
 	}
 
 	public void close() {
-		originalCorpusWriter.close();
+		beforeStopWordWriter.close();
 		patchWriter.close();
 	}
 }

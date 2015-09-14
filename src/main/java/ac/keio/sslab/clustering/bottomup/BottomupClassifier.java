@@ -1,8 +1,6 @@
 package ac.keio.sslab.clustering.bottomup;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -15,12 +13,13 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
-import ac.keio.sslab.clustering.view.ClusterGraph;
-import ac.keio.sslab.clustering.view.HierarchicalCluster;
-import ac.keio.sslab.clustering.view.IncrementalClusterDumper;
-import ac.keio.sslab.clustering.view.PatchIDResolver;
-import ac.keio.sslab.clustering.view.PointDumper;
-import ac.keio.sslab.nlp.JobUtils;
+import ac.keio.sslab.analytics.ClusterGraph;
+import ac.keio.sslab.analytics.HierarchicalCluster;
+import ac.keio.sslab.analytics.IncrementalClusterDumper;
+import ac.keio.sslab.analytics.PatchIDResolver;
+import ac.keio.sslab.analytics.PointDumper;
+import ac.keio.sslab.nlp.corpus.PatchEntryReader;
+import ac.keio.sslab.nlp.job.JobUtils;
 import ac.keio.sslab.utils.SimpleGitReader;
 
 public class BottomupClassifier {
@@ -32,24 +31,22 @@ public class BottomupClassifier {
 	Map<String, String> versions;
 	File corpusIDIndexFile, idIndexFile;
 
-	public BottomupClassifier(File clustersFile, File corpusIDIndexFile, File idIndexFile, File gitDir) throws IOException {
-		List<HierarchicalCluster> singletons = ClusterGraph.parseResult(clustersFile).getSingletons();
+	public BottomupClassifier(File bottomupDir, File corpusDir, File gitDir) throws IOException {
+		List<HierarchicalCluster> singletons = ClusterGraph.parseResult(new File(bottomupDir, "clusters.csv")).getSingletons();
 		this.pointTopics = new HashMap<Integer, Map<String, Double>>();
 		this.singletons = new HashMap<Integer, HierarchicalCluster>();
 		for (HierarchicalCluster singleton: singletons) {
 			this.singletons.put(singleton.getPoints().get(0), singleton);
 			this.pointTopics.put(singleton.getPoints().get(0), singleton.getCentroid());
 		}
-		pointIDs = new PatchIDResolver(idIndexFile, corpusIDIndexFile).getPointIDtoPatchIDs();
+		pointIDs = PatchIDResolver.getPointIDtoPatchIDs(corpusDir, bottomupDir);
 		git = new SimpleGitReader(gitDir);
 		versions = new HashMap<>();
-		BufferedReader br = new BufferedReader(new FileReader(new File(idIndexFile.getParentFile(), "commits.txt")));
-		String line = null;
-		while ((line = br.readLine()) != null) {
-			String [] s = line.split(",");
-			versions.put(s[0], s[2]);
+		PatchEntryReader pr = new PatchEntryReader(corpusDir);
+		while (pr.seekNext()) {
+			versions.put(pr.patchID(), pr.version());
 		}
-		br.close();
+		pr.close();
 	}
 
 	public Set<Integer> getPointIDs() {

@@ -7,7 +7,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Writable;
 
-import ac.keio.sslab.nlp.JobUtils;
+import ac.keio.sslab.nlp.job.JobUtils;
 
 // Do not inherit this class due to generics hacks
 // output results are always destroyed unless close() is called

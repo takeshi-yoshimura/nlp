@@ -14,11 +14,12 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 
-import ac.keio.sslab.nlp.JobManager;
-import ac.keio.sslab.nlp.JobUtils;
-import ac.keio.sslab.nlp.NLPConf;
-import ac.keio.sslab.nlp.NLPJobGroup;
-import ac.keio.sslab.nlp.SingletonGroupNLPJob;
+import ac.keio.sslab.nlp.job.JobManager;
+import ac.keio.sslab.nlp.job.JobUtils;
+import ac.keio.sslab.nlp.job.NLPConf;
+import ac.keio.sslab.nlp.job.NLPJobGroup;
+import ac.keio.sslab.nlp.job.SingletonGroupNLPJob;
+import ac.keio.sslab.utils.CategoricalCrossTable;
 import ac.keio.sslab.utils.SimpleSorter;
 
 public class LoadBugResultJob extends SingletonGroupNLPJob {

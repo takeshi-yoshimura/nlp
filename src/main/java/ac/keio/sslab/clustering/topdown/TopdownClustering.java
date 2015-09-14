@@ -11,7 +11,7 @@ import org.apache.mahout.math.Vector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ac.keio.sslab.nlp.NLPConf;
+import ac.keio.sslab.nlp.job.NLPConf;
 import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 import ac.keio.sslab.utils.hadoop.SequenceSwapWriter;
 

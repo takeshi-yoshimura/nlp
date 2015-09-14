@@ -8,8 +8,8 @@ import java.util.Map;
 
 import org.apache.mahout.math.Vector;
 
-import ac.keio.sslab.clustering.view.HierarchicalCluster;
-import ac.keio.sslab.nlp.JobUtils;
+import ac.keio.sslab.analytics.HierarchicalCluster;
+import ac.keio.sslab.nlp.job.JobUtils;
 
 public class IndexBottomupClusteringRunner extends Thread {
 

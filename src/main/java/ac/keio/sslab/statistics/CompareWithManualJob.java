@@ -9,12 +9,14 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 import org.eclipse.jgit.util.FileUtils;
 
-import ac.keio.sslab.nlp.JobManager;
-import ac.keio.sslab.nlp.LDAJob;
-import ac.keio.sslab.nlp.NLPConf;
-import ac.keio.sslab.nlp.NLPJobGroup;
-import ac.keio.sslab.nlp.SingletonGroupNLPJob;
+import ac.keio.sslab.nlp.job.JobManager;
+import ac.keio.sslab.nlp.job.LDAJob;
+import ac.keio.sslab.nlp.job.NLPConf;
+import ac.keio.sslab.nlp.job.NLPJobGroup;
+import ac.keio.sslab.nlp.job.SingletonGroupNLPJob;
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
+import ac.keio.sslab.utils.ColNamedMatrix;
+import ac.keio.sslab.utils.NamedMatrix;
 
 public class CompareWithManualJob extends SingletonGroupNLPJob {
 

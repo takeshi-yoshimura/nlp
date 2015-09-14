@@ -8,8 +8,8 @@ import org.apache.mahout.clustering.lda.cvb.InMemoryCollapsedVariationalBayes0;
 import org.apache.mahout.common.AbstractJob;
 import org.apache.mahout.math.DenseMatrix;
 
-import ac.keio.sslab.nlp.JobUtils;
-import ac.keio.sslab.nlp.NLPConf;
+import ac.keio.sslab.nlp.job.JobUtils;
+import ac.keio.sslab.nlp.job.NLPConf;
 
 public class LocalCVB0 extends RestartableLDAJob {
 

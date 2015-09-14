@@ -12,7 +12,8 @@ import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import ac.keio.sslab.statistics.CategoricalCrossTable.RawRecord;
+import ac.keio.sslab.utils.CategoricalCrossTable;
+import ac.keio.sslab.utils.CategoricalCrossTable.RawRecord;
 
 public class BugResult {
 

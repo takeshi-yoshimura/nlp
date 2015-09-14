@@ -153,10 +153,6 @@ public class SimpleGitReader {
 		repo.close();
 	}
 
-	public boolean msgMatches(String hash, String regex) throws IOException {
-		return getCommit(hash).getFullMessage().matches(regex);
-	}
-
 	int num = -1;
 	public String describe(String rev) throws Exception {
 		String tag = git.describe().setTarget(rev).setLong(true).call();

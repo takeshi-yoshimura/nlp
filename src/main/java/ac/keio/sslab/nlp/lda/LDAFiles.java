@@ -1,6 +1,6 @@
 package ac.keio.sslab.nlp.lda;
 
-import ac.keio.sslab.nlp.NLPConf;
+import ac.keio.sslab.nlp.job.NLPConf;
 
 public class LDAFiles {
 	public static final String sparseJobName = "sparse";
