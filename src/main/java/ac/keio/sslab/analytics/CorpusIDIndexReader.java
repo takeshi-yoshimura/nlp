@@ -14,7 +14,7 @@ public class CorpusIDIndexReader {
 	int value;
 
 	public CorpusIDIndexReader(File bottomupDir) throws IOException {
-		r = new StringSplitTextReader(new File(bottomupDir, "corpusIDIndex.txt"), ",");
+		r = new StringSplitTextReader(new File(bottomupDir, "corpusIDIndex.csv"), ",");
 	}
 
 	public boolean seekNext() throws IOException {
