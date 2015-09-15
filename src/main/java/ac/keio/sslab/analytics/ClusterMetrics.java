@@ -184,8 +184,11 @@ public class ClusterMetrics {
 		w.writeNumberField("size", size());
 		w.writeNumberField("group average", ga());
 		w.writeStartObject("topics");
-		for (Entry<String, Integer> e: getExpectedTopicNum()) {
-			w.writeNumberField(e.getKey(), e.getValue());
+		List<Entry<String, Integer>> et = getExpectedTopicNum();
+		if (et != null) {
+			for (Entry<String, Integer> e: getExpectedTopicNum()) {
+				w.writeNumberField(e.getKey(), e.getValue());
+			}
 		}
 		w.writeEndObject();
 		w.writeStartObject("versions");
