@@ -27,7 +27,7 @@ public class ClusterGraph {
 	}
 
 	public static ClusterGraph parseResult(File outputFile) throws IOException {
-		BufferedReader reader = new BufferedReader(new FileReader(outputFile));
+		BufferedReader reader = new BufferedReader(new FileReader(new File(outputFile, "clusters.csv")));
 		String line = null;
 		Map<Integer, HierarchicalCluster> graph = new HashMap<Integer, HierarchicalCluster>();
 		List<HierarchicalCluster> clusters = new ArrayList<HierarchicalCluster>();
