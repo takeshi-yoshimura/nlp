@@ -95,9 +95,9 @@ public class ClusterMetrics {
 	}
 
 	public void resetPatchEntries() {
-		files = new HashMap<>();
-		dates = new HashMap<>();
-		vers = new HashMap<>();
+		files = null;
+		dates = null;
+		vers = null;
 	}
 
 	Map<String, Integer> files = null;
@@ -105,6 +105,9 @@ public class ClusterMetrics {
 	Map<String, Integer> vers = null;
 
 	public void getPatchEntries() throws IOException {
+		files = new HashMap<>();
+		dates = new HashMap<>();
+		vers = new HashMap<>();
 		for (String patchID: getPatchIDs()) {
 			PatchEntry p = patchEntries.get(patchID);
 			for (String file: p.files) {
