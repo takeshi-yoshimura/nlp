@@ -4,9 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import ac.keio.sslab.nlp.corpus.PatchEntryReader.PatchEntry;
 import ac.keio.sslab.utils.SimpleJsonWriter;
@@ -85,10 +87,14 @@ public class ClusterMetrics {
 			keyFreqs.put(keyword, 0);
 		}
 		for (HierarchicalCluster singleton: singletons) {
+			Set<String> foundFamily = new HashSet<>();
 			for (String patchID: resolver.get(singleton.getPoints().get(0))) {
 				for (String s: m.match(messages.get(patchID))) {
-					keyFreqs.put(s, keyFreqs.get(s) + 1);
+					foundFamily.add(s);
 				}
+			}
+			for (String s: foundFamily) {
+				keyFreqs.put(s, keyFreqs.get(s) + 1);
 			}
 		}
 		return SimpleSorter.reverse(keyFreqs);
