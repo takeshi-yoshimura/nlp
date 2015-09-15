@@ -52,29 +52,34 @@ public class ClusterMetricsJob extends SingletonGroupNLPJob {
 		g.close();
 		ClusterMetrics m = new ClusterMetrics(PatchIDResolver.getPointIDtoPatchIDs(corpusDir, bottomupDir), new PatchEntryReader(corpusDir).all(), messages);
 		for (double ga = delta; ga < until; ga += delta) {
-			System.out.println("================== ga = " + ga + " =====================");
-			File gaDir = new File(topDir, Double.toString(ga));
-			PrintWriter pw = JobUtils.getPrintWriter(new File(topDir, "summary-ga-" + ga + ".txt"));
-			gaDir.mkdirs();
-			TreeMap<Integer, List<HierarchicalCluster>> lowers = galower.getAllGALowerClusters(ga);
-			int i = 0;
-			int total = 0;
-
-			for (Entry<Integer, List<HierarchicalCluster>> lower: lowers.entrySet()) {
-				for (@SuppressWarnings("unused") HierarchicalCluster c: lower.getValue()) {
-					++total;
-				}
-			}
-			for (Entry<Integer, List<HierarchicalCluster>> lower: lowers.entrySet()) {
-				for (HierarchicalCluster c: lower.getValue()) {
-					m.set(c);
-					System.out.println("write Cluster ID = " + c.getID() + ", size = " + lower.getKey() + " (" + ++i + "/" + total + ")");
-					m.writeJson(gaDir, dm);
-					pw.println(m.toCSVString());
-				}
-			}
-			pw.close();
+			performGA(ga, topDir, galower, dm, m);
 		}
+		performGA(2.0, topDir, galower, dm, m);
+	}
+
+	public void performGA(double ga, File topDir, GALowerClassifier galower, PatchDocMatcher dm, ClusterMetrics m) throws Exception {
+		System.out.println("================== ga = " + ga + " =====================");
+		File gaDir = new File(topDir, Double.toString(ga));
+		PrintWriter pw = JobUtils.getPrintWriter(new File(topDir, "summary-ga-" + ga + ".txt"));
+		gaDir.mkdirs();
+		TreeMap<Integer, List<HierarchicalCluster>> lowers = galower.getAllGALowerClusters(ga);
+		int i = 0;
+		int total = 0;
+
+		for (Entry<Integer, List<HierarchicalCluster>> lower: lowers.entrySet()) {
+			for (@SuppressWarnings("unused") HierarchicalCluster c: lower.getValue()) {
+				++total;
+			}
+		}
+		for (Entry<Integer, List<HierarchicalCluster>> lower: lowers.entrySet()) {
+			for (HierarchicalCluster c: lower.getValue()) {
+				m.set(c);
+				System.out.println("write Cluster ID = " + c.getID() + ", size = " + lower.getKey() + " (" + ++i + "/" + total + ")");
+				m.writeJson(gaDir, dm);
+				pw.println(m.toCSVString());
+			}
+		}
+		pw.close();
 	}
 
 	@Override

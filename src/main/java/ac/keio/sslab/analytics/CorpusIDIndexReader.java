@@ -49,4 +49,13 @@ public class CorpusIDIndexReader {
 		close();
 		return all;
 	}
+
+	public Map<Integer, Integer> revAll() throws IOException {
+		Map<Integer, Integer> all = new HashMap<>();
+		while (seekNext()) {
+			all.put(val(), key());
+		}
+		close();
+		return all;		
+	}
 }

@@ -11,7 +11,7 @@ import ac.keio.sslab.nlp.corpus.IdIndexReader;
 public class PatchIDResolver {
 
 	public static Map<Integer, List<String>> getPointIDtoPatchIDs(File corpusDir, File bottomupDir) throws IOException {
-		Map<Integer, Integer> corpusIDMap = new CorpusIDIndexReader(bottomupDir).all();
+		Map<Integer, Integer> corpusIDMap = new CorpusIDIndexReader(bottomupDir).revAll();
 
 		Map<Integer, List<String>> ret = new HashMap<Integer, List<String>>();
 		IdIndexReader idIndex = new IdIndexReader(corpusDir);
