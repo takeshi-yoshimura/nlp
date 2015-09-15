@@ -4,13 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
-import ac.keio.sslab.nlp.corpus.PatchEntryReader;
+import ac.keio.sslab.nlp.corpus.PatchEntryReader.PatchEntry;
 import ac.keio.sslab.utils.SimpleGitReader;
 import ac.keio.sslab.utils.SimpleJsonWriter;
 import ac.keio.sslab.utils.SimpleSorter;
@@ -20,8 +18,15 @@ public class ClusterMetrics {
 	HierarchicalCluster c;
 	Map<String, Double> topicEx;
 	List<HierarchicalCluster> singletons;
+	Map<Integer, List<String>> resolver;
+	Map<String, PatchEntry> patchEntries;
 
-	public ClusterMetrics(HierarchicalCluster c) {
+	public ClusterMetrics(Map<Integer, List<String>> resolver, Map<String, PatchEntry> patchEntries) {
+		this.resolver = resolver;
+		this.patchEntries = patchEntries;
+	}
+
+	public void set(HierarchicalCluster c) {
 		this.c = c;
 		this.singletons = searchSingleton(c);
 		this.topicEx = getTopicEx(c);
@@ -64,21 +69,19 @@ public class ClusterMetrics {
 		return ret;
 	}
 
-	public List<String> getPatchIDs(File corpusDir, File bottomupDir) throws IOException {
+	public List<String> getPatchIDs() throws IOException {
 		List<String> ret = new ArrayList<>();
-		Map<Integer, List<String>> resolver = PatchIDResolver.getPointIDtoPatchIDs(corpusDir, bottomupDir);
 		for (HierarchicalCluster singleton: singletons) {
 			ret.addAll(resolver.get(singleton.getPoints().get(0)));
 		}
 		return ret;
 	}
 
-	public List<Entry<String, Integer>> getKeyFreqs(File gitDir, File corpusDir, File bottomupDir, PatchDocMatcher m) throws IOException {
+	public List<Entry<String, Integer>> getKeyFreqs(File gitDir, PatchDocMatcher m) throws IOException {
 		Map<String, Integer> keyFreqs = new HashMap<>();
 		for (String keyword: m.keySet()) {
 			keyFreqs.put(keyword, 0);
 		}
-		Map<Integer, List<String>> resolver = PatchIDResolver.getPointIDtoPatchIDs(corpusDir, bottomupDir);
 		SimpleGitReader g = new SimpleGitReader(gitDir);
 		for (HierarchicalCluster singleton: singletons) {
 			for (String patchID: resolver.get(singleton.getPoints().get(0))) {
@@ -94,42 +97,34 @@ public class ClusterMetrics {
 	Map<String, Integer> dates = null;
 	Map<String, Integer> vers = null;
 
-	public void getPatchEntries(File corpusDir, File bottomupDir) throws IOException {
-		Set<String> patchIDs = new HashSet<>(getPatchIDs(corpusDir, bottomupDir));
-		PatchEntryReader r = new PatchEntryReader(corpusDir);
-		while(r.seekNext()) {
-			if (patchIDs.contains(r.patchID())) {
-				if (files == null) {
-					files = new HashMap<>();
-					dates = new HashMap<>();
-					vers = new HashMap<>();
-				}
-				for (String file: r.files()) {
-					files.put(file, files.getOrDefault(file, 0) + 1);
-				}
-				dates.put(r.date(), dates.getOrDefault(r.date(), 0) + 1);
-				vers.put(r.version(), vers.getOrDefault(r.version(), 0) + 1);
+	public void getPatchEntries() throws IOException {
+		for (String patchID: getPatchIDs()) {
+			PatchEntry p = patchEntries.get(patchID);
+			for (String file: p.files) {
+				files.put(file, files.getOrDefault(file, 0) + 1);
 			}
+			dates.put(p.date, dates.getOrDefault(p.date, 0) + 1);
+			vers.put(p.ver, vers.getOrDefault(p.ver, 0) + 1);
 		}
 	}
 
-	public List<Entry<String, Integer>> getFiles(File corpusDir, File bottomupDir) throws IOException {
+	public List<Entry<String, Integer>> getFiles() throws IOException {
 		if (files == null) {
-			getPatchEntries(corpusDir, bottomupDir);
+			getPatchEntries();
 		}
 		return SimpleSorter.reverse(files);
 	}
 
-	public List<Entry<String, Integer>> getDates(File corpusDir, File bottomupDir) throws IOException {
+	public List<Entry<String, Integer>> getDates() throws IOException {
 		if (dates == null) {
-			getPatchEntries(corpusDir, bottomupDir);
+			getPatchEntries();
 		}
 		return SimpleSorter.reverse(dates);
 	}
 
-	public List<Entry<String, Integer>> getVersions(File corpusDir, File bottomupDir) throws IOException {
+	public List<Entry<String, Integer>> getVersions() throws IOException {
 		if (vers == null) {
-			getPatchEntries(corpusDir, bottomupDir);
+			getPatchEntries();
 		}
 		return SimpleSorter.reverse(vers);
 	}
@@ -180,7 +175,7 @@ public class ClusterMetrics {
 		return c.getDensity();
 	}
 
-	public void writeJson(File dir, File gitDir, File corpusDir, File bottomupDir, PatchDocMatcher m) throws IOException {
+	public void writeJson(File dir, File gitDir, PatchDocMatcher m) throws IOException {
 		SimpleJsonWriter w = new SimpleJsonWriter(new File(dir, Integer.toString(c.getID())));
 		w.writeNumberField("size", size());
 		w.writeNumberField("group average", ga());
@@ -193,17 +188,17 @@ public class ClusterMetrics {
 		}
 		w.writeEndObject();
 		w.writeStartObject("versions");
-		for (Entry<String, Integer> e: getVersions(corpusDir, bottomupDir)) {
+		for (Entry<String, Integer> e: getVersions()) {
 			w.writeNumberField(e.getKey(), e.getValue());
 		}
 		w.writeEndObject();
 		w.writeStartObject("files");
-		for (Entry<String, Integer> e: getFiles(corpusDir, bottomupDir)) {
+		for (Entry<String, Integer> e: getFiles()) {
 			w.writeNumberField(e.getKey(), e.getValue());
 		}
 		w.writeEndObject();
 		w.writeStartObject("keywords");
-		for (Entry<String, Integer> e: getKeyFreqs(gitDir, corpusDir, bottomupDir, m)) {
+		for (Entry<String, Integer> e: getKeyFreqs(gitDir, m)) {
 			if (e.getValue() > 0) {
 				w.writeNumberField(e.getKey(), e.getValue());
 			}
@@ -212,7 +207,7 @@ public class ClusterMetrics {
 		w.close();
 	}
 
-	public String toCSVString(File gitDir, File corpusDir, File bottomupDir, PatchDocMatcher m) throws IOException {
+	public String toCSVString() throws IOException {
 		StringBuilder sb = new StringBuilder();
 		sb.append(c.getID()).append(',');
 		sb.append(size()).append(',');

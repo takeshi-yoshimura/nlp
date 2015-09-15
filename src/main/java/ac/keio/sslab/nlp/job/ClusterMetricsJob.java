@@ -17,7 +17,9 @@ import org.apache.hadoop.fs.Path;
 import ac.keio.sslab.analytics.ClusterMetrics;
 import ac.keio.sslab.analytics.HierarchicalCluster;
 import ac.keio.sslab.analytics.PatchDocMatcher;
+import ac.keio.sslab.analytics.PatchIDResolver;
 import ac.keio.sslab.classification.GALowerClassifier;
+import ac.keio.sslab.nlp.corpus.PatchEntryReader;
 
 public class ClusterMetricsJob extends SingletonGroupNLPJob {
 
@@ -52,12 +54,13 @@ public class ClusterMetricsJob extends SingletonGroupNLPJob {
 				}
 			}
 
+			ClusterMetrics m = new ClusterMetrics(PatchIDResolver.getPointIDtoPatchIDs(corpusDir, bottomupDir), new PatchEntryReader(corpusDir).all());
 			for (Entry<Integer, List<HierarchicalCluster>> lower: lowers.entrySet()) {
 				for (HierarchicalCluster c: lower.getValue()) {
+					m.set(c);
 					System.out.println("write Cluster ID = " + c.getID() + ", size = " + lower.getKey() + " (" + ++i + "/" + total + ")");
-					ClusterMetrics m = new ClusterMetrics(c);
-					m.writeJson(gaDir, gitDir, corpusDir, bottomupDir, dm);
-					pw.println(m.toCSVString(gitDir, corpusDir, bottomupDir, dm));
+					m.writeJson(gaDir, gitDir, dm);
+					pw.println(m.toCSVString());
 				}
 			}
 			pw.close();
