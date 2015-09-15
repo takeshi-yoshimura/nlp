@@ -25,7 +25,9 @@ public class PatchEntryReader {
 			return false;
 		}
 		patchID = r.next();
+		r.seekNext();
 		date = r.next();
+		r.seekNext();
 		ver = r.next();
 		files = new HashSet<>();
 		while (!r.isEndOfLine()) {

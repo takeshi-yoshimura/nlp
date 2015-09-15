@@ -195,6 +195,7 @@ public class ClusterMetrics {
 		for (Entry<String, Integer> e: getVersions(corpusDir, bottomupDir)) {
 			w.writeNumberField(e.getKey(), e.getValue());
 		}
+		w.writeEndObject();
 		w.writeStartObject("files");
 		for (Entry<String, Integer> e: getFiles(corpusDir, bottomupDir)) {
 			w.writeNumberField(e.getKey(), e.getValue());
