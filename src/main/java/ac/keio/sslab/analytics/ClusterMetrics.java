@@ -30,6 +30,7 @@ public class ClusterMetrics {
 		this.c = c;
 		this.singletons = searchSingleton(c);
 		this.topicEx = getTopicEx(c);
+		resetPatchEntries();
 	}
 
 	protected List<HierarchicalCluster> searchSingleton(HierarchicalCluster c) {
@@ -91,6 +92,12 @@ public class ClusterMetrics {
 			}
 		}
 		return SimpleSorter.reverse(keyFreqs);
+	}
+
+	public void resetPatchEntries() {
+		files = new HashMap<>();
+		dates = new HashMap<>();
+		vers = new HashMap<>();
 	}
 
 	Map<String, Integer> files = null;
