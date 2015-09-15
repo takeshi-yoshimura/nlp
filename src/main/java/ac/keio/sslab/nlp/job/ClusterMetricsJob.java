@@ -43,10 +43,18 @@ public class ClusterMetricsJob extends SingletonGroupNLPJob {
 			PrintWriter pw = JobUtils.getPrintWriter(new File(topDir, "summary-ga-" + ga + ".txt"));
 			gaDir.mkdirs();
 			TreeMap<Integer, List<HierarchicalCluster>> lowers = galower.getAllGALowerClusters(ga);
+			int i = 0;
+			int total = 0;
+
 			for (Entry<Integer, List<HierarchicalCluster>> lower: lowers.entrySet()) {
-				int i = 0;
+				for (@SuppressWarnings("unused") HierarchicalCluster c: lower.getValue()) {
+					++total;
+				}
+			}
+
+			for (Entry<Integer, List<HierarchicalCluster>> lower: lowers.entrySet()) {
 				for (HierarchicalCluster c: lower.getValue()) {
-					System.out.println("write Cluster ID = " + c.getID() + " (" + ++i + "/" + lowers.size() + ")");
+					System.out.println("write Cluster ID = " + c.getID() + ", size = " + lower.getKey() + " (" + ++i + "/" + total + ")");
 					ClusterMetrics m = new ClusterMetrics(c);
 					m.writeJson(gaDir, gitDir, corpusDir, bottomupDir, dm);
 					pw.println(m.toCSVString(gitDir, corpusDir, bottomupDir, dm));
