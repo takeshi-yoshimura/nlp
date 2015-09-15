@@ -64,8 +64,17 @@ public class SimpleJsonWriter {
 		json.writeStartObject();
 	}
 
+	public void writeStartArray(String filedName) throws IOException {
+		json.writeFieldName(filedName);
+		json.writeStartArray();
+	}
+
 	public void writeEndObject() throws IOException {
 		json.writeEndObject();
+	}
+
+	public void writeEndArray() throws IOException {
+		json.writeEndArray();
 	}
 
 	public void writeStringField(String fieldName, String value) throws IOException {

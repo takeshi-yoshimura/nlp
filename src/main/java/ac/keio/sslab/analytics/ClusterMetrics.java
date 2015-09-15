@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import ac.keio.sslab.nlp.corpus.PatchEntryReader.PatchEntry;
-import ac.keio.sslab.utils.SimpleGitReader;
 import ac.keio.sslab.utils.SimpleJsonWriter;
 import ac.keio.sslab.utils.SimpleSorter;
 
@@ -20,10 +19,12 @@ public class ClusterMetrics {
 	List<HierarchicalCluster> singletons;
 	Map<Integer, List<String>> resolver;
 	Map<String, PatchEntry> patchEntries;
+	Map<String, String> messages;
 
-	public ClusterMetrics(Map<Integer, List<String>> resolver, Map<String, PatchEntry> patchEntries) {
+	public ClusterMetrics(Map<Integer, List<String>> resolver, Map<String, PatchEntry> patchEntries, Map<String, String> messages) {
 		this.resolver = resolver;
 		this.patchEntries = patchEntries;
+		this.messages = messages;
 	}
 
 	public void set(HierarchicalCluster c) {
@@ -78,15 +79,14 @@ public class ClusterMetrics {
 		return ret;
 	}
 
-	public List<Entry<String, Integer>> getKeyFreqs(File gitDir, PatchDocMatcher m) throws IOException {
+	public List<Entry<String, Integer>> getKeyFreqs(PatchDocMatcher m) throws IOException {
 		Map<String, Integer> keyFreqs = new HashMap<>();
 		for (String keyword: m.keySet()) {
 			keyFreqs.put(keyword, 0);
 		}
-		SimpleGitReader g = new SimpleGitReader(gitDir);
 		for (HierarchicalCluster singleton: singletons) {
 			for (String patchID: resolver.get(singleton.getPoints().get(0))) {
-				for (String s: m.match(g.getFullMessage(patchID))) {
+				for (String s: m.match(messages.get(patchID))) {
 					keyFreqs.put(s, keyFreqs.get(s) + 1);
 				}
 			}
@@ -185,7 +185,7 @@ public class ClusterMetrics {
 		return c.getDensity();
 	}
 
-	public void writeJson(File dir, File gitDir, PatchDocMatcher m) throws IOException {
+	public void writeJson(File dir, PatchDocMatcher m) throws IOException {
 		SimpleJsonWriter w = new SimpleJsonWriter(new File(dir, Integer.toString(c.getID())));
 		w.writeNumberField("size", size());
 		w.writeNumberField("group average", ga());
@@ -208,10 +208,21 @@ public class ClusterMetrics {
 		}
 		w.writeEndObject();
 		w.writeStartObject("keywords");
-		for (Entry<String, Integer> e: getKeyFreqs(gitDir, m)) {
+		for (Entry<String, Integer> e: getKeyFreqs(m)) {
 			if (e.getValue() > 0) {
 				w.writeNumberField(e.getKey(), e.getValue());
 			}
+		}
+		w.writeEndObject();
+		w.writeStartObject("patches (ordered by distance to centroid)");
+		for (HierarchicalCluster singleton: getSingletonsOrderedByDistanceToCentroid()) {
+			List<String> patchIDs = resolver.get(singleton.getPoints().get(0));
+			w.writeStringCollection(Integer.toString(singleton.getPoints().get(0)), patchIDs);
+			w.writeStartObject("keywords");
+			for (Entry<String, List<String>> e: m.matchedGroup(messages.get(patchIDs.get(0))).entrySet()) {
+				w.writeStringCollection(e.getKey(), e.getValue());
+			}
+			w.writeEndObject();
 		}
 		w.writeEndObject();
 		w.close();

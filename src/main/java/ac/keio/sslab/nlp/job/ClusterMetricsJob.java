@@ -19,7 +19,9 @@ import ac.keio.sslab.analytics.HierarchicalCluster;
 import ac.keio.sslab.analytics.PatchDocMatcher;
 import ac.keio.sslab.analytics.PatchIDResolver;
 import ac.keio.sslab.classification.GALowerClassifier;
+import ac.keio.sslab.nlp.corpus.IdIndexReader;
 import ac.keio.sslab.nlp.corpus.PatchEntryReader;
+import ac.keio.sslab.utils.SimpleGitReader;
 
 public class ClusterMetricsJob extends SingletonGroupNLPJob {
 
@@ -39,6 +41,16 @@ public class ClusterMetricsJob extends SingletonGroupNLPJob {
 
 		double delta = mgr.getArgOrDefault("d", 0.05, Double.class);
 		double until = mgr.getArgOrDefault("u", 0.5, Double.class);
+		Map<String, String> messages = new HashMap<>();
+		SimpleGitReader g = new SimpleGitReader(gitDir);
+		System.out.println("loading all the full messages in git");
+		for (Entry<Integer, List<String>> e: new IdIndexReader(corpusDir).all().entrySet()) {
+			for (String patchID: e.getValue()) {
+				messages.put(patchID, g.getFullMessage(patchID));
+			}
+		}
+		g.close();
+		ClusterMetrics m = new ClusterMetrics(PatchIDResolver.getPointIDtoPatchIDs(corpusDir, bottomupDir), new PatchEntryReader(corpusDir).all(), messages);
 		for (double ga = delta; ga < until; ga += delta) {
 			System.out.println("================== ga = " + ga + " =====================");
 			File gaDir = new File(topDir, Double.toString(ga));
@@ -53,13 +65,11 @@ public class ClusterMetricsJob extends SingletonGroupNLPJob {
 					++total;
 				}
 			}
-
-			ClusterMetrics m = new ClusterMetrics(PatchIDResolver.getPointIDtoPatchIDs(corpusDir, bottomupDir), new PatchEntryReader(corpusDir).all());
 			for (Entry<Integer, List<HierarchicalCluster>> lower: lowers.entrySet()) {
 				for (HierarchicalCluster c: lower.getValue()) {
 					m.set(c);
 					System.out.println("write Cluster ID = " + c.getID() + ", size = " + lower.getKey() + " (" + ++i + "/" + total + ")");
-					m.writeJson(gaDir, gitDir, dm);
+					m.writeJson(gaDir, dm);
 					pw.println(m.toCSVString());
 				}
 			}
