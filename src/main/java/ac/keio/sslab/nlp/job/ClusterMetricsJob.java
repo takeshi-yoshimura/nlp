@@ -38,6 +38,7 @@ public class ClusterMetricsJob extends SingletonGroupNLPJob {
 		double until = mgr.getArgOrDefault("u", 0.5, Double.class);
 		for (double ga = delta; ga < until; ga += delta) {
 			File gaDir = new File(topDir, Double.toString(ga));
+			gaDir.mkdirs();
 			TreeMap<Integer, List<HierarchicalCluster>> lowers = galower.getAllGALowerClusters(ga);
 			for (Entry<Integer, List<HierarchicalCluster>> lower: lowers.entrySet()) {
 				for (HierarchicalCluster c: lower.getValue()) {
