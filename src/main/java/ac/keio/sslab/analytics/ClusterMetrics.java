@@ -10,8 +10,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import ac.keio.sslab.nlp.corpus.OriginalCorpusReader;
 import ac.keio.sslab.nlp.corpus.PatchEntryReader;
+import ac.keio.sslab.utils.SimpleGitReader;
 import ac.keio.sslab.utils.SimpleJsonWriter;
 import ac.keio.sslab.utils.SimpleSorter;
 
@@ -73,16 +73,16 @@ public class ClusterMetrics {
 		return ret;
 	}
 
-	public List<Entry<String, Integer>> getKeyFreqs(File corpusDir, File bottomupDir, PatchDocMatcher m) throws IOException {
+	public List<Entry<String, Integer>> getKeyFreqs(File gitDir, File corpusDir, File bottomupDir, PatchDocMatcher m) throws IOException {
 		Map<String, Integer> keyFreqs = new HashMap<>();
 		for (String keyword: m.keySet()) {
 			keyFreqs.put(keyword, 0);
 		}
 		Map<Integer, List<String>> resolver = PatchIDResolver.getPointIDtoPatchIDs(corpusDir, bottomupDir);
-		OriginalCorpusReader orig = new OriginalCorpusReader(corpusDir);
+		SimpleGitReader g = new SimpleGitReader(gitDir);
 		for (HierarchicalCluster singleton: singletons) {
 			String patchID = resolver.get(singleton.getPoints().get(0)).get(0);
-			for (String s: m.match(orig.get(patchID))) {
+			for (String s: m.match(g.getFullMessage(patchID))) {
 				keyFreqs.put(s, keyFreqs.get(s) + 1);
 			}
 		}
@@ -179,7 +179,7 @@ public class ClusterMetrics {
 		return c.getDensity();
 	}
 
-	public void writeJson(File dir, File corpusDir, File bottomupDir, PatchDocMatcher m) throws IOException {
+	public void writeJson(File dir, File gitDir, File corpusDir, File bottomupDir, PatchDocMatcher m) throws IOException {
 		SimpleJsonWriter w = new SimpleJsonWriter(new File(dir, Integer.toString(c.getID())));
 		w.writeNumberField("size", size());
 		w.writeNumberField("group average", ga());
@@ -198,7 +198,7 @@ public class ClusterMetrics {
 		}
 		w.writeEndObject();
 		w.writeStartObject("keywords");
-		for (Entry<String, Integer> e: getKeyFreqs(corpusDir, bottomupDir, m)) {
+		for (Entry<String, Integer> e: getKeyFreqs(gitDir, corpusDir, bottomupDir, m)) {
 			w.writeNumberField(e.getKey(), e.getValue());
 		}
 		w.writeEndObject();

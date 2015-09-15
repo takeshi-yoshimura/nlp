@@ -27,8 +27,11 @@ public class ClusterMetricsJob extends SingletonGroupNLPJob {
 		System.out.println("Start at: " + new Date().toString());
 		GALowerClassifier galower = new GALowerClassifier(pMgr.getLocalOutputDir());
 		File topDir = mgr.getLocalOutputDir();
-		File bottomupDir = mgr.getParentJobManager().getLocalOutputDir();
-		File corpusDir = mgr.getParentJobManager().getParentJobManager().getLocalOutputDir();
+		JobManager bottomupMgr = mgr.getParentJobManager();
+		File bottomupDir = bottomupMgr.getLocalOutputDir();
+		JobManager corpusMgr = bottomupMgr.getParentJobManager().getParentJobManager();
+		File corpusDir = corpusMgr.getLocalOutputDir();
+		File gitDir = new File(corpusMgr.getArgStr("g"));
 		PatchDocMatcher dm = new PatchDocMatcher(new File(mgr.getArgStr("r")));
 
 		double delta = mgr.getArgOrDefault("d", 0.05, Double.class);
@@ -39,7 +42,7 @@ public class ClusterMetricsJob extends SingletonGroupNLPJob {
 			for (Entry<Integer, List<HierarchicalCluster>> lower: lowers.entrySet()) {
 				for (HierarchicalCluster c: lower.getValue()) {
 					ClusterMetrics m = new ClusterMetrics(c);
-					m.writeJson(gaDir, corpusDir, bottomupDir, dm);
+					m.writeJson(gaDir, gitDir, corpusDir, bottomupDir, dm);
 				}
 			}
 		}
