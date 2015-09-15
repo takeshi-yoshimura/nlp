@@ -1,6 +1,7 @@
 package ac.keio.sslab.nlp.job;
 
 import java.io.File;
+import java.io.PrintWriter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -37,15 +38,21 @@ public class ClusterMetricsJob extends SingletonGroupNLPJob {
 		double delta = mgr.getArgOrDefault("d", 0.05, Double.class);
 		double until = mgr.getArgOrDefault("u", 0.5, Double.class);
 		for (double ga = delta; ga < until; ga += delta) {
+			System.out.println("================== ga = " + ga + " =====================");
 			File gaDir = new File(topDir, Double.toString(ga));
+			PrintWriter pw = JobUtils.getPrintWriter(new File(topDir, "summary-ga-" + ga + ".txt"));
 			gaDir.mkdirs();
 			TreeMap<Integer, List<HierarchicalCluster>> lowers = galower.getAllGALowerClusters(ga);
 			for (Entry<Integer, List<HierarchicalCluster>> lower: lowers.entrySet()) {
+				int i = 0;
 				for (HierarchicalCluster c: lower.getValue()) {
+					System.out.println("write Cluster ID = " + c.getID() + " (" + ++i + "/" + lowers.size() + ")");
 					ClusterMetrics m = new ClusterMetrics(c);
 					m.writeJson(gaDir, gitDir, corpusDir, bottomupDir, dm);
+					pw.println(m.toCSVString(gitDir, corpusDir, bottomupDir, dm));
 				}
 			}
+			pw.close();
 		}
 	}
 

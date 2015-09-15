@@ -68,7 +68,7 @@ public class ClusterMetrics {
 		List<String> ret = new ArrayList<>();
 		Map<Integer, List<String>> resolver = PatchIDResolver.getPointIDtoPatchIDs(corpusDir, bottomupDir);
 		for (HierarchicalCluster singleton: singletons) {
-			ret.add(resolver.get(singleton.getPoints().get(0)).get(0));
+			ret.addAll(resolver.get(singleton.getPoints().get(0)));
 		}
 		return ret;
 	}
@@ -81,9 +81,10 @@ public class ClusterMetrics {
 		Map<Integer, List<String>> resolver = PatchIDResolver.getPointIDtoPatchIDs(corpusDir, bottomupDir);
 		SimpleGitReader g = new SimpleGitReader(gitDir);
 		for (HierarchicalCluster singleton: singletons) {
-			String patchID = resolver.get(singleton.getPoints().get(0)).get(0);
-			for (String s: m.match(g.getFullMessage(patchID))) {
-				keyFreqs.put(s, keyFreqs.get(s) + 1);
+			for (String patchID: resolver.get(singleton.getPoints().get(0))) {
+				for (String s: m.match(g.getFullMessage(patchID))) {
+					keyFreqs.put(s, keyFreqs.get(s) + 1);
+				}
 			}
 		}
 		return SimpleSorter.reverse(keyFreqs);
@@ -203,9 +204,19 @@ public class ClusterMetrics {
 		w.writeEndObject();
 		w.writeStartObject("keywords");
 		for (Entry<String, Integer> e: getKeyFreqs(gitDir, corpusDir, bottomupDir, m)) {
-			w.writeNumberField(e.getKey(), e.getValue());
+			if (e.getValue() > 0) {
+				w.writeNumberField(e.getKey(), e.getValue());
+			}
 		}
 		w.writeEndObject();
 		w.close();
+	}
+
+	public String toCSVString(File gitDir, File corpusDir, File bottomupDir, PatchDocMatcher m) throws IOException {
+		StringBuilder sb = new StringBuilder();
+		sb.append(c.getID()).append(',');
+		sb.append(size()).append(',');
+		sb.append(ga());
+		return sb.toString();
 	}
 }
