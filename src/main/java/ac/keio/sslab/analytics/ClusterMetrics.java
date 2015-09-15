@@ -217,11 +217,13 @@ public class ClusterMetrics {
 		w.writeStartObject("patches (ordered by distance to centroid)");
 		for (HierarchicalCluster singleton: getSingletonsOrderedByDistanceToCentroid()) {
 			List<String> patchIDs = resolver.get(singleton.getPoints().get(0));
-			w.writeStringCollection(Integer.toString(singleton.getPoints().get(0)), patchIDs);
+			w.writeStartObject(Integer.toString(singleton.getPoints().get(0)));
+			w.writeStringCollection("commits", patchIDs);
 			w.writeStartObject("keywords");
 			for (Entry<String, List<String>> e: m.matchedGroup(messages.get(patchIDs.get(0))).entrySet()) {
 				w.writeStringCollection(e.getKey(), e.getValue());
 			}
+			w.writeEndObject();
 			w.writeEndObject();
 		}
 		w.writeEndObject();
