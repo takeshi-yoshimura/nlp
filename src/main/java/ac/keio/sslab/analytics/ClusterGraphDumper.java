@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import ac.keio.sslab.nlp.job.JobUtils;
+import ac.keio.sslab.utils.SimpleSorter;
 
 public class ClusterGraphDumper {
 
@@ -81,7 +82,8 @@ public class ClusterGraphDumper {
 
 		writer.print("\tC" + current.getID() + " [shape = record, label=\"{{C" + current.getID() + " | N(p) = " + current.points.size() + "}");
 		writer.print("| density = " + String.format("%1$3f", current.density));
-		for (Entry<String, Double> e: current.getCentroid().entrySet()) {
+		List<Entry<String, Double>> sorted = SimpleSorter.reverse(current.getCentroid());
+		for (Entry<String, Double> e: sorted) {
 			writer.print("|" + e.getKey() + ": " + String.format("%1$3f", e.getValue()));
 		}
 		writer.println("}\"];");
