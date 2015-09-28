@@ -15,7 +15,7 @@ public class ClusterGraphDumper {
 	List<HierarchicalCluster> clusters;
 
 	public ClusterGraphDumper(File clusteringDir) throws IOException {
-		ClusterGraph graph = ClusterGraph.parseResult(new File(clusteringDir, "clusters.csv"));
+		ClusterGraph graph = ClusterGraph.parseResult(clusteringDir);
 		root = graph.getRoot();
 		clusters = graph.getClusters();
 	}
