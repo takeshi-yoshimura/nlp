@@ -180,6 +180,7 @@ public class PatchCorpusWriter {
 		BeforeStopWordCorpusReader r = new BeforeStopWordCorpusReader(beforeStopWordCorpus.getParentFile());
 		StringBuilder sb = new StringBuilder();
 		while (r.seekNext()) {
+			sb.setLength(0);
 			for (String w: r.val()) {
 				if (stopWord.contains(w)) {
 					continue;
