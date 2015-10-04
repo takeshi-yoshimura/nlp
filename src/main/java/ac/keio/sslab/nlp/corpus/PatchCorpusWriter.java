@@ -74,7 +74,7 @@ public class PatchCorpusWriter {
 		}
 		if (isProcessed) {
 			emitPatchMetaData(patchID, date, version, files);
-			emitOriginalCorpus(patchID, message);
+			//emitOriginalCorpus(patchID, message);
 			++totalPatches;
 		}
 	}
