@@ -86,9 +86,11 @@ public class GitLogCorpusReader implements RepositoryReader {
 	public String getStats() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("Extracted: ").append(sinceStr).append(" - ").append(untilStr).append('\n');
-		sb.append("directory:");
-		for (String f: fileStr) {
-			sb.append(' ').append(f);
+		if (fileStr != null) {
+			sb.append("directory:");
+			for (String f: fileStr) {
+				sb.append(' ').append(f);
+			}
 		}
 		return sb.toString();
 	}
