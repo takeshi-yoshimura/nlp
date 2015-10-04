@@ -2,7 +2,6 @@ package ac.keio.sslab.nlp.job;
 
 import java.io.File;
 import java.io.PrintWriter;
-import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.commons.cli.Options;
@@ -63,7 +62,7 @@ public class LDADumpJob extends SingletonGroupNLPJob {
 		File topicFile = new File(outputFile, "topics.txt");
 		File probFile = new File(outputFile, "topicProbs.txt");
 		System.out.println("Extracting top 10 topics: " + topicFile.getAbsolutePath());
-		LDATopicReader topReader = new LDATopicReader(hdfs.dictionaryPath, hdfs.topicPath, conf.hdfs, 10);
+		LDATopicReader topReader = new LDATopicReader(hdfs.dictionaryPath, hdfs.topicPath, conf.hdfs, 30);
 		PrintWriter pw = JobUtils.getPrintWriter(topicFile);
 		PrintWriter pw3 = JobUtils.getPrintWriter(probFile);
 		StringBuilder sb = new StringBuilder();
@@ -83,20 +82,25 @@ public class LDADumpJob extends SingletonGroupNLPJob {
 		pw3.close();
 
 		File documentFile = new File(outputFile, "documents.txt");
+		File docProbFile = new File(outputFile, "docProbs.txt");
 		System.out.println("Extracting documents with top 10 topics: " + documentFile.getAbsolutePath());
 		PrintWriter pw2 = JobUtils.getPrintWriter(documentFile);
-		LDADocTopicReader docReader = new LDADocTopicReader(hdfs.docIndexPath, hdfs.documentPath, conf.hdfs, 10);
-		for (Entry<String, List<Integer>> document: docReader.getDocuments().entrySet()) {
+		PrintWriter pw4 = JobUtils.getPrintWriter(docProbFile);
+		LDADocTopicReader docReader = new LDADocTopicReader(hdfs.docIndexPath, hdfs.documentPath, conf.hdfs, 30);
+		for (int i = 0; i < docReader.numDocs(); i++) {
 			sb.setLength(0);
-			for (int topicId: document.getValue()) {
+			pw4.println("# doc id = " + docReader.docName(i));
+			for (Entry<Integer, Double> doc: SimpleSorter.reverse(docReader.getDocumentProbs(i))) {
 				if (sb.length() > 0) {
 					sb.append(' ');
 				}
-				sb.append(topicId);
+				sb.append(doc.getKey());
+				pw4.println(doc.getKey() + "," + doc.getValue());
 			}
-			pw2.println(document.getKey() + "\t" + sb.toString());
+			pw2.println(docReader.docName(i) + "\t" + sb.toString());
 		}
 		pw2.close();
+		pw4.close();
 	}
 
 	@Override

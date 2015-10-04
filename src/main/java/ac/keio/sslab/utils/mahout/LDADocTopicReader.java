@@ -18,6 +18,7 @@ import ac.keio.sslab.utils.hadoop.SequenceDirectoryReader;
 public class LDADocTopicReader {
 	Map<Integer, String> docIndex;
 	Map<Integer, List<Integer>> docTopicId;
+	Map<Integer, List<Double>> docTopicProbs;
 
 	public LDADocTopicReader(Path docIndex, Path documentDir, FileSystem fs, int maxTopics) throws IOException {
 		loadDocumentIndex(docIndex, fs);
@@ -30,6 +31,22 @@ public class LDADocTopicReader {
 			ret.put(topic.getValue(), docTopicId.get(topic.getKey()));
 		}
 		return ret;
+	}
+
+	public Map<Integer, Double> getDocumentProbs(int docId) {
+		Map<Integer, Double> ret = new HashMap<>();
+		for (int i = 0; i < docTopicId.get(docId).size(); i++) {
+			ret.put(docTopicId.get(docId).get(i), docTopicProbs.get(docId).get(i));
+		}
+		return ret;
+	}
+
+	public int numDocs() {
+		return docTopicId.size();
+	}
+
+	public String docName(int docId) {
+		return docIndex.get(docId);
 	}
 
 	public void loadDocumentIndex(Path docIndexPath, FileSystem fs) throws IOException {
@@ -45,6 +62,7 @@ public class LDADocTopicReader {
 
 	public void loadDocumentDir(Path documentDir, FileSystem fs, int maxTopics) throws IOException {
 		docTopicId = new HashMap<Integer, List<Integer>>();
+		docTopicProbs = new HashMap<>();
 		SequenceDirectoryReader<Integer, Vector> reader = new SequenceDirectoryReader<>(documentDir, fs, Integer.class, Vector.class);
 		while (reader.seekNext()) {
 			int docId = reader.key();
@@ -55,10 +73,13 @@ public class LDADocTopicReader {
 			}
 			List<Entry<Integer, Double>> sortedDocTopic = SimpleSorter.reverse(docTopic);
 			List<Integer> topicId = new ArrayList<Integer>();
+			List<Double> topicProbs = new ArrayList<>();
 			for (int i = 0; i < maxTopics && i < sortedDocTopic.size(); i++) {
 				topicId.add(sortedDocTopic.get(i).getKey());
+				topicProbs.add(sortedDocTopic.get(i).getValue());
 			}
 			docTopicId.put(docId, topicId);
+			docTopicProbs.put(docId, topicProbs);
 		}
 		reader.close();
 	}
