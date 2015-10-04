@@ -19,6 +19,7 @@ import org.apache.mahout.math.Vector.Element;
 public class LDATopicReader {
 
 	Map<Integer, List<Integer>> topicIDTermID;
+	Map<Integer, List<Double>> topicIDTermProbs;
 	Map<Integer, String> termIDTermString;
 
 	public LDATopicReader() {
@@ -41,6 +42,18 @@ public class LDATopicReader {
 		return ret;
 	}
 
+	public Map<String, Double> getTopicTermProbs(int topicID) {
+		Map<String, Double> ret = new HashMap<>();
+		for (int i = 0; i < topicIDTermProbs.get(topicID).size(); i++) {
+			ret.put(termIDTermString.get(topicIDTermID.get(topicID).get(i)), topicIDTermProbs.get(topicID).get(i));
+		}
+		return ret;
+	}
+
+	public int numTopics() {
+		return topicIDTermID.size();
+	}
+
 	public void loadDictionary(Map<Integer, String> dictionary) {
 		termIDTermString = dictionary;
 	}
@@ -58,6 +71,7 @@ public class LDATopicReader {
 
 	public void loadTopicTermDir(Path topicTerm, FileSystem fs, int maxTerms) throws IOException {
 		topicIDTermID = new HashMap<Integer, List<Integer>>();
+		topicIDTermProbs = new HashMap<>();
 		SequenceDirectoryReader<Integer, Vector> topicTermReader = new SequenceDirectoryReader<>(topicTerm, fs, Integer.class, Vector.class);
 		while (topicTermReader.seekNext()) {
 			int topicID = topicTermReader.key();
@@ -68,10 +82,13 @@ public class LDATopicReader {
 			}
 			List<Entry<Integer, Double>> sortedTermID = SimpleSorter.reverse(termID);
 			List<Integer> topTermID = new ArrayList<Integer>();
+			List<Double> topTermProbs = new ArrayList<>();
 			for (int i = 0; i < maxTerms && i < sortedTermID.size(); i++) {
 				topTermID.add(sortedTermID.get(i).getKey());
+				topTermProbs.add(sortedTermID.get(i).getValue());
 			}
 			topicIDTermID.put(topicID, topTermID);
+			topicIDTermProbs.put(topicID, topTermProbs);
 		}
 		topicTermReader.close();
 	}

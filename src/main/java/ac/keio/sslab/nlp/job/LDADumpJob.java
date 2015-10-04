@@ -9,6 +9,7 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.Path;
 
 import ac.keio.sslab.nlp.lda.LDAHDFSFiles;
+import ac.keio.sslab.utils.SimpleSorter;
 import ac.keio.sslab.utils.mahout.LDADocTopicReader;
 import ac.keio.sslab.utils.mahout.LDATopicReader;
 
@@ -60,21 +61,26 @@ public class LDADumpJob extends SingletonGroupNLPJob {
 
 		LDAHDFSFiles hdfs = new LDAHDFSFiles(pMgr.getHDFSOutputDir());
 		File topicFile = new File(outputFile, "topics.txt");
+		File probFile = new File(outputFile, "topicProbs.txt");
 		System.out.println("Extracting top 10 topics: " + topicFile.getAbsolutePath());
 		LDATopicReader topReader = new LDATopicReader(hdfs.dictionaryPath, hdfs.topicPath, conf.hdfs, 10);
 		PrintWriter pw = JobUtils.getPrintWriter(topicFile);
+		PrintWriter pw3 = JobUtils.getPrintWriter(probFile);
 		StringBuilder sb = new StringBuilder();
-		for (Entry<Integer, List<String>> topic: topReader.getTopics().entrySet()) {
+		for (int i = 0; i < topReader.numTopics(); i++) {
 			sb.setLength(0);
-			for (String word: topic.getValue()) {
+			pw3.println("# topic No." + i);
+			for (Entry<String, Double> topic: SimpleSorter.reverse(topReader.getTopicTermProbs(i))) {
 				if (sb.length() > 0) {
 					sb.append(' ');
 				}
-				sb.append(word);
+				sb.append(topic.getKey());
+				pw3.println(topic.getKey() + "," + topic.getValue());
 			}
-			pw.println(topic.getKey() + "\t" + sb.toString());
+			pw.println(i + "\t" + sb.toString());
 		}
 		pw.close();
+		pw3.close();
 
 		File documentFile = new File(outputFile, "documents.txt");
 		System.out.println("Extracting documents with top 10 topics: " + documentFile.getAbsolutePath());
