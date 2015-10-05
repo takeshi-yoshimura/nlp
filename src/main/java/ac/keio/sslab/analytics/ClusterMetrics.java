@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -32,7 +33,7 @@ public class ClusterMetrics {
 	public void set(HierarchicalCluster c) {
 		this.c = c;
 		this.singletons = searchSingleton(c);
-		this.topicEx = getTopicEx(c);
+		this.topicEx = getTopicEx();
 		resetPatchEntries();
 	}
 
@@ -51,7 +52,7 @@ public class ClusterMetrics {
 		traverseCluster(result, c.getRight());
 	}
 
-	protected Map<String, Double> getTopicEx(HierarchicalCluster c) {
+	protected Map<String, Double> getTopicEx() {
 		Map<String, Double> real = new HashMap<>();
 		for (HierarchicalCluster singleton: singletons) {
 			for (Entry<String, Double> e: singleton.getCentroid().entrySet()) {
@@ -61,6 +62,10 @@ public class ClusterMetrics {
 					real.put(e.getKey(), real.get(e.getKey()) + e.getValue());
 				}
 			}
+		}
+		for (Iterator<Entry<String, Double>> i = real.entrySet().iterator(); i.hasNext();) {
+			Entry<String, Double> e = i.next();
+			e.setValue(e.getValue() / singletons.size());
 		}
 		return real;
 	}
@@ -145,20 +150,8 @@ public class ClusterMetrics {
 		return SimpleSorter.reverse(vers);
 	}
 
-	public List<Entry<String, Integer>> getExpectedTopicNum() {
-		Map<String, Integer> count = new HashMap<>();
-		for (Entry<String, Double> e: topicEx.entrySet()) {
-			int i = e.getValue().intValue();
-			if (i < 1) {
-				continue;
-			}
-			count.put(e.getKey(), i);
-		}
-		if (count.isEmpty()) {
-			return null;
-		}
-
-		return SimpleSorter.reverse(count);
+	public List<Entry<String, Double>> getExpectedTopicNum() {
+		return SimpleSorter.reverse(topicEx);
 	}
 
 	public List<HierarchicalCluster> getSingletonsOrderedByDistanceToCentroid() {
@@ -196,9 +189,9 @@ public class ClusterMetrics {
 		w.writeNumberField("size", size());
 		w.writeNumberField("group average", ga());
 		w.writeStartObject("topics");
-		List<Entry<String, Integer>> et = getExpectedTopicNum();
+		List<Entry<String, Double>> et = getExpectedTopicNum();
 		if (et != null) {
-			for (Entry<String, Integer> e: getExpectedTopicNum()) {
+			for (Entry<String, Double> e: getExpectedTopicNum()) {
 				w.writeNumberField(e.getKey(), e.getValue());
 			}
 		}
