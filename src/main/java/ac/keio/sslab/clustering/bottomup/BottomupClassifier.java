@@ -32,7 +32,7 @@ public class BottomupClassifier {
 	File corpusIDIndexFile, idIndexFile;
 
 	public BottomupClassifier(File bottomupDir, File corpusDir, File gitDir) throws IOException {
-		List<HierarchicalCluster> singletons = ClusterGraph.parseResult(new File(bottomupDir, "clusters.csv")).getSingletons();
+		List<HierarchicalCluster> singletons = ClusterGraph.parseResult(bottomupDir).getSingletons();
 		this.pointTopics = new HashMap<Integer, Map<String, Double>>();
 		this.singletons = new HashMap<Integer, HierarchicalCluster>();
 		for (HierarchicalCluster singleton: singletons) {
