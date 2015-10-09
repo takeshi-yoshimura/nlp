@@ -80,7 +80,7 @@ public class PatchClusterJob extends SingletonGroupNLPJob {
 		if (p == null) {
 			System.out.println("Seems like we could not find the file for " + pointID + " in " + classDir.getAbsolutePath());
 			System.out.println("Extract clusters for the patch. wait a moment...");
-			BottomupClassifier c = new BottomupClassifier(corpusDir, bottomupDir, gitDir);
+			BottomupClassifier c = new BottomupClassifier(bottomupDir, corpusDir, gitDir);
 			if (!c.getPointIDs().contains(pointID)) {
 				System.err.println("Invalid point ID: " + pointID);
 				return;
