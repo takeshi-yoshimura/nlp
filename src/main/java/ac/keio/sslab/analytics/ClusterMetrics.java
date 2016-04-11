@@ -122,10 +122,19 @@ public class ClusterMetrics {
 		for (String patchID: getPatchIDs()) {
 			PatchEntry p = patchEntries.get(patchID);
 			for (String file: p.files) {
-				files.put(file, files.getOrDefault(file, 0) + 1);
+				if (!files.containsKey(file)) {
+					files.put(file, 0);
+				}
+				files.put(file, files.get(file) + 1);
 			}
-			dates.put(p.date, dates.getOrDefault(p.date, 0) + 1);
-			vers.put(p.ver, vers.getOrDefault(p.ver, 0) + 1);
+			if (!dates.containsKey(p.date)) {
+				dates.put(p.date, 0);
+			}
+			dates.put(p.date, dates.get(p.date) + 1);
+			if (!vers.containsKey(p.ver)) {
+				vers.put(p.ver, 0);
+			}
+			vers.put(p.ver, vers.get(p.ver) + 1);
 		}
 	}
 
